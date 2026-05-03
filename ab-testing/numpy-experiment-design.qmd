@@ -1,0 +1,158 @@
+---
+title: "Experiment Design & Analysis with NumPy Random"
+subtitle: "Understanding P-values and Statistical Power with NumPy Simulations"
+date: "2025-02-08"
+description: >
+  A hands-on walkthrough of experiment design and analysis using Python simulations. 
+  Covers p-values, statistical power, null and alternative distributions, and how to 
+  build a full AB test framework from scratch with numpy.random.
+categories: [AB Testing, Simulation, Power, P-values]
+---
+
+# Introduction
+
+This paper builds a complete AB test from scratch using simulation. We start from 
+significance testing basics, estimate p-values directly from simulated data, design 
+experiments with explicit power targets, and visualize the null and alternative distributions.
+
+---
+
+# Significance Test
+
+A significance test answers: *how likely is our observed data (or more extreme) if the 
+null hypothesis is true?*
+
+We express this as the **p-value**:
+
+$$p\text{-value} = \Pr(\text{data} \geq \text{observed} \mid H_0)$$
+
+---
+
+# Our First Fixed AB Test
+
+## Exact P-Value With Sims
+
+```{python}
+#| eval: false
+from numpy.random import binomial, seed
+from numpy import mean, where
+
+seed(42)
+NUMBER_SIMULATIONS = int(1e6)
+
+control_conversions = 525
+trials = 1000
+null_rate = 0.50
+
+simulated_experiments = binomial(
+    n=trials,
+    p=null_rate,
+    size=NUMBER_SIMULATIONS,
+)
+```
+
+## Our First P-Value
+
+```{python}
+#| eval: false
+p_value = mean(where(simulated_experiments >= control_conversions, 1, 0))
+print(f"p-value: {p_value:.4f}")
+```
+
+## Proper P-Value Practice
+
+A p-value below $\alpha = 0.05$ means that, **assuming the null is true**, results this extreme 
+would occur less than 5% of the time by chance.
+
+::: {.callout-warning}
+A p-value does **not** measure the probability that the null hypothesis is true, nor the 
+probability that the result was produced by random chance alone.
+:::
+
+---
+
+# Our First Test Design
+
+## Null Distribution
+
+```{python}
+#| eval: false
+from numpy.random import binomial, seed
+import numpy as np
+
+seed(10)
+NUMBER_SIMULATIONS = int(2e6)
+control_mean = 0.65
+n_per_arm = 66_293
+
+control_0 = binomial(n_per_arm, control_mean, NUMBER_SIMULATIONS) / n_per_arm
+control_1 = binomial(n_per_arm, control_mean, NUMBER_SIMULATIONS) / n_per_arm
+null_simulations = control_1 - control_0
+
+significance_threshold = np.percentile(null_simulations, 95)
+```
+
+## Alternative Distribution
+
+```{python}
+#| eval: false
+mde = 1.01  # 1% relative lift (ITC = 101)
+treatment_rate = control_mean * mde
+
+control_samples = binomial(n_per_arm, control_mean, NUMBER_SIMULATIONS) / n_per_arm
+treatment_samples = binomial(n_per_arm, treatment_rate, NUMBER_SIMULATIONS) / n_per_arm
+alt_simulations = treatment_samples - control_samples
+
+observed_power = np.mean(alt_simulations > significance_threshold)
+print(f"Observed Power: {observed_power:.2%}")
+```
+
+## Increase Statistical Power
+
+Power increases when you:
+
+- Increase sample size $n$
+- Increase the minimum detectable effect (MDE)
+- Decrease $\alpha$ (raises the required effect but sharpens the threshold)
+
+```{python}
+#| eval: false
+# Double the sample size and observe power change
+n_high_power = n_per_arm * 2
+control_hp = binomial(n_high_power, control_mean, NUMBER_SIMULATIONS) / n_high_power
+treatment_hp = binomial(n_high_power, treatment_rate, NUMBER_SIMULATIONS) / n_high_power
+alt_hp = treatment_hp - control_hp
+
+sig_threshold_hp = np.percentile(
+    binomial(n_high_power, control_mean, NUMBER_SIMULATIONS) / n_high_power
+    - binomial(n_high_power, control_mean, NUMBER_SIMULATIONS) / n_high_power,
+    95,
+)
+power_hp = np.mean(alt_hp > sig_threshold_hp)
+print(f"Power at 2x samples: {power_hp:.2%}")
+```
+
+---
+
+# Conclusion
+
+This walkthrough demonstrates how simulation eliminates the need for closed-form formulas — 
+you can estimate any quantity of interest by generating enough data and summarizing the results.
+
+Key ideas:
+
+- **P-values** measure how surprising the data are under the null hypothesis
+- **Statistical power** is the probability of detecting a real effect
+- **Simulation** lets you explore these concepts intuitively
+
+---
+
+# Extras
+
+- Continuous metrics: use `numpy.random.normal` instead of `binomial`
+- Sequential testing: evaluate the p-value at each day and stop when it crosses a threshold
+- Bayesian: replace the p-value decision with Expected Loss
+
+---
+
+*Big THANK YOU to my colleague Joseph Powers, PhD, who introduced me to simulation studies.*

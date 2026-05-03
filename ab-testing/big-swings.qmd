@@ -1,0 +1,126 @@
+---
+title: "The Value of Big Swings"
+subtitle: "Why Bold Experiments Deliver More Value with Less Traffic"
+date: "2025-08-29"
+description: >
+  Compares two distinct strategies — guaranteed small wins vs. a single 
+  high-variance transformational bet — using 30,000 A/B test simulations. 
+  Big Swings run faster and generate far more average value.
+categories: [AB Testing, Strategy, Simulation]
+---
+
+# TL/DR
+
+Smart A/B testing helps to maximize business metrics like conversion, retention, and revenue. 
+But experimenters often face a strategic dilemma:
+
+- **Play it safe** with frequent, incremental wins
+- **Swing big** with fewer, riskier tests that could deliver big rewards
+
+This tradeoff is a recurring challenge when traffic is limited and profits need to grow.
+
+This paper compares two distinct strategies:
+
+1. **Guaranteed Small Wins**: ten low-risk bets with small, consistent gains
+2. **Big Swing**: single high-variance transformational bet that could flop — or deliver a breakthrough
+
+Which strategy delivers more value on average?
+
+---
+
+# A/B Test Design
+
+To ground the comparison, I define a base experiment with these parameters:
+
+| Min (Test Days) | Max (Test Days) | Max (Test N) | Post Test N | Baseline | Split |
+|---|---|---|---|---|---|
+| 7 | 20 | 80,000 | 500,000 | 65% | 50/50 |
+
+# Strategy Comparison
+
+## Simulation Framework
+
+```{python}
+#| eval: false
+from numpy.random import binomial
+
+total_users = int(8e4)
+control_users = int(total_users / 2)
+number_days = 20
+control_users_per_day = control_users / number_days
+control_baseline = 0.65
+
+control_conversions_by_day = binomial(
+    control_users,
+    control_baseline,
+    number_days,
+)
+```
+
+```{python}
+#| eval: false
+from numpy.random import normal
+
+treatment_users = int(total_users / 2)
+index_to_control = normal(99.5, 2.5, 1) / 100
+treatment_mean = control_baseline * index_to_control
+
+treatment_conversions_by_day = binomial(
+    treatment_users,
+    treatment_mean,
+    number_days,
+)
+```
+
+## Stopping Threshold
+
+**Expected Loss** is used as the stopping threshold:
+
+$$\text{Expected Loss} = \Pr(\text{harm}) \times \mathbb{E}[\text{Magnitude of Harm}]$$
+
+**Risk Threshold = 0.025%**
+
+## Simulation Evaluation
+
+1. For each simulation, and each day on or after `Min (Test Days)`:
+   - Compute **Risk** for both conditions.
+   - Compare each condition's **Risk** to the **Risk Threshold**.
+2. Decision rules:
+   - If **only one** condition breaches → select it as winner.
+   - If **both** breach → choose the lower risk.
+   - If **neither** breaches → select the lowest final risk.
+3. Roll out winner to remaining test population and post-test population.
+
+## Results
+
+| Metric | One Guaranteed Win | One Big Swing |
+|---|---|---|
+| **Mean Run-time** | N = 59,516 (15 days) | N = 38,713 (10 days) |
+| **Projected Mean @ Year-End** | 65.037% (100.06 ITC) | 65.390% (100.60 ITC) |
+| **Marginal Events vs No Test** | 216 | 2,261 |
+
+---
+
+# Home Runs Outweigh Strikeouts
+
+How can a strategy with a 60% strikeout rate still outperform 10 guaranteed wins?
+
+Because when a transformational idea hits, it hits big. Smart experiments cut losses early while 
+allowing strong performers to scale — letting a single home run outweigh several duds.
+
+# Conclusion
+
+**Big Swing** experiments run faster and deliver greater average value. While many attempts miss, 
+rare breakthroughs generate such huge gains that they transform the overall outcome. Strikeouts are 
+common, but home runs change the game.
+
+# Recommendation
+
+Prioritize bold bets to capture speed and upside, but manage them within a balanced portfolio. 
+Transformational experiments create breakthroughs; smaller wins provide stability.
+
+> Bold swings drive breakthroughs; balance makes them sustainable.
+
+---
+
+*Big THANK YOU to my colleague Joseph Powers, PhD, who introduced me to Quarto and simulation studies.*

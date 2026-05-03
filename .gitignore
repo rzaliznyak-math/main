@@ -1,0 +1,8 @@
+# Quarto-generated output — do not commit
+*.html
+search.json
+site_libs/
+*_files/
+.quarto/
+
+/.quarto/

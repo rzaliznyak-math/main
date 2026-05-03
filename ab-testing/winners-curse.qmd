@@ -1,0 +1,241 @@
+---
+title: "The Winner's Curse"
+subtitle: "Significance Testing is Not an Endorsement of the Treatment Effect"
+date: "2026-01-20"
+description: >
+  Statistical significance can reliably indicate that control and treatment are 
+  unlikely to be equal, but not that the observed effect size is accurate. 
+  Conditioning on significance systematically inflates effect sizes.
+categories: [AB Testing, Bias, Bayesian, Effect Size]
+---
+
+# Introduction
+
+This article is written for practitioners who run experiments and rely on statistical 
+significance to make decisions about effect sizes.
+
+Statistical significance can reliably indicate that control and treatment are unlikely to be equal, 
+but **not** that the observed effect size is an accurate estimate of the true effect.
+
+In other words, **statistical significance is not an endorsement of the observed treatment effect**. 
+Below we show why conditioning on statistical significance systematically inflates effect sizes, 
+quantify how often this happens, and outline what to do when accuracy matters.
+
+---
+
+# AB Test Setup
+
+## Baseline
+
+```{python}
+#| eval: false
+control_mean = 0.65
+```
+
+## Significance Threshold
+
+```{python}
+#| eval: false
+alpha = 0.05
+```
+
+## Minimum Detectable Effect
+
+```{python}
+#| eval: false
+mde = 101  # index-to-control; +1% relative lift
+index_to_control_planned = mde / 100
+delta_to_control_planned = control_mean * index_to_control_planned - control_mean
+```
+
+> **Note**: An MDE of 101 ITC corresponds to a +1% relative change — increasing `baseline rate` 
+> from 65% to 65.65% — a delta-to-control of 0.65%.
+
+## Statistical Power
+
+```{python}
+#| eval: false
+power = 0.80
+```
+
+## Required Samples
+
+```{python}
+#| eval: false
+from math import ceil, sqrt
+from scipy.stats import norm
+
+
+def two_proportion_required_samples(
+    alpha,
+    power,
+    control_rate,
+    treatment_rate,
+    control_to_treatment_ratio=1,
+    tail_type="one_tail",
+):
+    alpha_adjusted = (
+        alpha if tail_type is None or tail_type.lower() == "one_tail" else alpha / 2
+    )
+    beta = 1 - power
+    z_stat_critical = norm.ppf(1 - alpha_adjusted)
+    z_power_critical = norm.ppf(beta)
+    expected_delta = treatment_rate - control_rate
+    control_allocation = control_to_treatment_ratio / (control_to_treatment_ratio + 1)
+    treatment_allocation = 1 - control_allocation
+    blended_p = treatment_rate * treatment_allocation + control_rate * control_allocation
+    blended_q = 1 - blended_p
+    variance_blended = blended_p * blended_q / (control_allocation * treatment_allocation)
+    total_samples_required = variance_blended * (
+        (z_power_critical - z_stat_critical) / (0 - expected_delta)
+    ) ** 2
+    control_samples = ceil(control_allocation * total_samples_required)
+    treatment_samples = ceil(treatment_allocation * total_samples_required)
+    return (control_samples, treatment_samples)
+
+
+(control_required_samples, treatment_required_samples) = two_proportion_required_samples(
+    alpha,
+    power,
+    control_mean,
+    control_mean * index_to_control_planned,
+    control_to_treatment_ratio=1,
+    tail_type="one_tail",
+)
+```
+
+---
+
+# Visualize Power
+
+## Null Distribution
+
+```{python}
+#| eval: false
+import numpy as np
+from numpy.random import binomial, seed
+
+seed(10)
+NUMBER_SIMULATIONS = int(2e6)
+
+control_simulation_samples_0 = (
+    binomial(control_required_samples, control_mean, NUMBER_SIMULATIONS)
+    / control_required_samples
+)
+control_simulation_samples_1 = (
+    binomial(control_required_samples, control_mean, NUMBER_SIMULATIONS)
+    / control_required_samples
+)
+null_simulations = control_simulation_samples_1 - control_simulation_samples_0
+significance_threshold = np.percentile(null_simulations, 95)
+```
+
+The _Null Distribution_ shows outcomes we expect to see if control and treatment are identical. 
+Anything beyond the 95th percentile at 0.43% is deemed statistically significant with a 5% false positive rate.
+
+## Alternative Distribution
+
+```{python}
+#| eval: false
+control_simulation_samples = (
+    binomial(control_required_samples, control_mean, NUMBER_SIMULATIONS)
+    / control_required_samples
+)
+treatment_simulation_samples = (
+    binomial(
+        treatment_required_samples,
+        control_mean * index_to_control_planned,
+        NUMBER_SIMULATIONS,
+    )
+    / treatment_required_samples
+)
+alt_simulations = treatment_simulation_samples - control_simulation_samples
+observed_power = np.mean(np.where(alt_simulations > significance_threshold, 1, 0))
+```
+
+## Overlay Curves
+
+**Statistical power** = 79.9% — the share of the Alternative Distribution expected to surpass our significance threshold.
+
+---
+
+# Winner's Curse
+
+## Analyze Simulations
+
+> Among simulated experiments from our Alternative Distribution that are statistically significant, 
+> what fraction of observed effects exceed the true effect?
+
+Let $\widehat{\Delta}$ denote the observed delta-to-control and $\Delta_{\text{true}}$ denote the true delta-to-control.
+
+$$\Pr\!\left(\widehat{\Delta} > \Delta_{\text{true}} \mid \text{Statistical Significance}\right)$$
+
+```{python}
+#| eval: false
+stats_sig = alt_simulations > significance_threshold
+over_true_effect = alt_simulations > delta_to_control_planned
+
+observed_power = np.mean(stats_sig)
+pr_over_estimate_statssig = np.mean(over_true_effect[stats_sig])
+```
+
+- **62.8%** of simulated experiments that reached statistical significance overestimated the true delta-to-control.
+
+## Rule of Thumb
+
+$$\Pr\!\left(\widehat{\Delta} > \Delta_{\text{true}} \mid \text{Statistical Significance}\right) = \frac{0.5}{\text{Power}} = \frac{0.5}{0.80} = 62.5\%$$
+
+This closely matches our simulation result of 62.8%.
+
+---
+
+# What To Do
+
+## Option 1: Increase Power
+
+If you can afford more samples, increase statistical power to reduce effect size inflation. 
+But the problem of over-estimates never vanishes:
+
+- Until an experiment reaches **50% power**, statistically significant results are **guaranteed** to overestimate the true effect.
+- At **100% power**, the minimum achievable overestimation rate is **50%**.
+
+## Option 2: Use Priors
+
+Prior beliefs are weighed against observed results using precision-weighted averaging, 
+shrinking noisier experimental estimates more aggressively toward historical baselines.
+
+```{python}
+#| eval: false
+import numpy as np
+
+
+def combine_prior_and_likelihood(prior_mean, prior_se, likelihood_mean, likelihood_se):
+    """
+    Combines a normal prior and normal likelihood into a normal posterior
+    using precision-weighted averaging.
+    """
+    prior_mean = np.asarray(prior_mean)
+    prior_se = np.asarray(prior_se)
+    likelihood_mean = np.asarray(likelihood_mean)
+    likelihood_se = np.asarray(likelihood_se)
+
+    posterior_variance = 1 / (1 / prior_se**2 + 1 / likelihood_se**2)
+    posterior_mean = posterior_variance * (
+        prior_mean / prior_se**2 + likelihood_mean / likelihood_se**2
+    )
+    posterior_se = np.sqrt(posterior_variance)
+    return posterior_mean, posterior_se
+```
+
+---
+
+# Conclusion
+
+As shown above, statistical significance conditions on extreme results, biasing reported 
+effect sizes upward — **the Winner's Curse**.
+
+Even in a properly designed experiment with 80% statistical power, a statistically significant 
+result is more likely to overestimate than underestimate the true delta-to-control — 62.5% of the time.
+
+**In short**: Statistical significance reliably tells us when an effect exists, not how large it 
+is — estimating magnitude requires more than hypothesis testing alone.

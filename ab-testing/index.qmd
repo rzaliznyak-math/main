@@ -1,0 +1,55 @@
+---
+title: "AB Testing"
+toc: false
+---
+
+Articles on experimentation design, statistical analysis, and simulation-driven decision making.
+
+:::: {.grid}
+
+::: {.g-col-6}
+### [The Value of Big Swings](big-swings.qmd)
+**Aug 2025** &nbsp;·&nbsp; Strategy · Simulation
+
+Why bold experiments deliver more value with less traffic. Compares guaranteed small wins vs. high-variance transformational bets using 30,000 simulations.
+
+[Read →](big-swings.qmd)
+:::
+
+::: {.g-col-6}
+### [The Winner's Curse](winners-curse.qmd)
+**Jan 2026** &nbsp;·&nbsp; Bias · Bayesian
+
+Statistical significance is not an endorsement of the treatment effect. Quantifies how often significant results overestimate true lift.
+
+[Read →](winners-curse.qmd)
+:::
+
+::: {.g-col-6}
+### [Beta vs Binomial Distribution](beta-vs-binomial.qmd)
+**Dec 2025** &nbsp;·&nbsp; Distributions · Bayesian
+
+When to use each distribution in experimentation. Covers p-values, credible intervals, and the Normal approximation — all built with simulations.
+
+[Read →](beta-vs-binomial.qmd)
+:::
+
+::: {.g-col-6}
+### [Experiment Design & Analysis with NumPy](numpy-experiment-design.qmd)
+**Feb 2025** &nbsp;·&nbsp; Simulation · Power
+
+Understanding p-values and statistical power through simulation. Builds a full AB test framework from scratch using `numpy.random`.
+
+[Read →](numpy-experiment-design.qmd)
+:::
+
+::: {.g-col-6}
+### [The Power of Data Simulation](power-of-simulation.qmd)
+**Nov 2024** &nbsp;·&nbsp; Simulation · Intuition
+
+Using Python's NumPy random generator to model randomness and build intuition for rate-based metrics. A foundation for all simulation-based work.
+
+[Read →](power-of-simulation.qmd)
+:::
+
+::::

@@ -1,0 +1,16 @@
+---
+title: "Finance"
+toc: false
+---
+
+Articles on quantitative finance, portfolio theory, and financial modeling with Python.
+
+*Coming soon.*
+
+Topics in progress:
+
+- Portfolio Optimization
+- Risk & Return Tradeoffs
+- Option Pricing with Simulation
+- Time Series Forecasting for Financial Data
+- Backtesting Strategies with Python

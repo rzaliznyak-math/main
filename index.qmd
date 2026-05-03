@@ -1,0 +1,77 @@
+---
+title: "Russ Zaliznyak"
+subtitle: "AB Testing · Python · Finance · Statistics · Math"
+toc: true
+toc-depth: 2
+---
+
+I work on experimentation systems, Bayesian optimization, and simulation-driven decision-making.
+My writing focuses on practical methods in AB testing, statistical intuition, and Python tooling.
+
+[Full CV →](cv.qmd) &nbsp;|&nbsp; [rzaliznyak@gmail.com](mailto:rzaliznyak@gmail.com)
+
+---
+
+## The Winner's Curse
+
+`Jan 2026` &nbsp;·&nbsp; AB Testing · Bias · Bayesian
+
+Statistical significance is not an endorsement of the treatment effect. Quantifies how often
+significant results overestimate true lift — and what to do about it.
+
+[Read →](ab-testing/winners-curse.qmd)
+
+---
+
+## Beta vs Binomial Distribution
+
+`Dec 2025` &nbsp;·&nbsp; Statistics · Bayesian · Distributions
+
+When to use each distribution in experimentation. Covers p-values, credible intervals,
+two-proportion tests, and the Normal approximation — all built with simulations.
+
+[Read →](ab-testing/beta-vs-binomial.qmd)
+
+---
+
+## Why Switch to Polars from Pandas
+
+`Oct 2025` &nbsp;·&nbsp; Python · Performance
+
+Benchmarking Polars vs Pandas across common DataFrame operations: read, write, construct,
+pivot, join, and filter. Polars wins across the board — often by 10–30x.
+
+[Read →](python/polars-vs-pandas.qmd)
+
+---
+
+## The Value of Big Swings
+
+`Aug 2025` &nbsp;·&nbsp; AB Testing · Strategy · Simulation
+
+Why bold experiments deliver more value with less traffic. Compares guaranteed small wins
+vs. high-variance transformational bets using 30,000 simulations.
+
+[Read →](ab-testing/big-swings.qmd)
+
+---
+
+## Experiment Design & Analysis with NumPy
+
+`Feb 2025` &nbsp;·&nbsp; AB Testing · Simulation · Power
+
+Understanding p-values and statistical power through simulation. Builds a full AB test
+framework from scratch using `numpy.random`.
+
+[Read →](ab-testing/numpy-experiment-design.qmd)
+
+---
+
+## The Power of Data Simulation
+
+`Nov 2024` &nbsp;·&nbsp; Simulation · NumPy · Intuition
+
+Using Python's NumPy random generator to model randomness and build intuition for
+rate-based metrics. A foundation for all simulation-based work.
+
+[Read →](ab-testing/power-of-simulation.qmd)

@@ -1,0 +1,72 @@
+project:
+  type: website
+  output-dir: .
+
+website:
+  title: "Russ Zaliznyak"
+  description: "AB Testing | Python | Finance | Statistics | Math"
+
+  navbar:
+    background: primary
+    search: true
+    left:
+      - text: "Home"
+        href: index.qmd
+      - text: "AB Testing"
+        menu:
+          - text: "All Articles"
+            href: ab-testing/index.qmd
+          - text: "---"
+          - text: "The Power of Data Simulation"
+            href: ab-testing/power-of-simulation.qmd
+          - text: "Experiment Design & Analysis"
+            href: ab-testing/numpy-experiment-design.qmd
+          - text: "Beta vs Binomial Distribution"
+            href: ab-testing/beta-vs-binomial.qmd
+          - text: "The Winner's Curse"
+            href: ab-testing/winners-curse.qmd
+          - text: "The Value of Big Swings"
+            href: ab-testing/big-swings.qmd
+      - text: "Python"
+        menu:
+          - text: "All Articles"
+            href: python/index.qmd
+          - text: "---"
+          - text: "Why Switch to Polars"
+            href: python/polars-vs-pandas.qmd
+      - text: "AI"
+        href: ai/index.qmd
+      - text: "Finance"
+        href: finance/index.qmd
+    right:
+      - text: "CV"
+        href: cv.qmd
+      - icon: github
+        href: https://github.com/rzaliznyak-math
+        target: _blank
+
+  sidebar:
+    style: "floating"
+
+  page-footer:
+    left: "© 2026 Russ Zaliznyak"
+    right:
+      - text: "rzaliznyak@gmail.com"
+        href: "mailto:rzaliznyak@gmail.com"
+
+format:
+  html:
+    theme:
+      light: cosmo
+      dark: darkly
+    css: styles.css
+    toc: true
+    toc-depth: 3
+    code-copy: true
+    code-fold: true
+    code-tools: true
+    smooth-scroll: true
+
+execute:
+  freeze: auto
+  cache: false

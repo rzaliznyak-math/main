@@ -1,0 +1,149 @@
+---
+title: "Why I Switched to Polars From Pandas"
+subtitle: "Benchmarking Polars vs Pandas DataFrames"
+date: "2025-10-21"
+description: >
+  If you use Pandas DataFrames to store and analyze large datasets, consider switching to Polars.
+  Benchmarks across read, write, construct, pivot, join, and filter operations — Polars wins every time.
+categories: [Python, Polars, Pandas, Performance]
+---
+
+# TL;DR
+
+If you use **Pandas** DataFrames to store and analyze large datasets, consider making a change 
+to **Polars**.
+
+DataFrames allow me to think relationally — just like SQL — and I use them extensively in virtually 
+all of my work: app development, exploratory data analysis, and summarizing large datasets.
+
+::: {.callout-note}
+**System & Environment**
+
+All benchmarks ran on a **16-inch MacBook Pro (2021)** with an **Apple M1 Max** chip and **64 GB** 
+of unified memory, running macOS Sonoma 14.7.
+
+Tests used **Python 3.10.9**, **Pandas 1.5.3** and **Polars 1.33.0**.
+:::
+
+**Methodology**: Each operation was executed **1,000 times** per library, and the **mean execution 
+time** was recorded.
+
+---
+
+# Read | Write
+
+```{python}
+#| eval: false
+# Download 10 MB test file
+# https://raw.githubusercontent.com/frictionlessdata/datasets/main/files/csv/10mb.csv
+
+import pandas as pd
+import polars as pl
+import timeit
+
+FILE = "10mb.csv"
+
+pd_read_time = timeit.timeit(lambda: pd.read_csv(FILE), number=1000)
+pl_read_time = timeit.timeit(lambda: pl.read_csv(FILE), number=1000)
+
+print(f"Pandas mean read:  {pd_read_time / 1000:.4f}s")
+print(f"Polars mean read:  {pl_read_time / 1000:.4f}s")
+print(f"Speed increase:    {pd_read_time / pl_read_time:.2f}x")
+```
+
+| Metric | Mean Speed Increase | Standard Deviation |
+|---|---|---|
+| Read | 16.79x | 3.57 |
+| Write | 30.74x | 5.32 |
+
+Polars is faster at reading and writing CSVs because it's built in Rust with parallelized, 
+memory-efficient algorithms that fully utilize multiple CPU cores.
+
+---
+
+# Construct | Pivot
+
+## Simulate Dataset
+
+```{python}
+#| eval: false
+import numpy as np
+import string
+import random
+
+N = int(5e6)
+
+
+def random_str(n=5):
+    return "".join(random.choices(string.ascii_letters, k=n))
+
+
+data = {
+    "id": np.arange(N),
+    "value": np.random.randint(0, 1000, size=N),
+    "flag": np.random.choice([True, False], size=N),
+    "category": np.random.choice(["A", "B", "C", "D"], size=N),
+    "score": np.random.randn(N),
+    "year": np.random.randint(2000, 2025, size=N),
+    "name": [random_str(5) for _ in range(N)],
+    "ratio": np.random.random(size=N),
+    "count": np.random.randint(1, 100, size=N),
+}
+```
+
+| Metric | Mean Speed Increase | Standard Deviation |
+|---|---|---|
+| Constructor | 3.41x | 0.43 |
+| Group By | 10.18x | 1.58 |
+
+**Constructor**: Polars uses Rust's zero-copy memory model and parallel data parsing, avoiding 
+Python's object overhead.
+
+**Pivot Tables**: Polars executes grouped aggregations in parallel and leverages an optimized 
+query engine built on Apache Arrow.
+
+---
+
+# Joins | Filter
+
+| Metric | Mean Speed Increase | Standard Deviation |
+|---|---|---|
+| Inner Join | 1.71x | 1.19 |
+| Union All | 8.91x | 16.02 |
+| Filter | 2.38x | 1.46 |
+
+**Joins**: Polars uses parallelized hash join algorithms implemented in Rust, operating directly 
+on Arrow memory and minimizing copying.
+
+**Filter**: Polars evaluates filter expressions lazily and in parallel at the columnar level, 
+enabling vectorized, cache-efficient filtering.
+
+> **Note on Union All variance**: Polars' `vstack()` uses multi-threaded Arrow buffer operations 
+> that improve mean runtime but introduce non-deterministic variance — the OS schedules threads 
+> differently across performance and efficiency cores.
+
+---
+
+# Conclusion
+
+Across the board, `Polars` is faster at all typical DataFrame operations tested. The syntax 
+differences are minimal and AI can quickly convert your `Pandas` code.
+
+If you work with large DataFrames, Polars is worth the 30-minute migration: faster runtimes, 
+smaller memory footprint, and minimal code changes.
+
+---
+
+# Code Reference
+
+| Operation | Pandas | Polars | Speed |
+|---|---|---|---|
+| **Read CSV** | `pd.read_csv("data.csv")` | `pl.read_csv("data.csv")` | 16.79x |
+| **Write CSV** | `df.to_csv("out.csv")` | `df.write_csv("out.csv")` | 30.74x |
+| **Constructor** | `pd.DataFrame(data)` | `pl.DataFrame(data)` | 3.41x |
+| **Group By** | `df.groupby("col")["value"].mean()` | `df.groupby("col").agg(pl.col("value").mean())` | 10.18x |
+| **Inner Join** | `df1.merge(df2, on="id", how="inner")` | `df1.join(df2, on="id", how="inner")` | 1.71x |
+| **Union All** | `pd.concat([df1, df2], ignore_index=True)` | `df1.vstack(df2)` | 8.91x |
+| **Filter** | `df[df["value"] > 10]` | `df.filter(pl.col("value") > 10)` | 2.38x |
+
+\*Results will vary depending on machine and dataset size/structure.

@@ -1,0 +1,81 @@
+---
+title: "Russ Zaliznyak"
+subtitle: "AB Testing | Dev | Python | Research | Training | AI"
+toc: true
+toc-depth: 2
+---
+
+## Skills
+
+I love math, problem solving, and writing Python to help solve those problems. I use _simulation studies_ to build intuition for AB Testing and leverage AI to speed up research and development.
+
+## Goals
+
+Advance experimentation, build tools that make hard problems easy, and teach others. My goal is to lead efforts to scale capabilities — improving apps, libraries, and AI-driven tools.
+
+## Experience
+
+### Principal Data Scientist · January 2022 – Present
+*Trajectory Changing*
+
+- **Bayesian Analysis**: Introduced fast, business-focused AB Testing
+- **Simulation Engine**: Determine optimal stopping thresholds
+- **AlphaBeta Testing App**: Portal with latest methods (5,000+ views/month)
+- **New Methods**: CUPED, Informed Priors, Simulation Studies, Python Libraries
+- **AI**: Connecting AI assistants to support apps + training GPT to answer questions
+- **Teacher & Mentor**: TechTalks on Bayesian methods; sessions to mentor peers
+
+### Staff Data Scientist · February 2019 – January 2022
+*Making A Difference*
+
+- Deployed Interactive FAQ Site: AB Test Fundamentals, MABs, SPRT
+- Introduced Sequential Testing & SPRT methods
+- Plotly Dash Apps: Sample Size Calculator (Fixed/SPRT) + Experiment Analysis Tools
+- Respected Experimentation Lecturer
+- Data Engineering & ETL: PySpark jobs to speed up test analysis
+
+### Sr. Data Scientist · September 2016 – February 2019
+*Finding A Niche*
+
+- Prototyped Experimentation Training Program for Data Scientists
+- Developed Experimentation Playbook & Guides for non-analysts
+- Launched App Recommendation Model
+- Built Customer Cash Flow Prediction Model
+
+### Sr. Technical Data Analyst · September 2013 – September 2016
+*Learning The Ropes*
+
+- Deployed logistic models to predict customer churn; paired with AB tests for outreach
+- Built Tableau Dashboards to automate AB Test Design & Analysis
+- Exploratory Data Analysis
+
+## Education
+
+**Santa Clara University** — MS, Mathematics · 2010–2013
+
+**San Jose State University** — BS, Mathematics · 2005–2008
+
+**Santa Clara University** — BS, Finance · 2003–2005
+
+## Selected Writing
+
+| Article | Published |
+|---|---|
+| [The Value of Big Swings](ab-testing/big-swings.qmd) | Aug 2025 |
+| [Why Switch to Polars](python/polars-vs-pandas.qmd) | Oct 2025 |
+| [Beta vs Binomial Distribution](ab-testing/beta-vs-binomial.qmd) | Dec 2025 |
+| [The Winner's Curse](ab-testing/winners-curse.qmd) | Jan 2026 |
+| [Experiment Design & Analysis with NumPy](ab-testing/numpy-experiment-design.qmd) | Feb 2025 |
+| [The Power of Data Simulation](ab-testing/power-of-simulation.qmd) | Nov 2024 |
+
+## Links
+
+- [ITS Webinar: Going Bayes — Shifting Our Testing Methods](https://rzaliznyak-math.github.io){target="_blank"}
+- [The Value of Big Swings](ab-testing/big-swings.qmd)
+- [Experiment Design & Analysis with NumPy Random](ab-testing/numpy-experiment-design.qmd)
+- [The Power of Data Simulation](ab-testing/power-of-simulation.qmd)
+- [Why Switch to Polars](python/polars-vs-pandas.qmd)
+
+---
+
+**Contact:** [rzaliznyak@gmail.com](mailto:rzaliznyak@gmail.com)

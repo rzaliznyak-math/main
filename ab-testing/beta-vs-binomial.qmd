@@ -1,0 +1,198 @@
+---
+title: "Beta vs Binomial Distribution"
+subtitle: "Understand the Difference Using Simulations"
+date: "2025-12-09"
+description: >
+  In experimentation we often estimate conversion rates or event probabilities. 
+  Understanding when to apply a Binomial model vs. a Beta model is critical for 
+  significance testing (p-values) and Bayesian (credible intervals) analysis.
+categories: [AB Testing, Distributions, Bayesian, Simulation]
+---
+
+# Introduction
+
+In experimentation we often estimate conversion rates or event probabilities. 
+Understanding when to apply a Binomial model versus a Beta model is important for 
+significance (p-values) and Bayesian (credible intervals) analysis.
+
+---
+
+# Formulation
+
+Both distributions arise from the same underlying relationship — one models outcomes 
+given a probability, and the other models the probability itself given outcomes.
+
+**Binomial**
+
+$$P(X = k \mid n, p) = \binom{n}{k} p^{k} (1 - p)^{n - k}$$
+
+*Purpose*: Model the probability of observing $k$ successes in $n$ independent Bernoulli trials, 
+where each trial has success probability $p$.
+
+*Example*: **Given assumption that $p = 0.50$**, what is the probability of generating 525 or 
+more conversions out of 1,000 samples?
+
+**Beta**
+
+$$f(p \mid \alpha, \beta) = \frac{1}{B(\alpha, \beta)} \, p^{\alpha - 1} (1 - p)^{\beta - 1}$$
+
+$$B(\alpha, \beta) = \frac{\Gamma(\alpha)\Gamma(\beta)}{\Gamma(\alpha + \beta)}$$
+
+*Purpose*: Describe the probability of different values of the success parameter $p$, 
+given $\alpha$ successes and $\beta$ failures.
+
+*Example*: **Given 525 conversions out of 1,000 samples**, what are the values of $p$ that 
+could have generated such a test result?
+
+> Use the **Binomial** when assessing how likely your observed data are under a hypothesis; 
+> use the **Beta** when estimating the underlying conversion rate.
+
+---
+
+# Sim Code
+
+```{python}
+#| eval: false
+import pandas as pd
+
+conversions = 525
+trials = 1000
+null_rate = 0.50
+NUMBER_SIMULATIONS = int(5e6)
+```
+
+## P-value with Binomial Distribution
+
+```{python}
+#| eval: false
+from numpy.random import binomial, seed
+from numpy import where, mean, percentile
+
+seed(5)
+
+control_simulated_experiments = binomial(
+    n=trials,
+    p=null_rate,
+    size=NUMBER_SIMULATIONS,
+)
+p_value = mean(where(control_simulated_experiments >= conversions, 1, 0))
+```
+
+**p-value** = 0.061
+
+*The **p-value** is the likelihood of seeing our experiment data (or more extreme), assuming the Null Hypothesis is true.*
+
+## Credible Intervals with Beta
+
+```{python}
+#| eval: false
+from numpy.random import beta
+
+failures = trials - conversions
+tail_alpha = 0.025
+
+beta_control_samples = beta(
+    conversions,
+    failures,
+    size=NUMBER_SIMULATIONS,
+)
+
+lower_bound = percentile(beta_control_samples, tail_alpha * 100)
+upper_bound = percentile(beta_control_samples, 100 - tail_alpha * 100)
+```
+
+**95% Credible Interval**: ( 49.40% , 55.59% )
+
+The **95% credible interval** from the Beta distribution represents where the true rate most 
+likely lies given our data.
+
+---
+
+# Replace With Normal
+
+Both distributions can be well approximated with the Normal Distribution because of CLT.
+
+$$\mathrm{Binomial}(n, p) \approx \mathcal{N}\big(np,\, np(1 - p)\big)$$
+
+$$\mathrm{Beta}(\alpha, \beta) \approx \mathcal{N}\!\Bigg( \mu = \frac{\alpha}{\alpha + \beta},\; \sigma^2 = \frac{\alpha \beta}{ (\alpha + \beta)^2 (\alpha + \beta + 1)} \Bigg)$$
+
+> **Note**: The Normal approximation breaks down when $n$ is small or when $p$ is near 0 or 1.
+
+---
+
+# Two-Proportion Test
+
+## Estimate P-values
+
+```{python}
+#| eval: false
+control_events = 500
+treatment_events = 535
+delta_conversions = treatment_events - control_events
+trials = 1000
+
+blended_rate = (control_events + treatment_events) / (2 * trials)
+control_simulated_experiments = binomial(n=trials, p=blended_rate, size=NUMBER_SIMULATIONS)
+treatment_simulated_experiments = binomial(n=trials, p=blended_rate, size=NUMBER_SIMULATIONS)
+delta_simulated_experiments = treatment_simulated_experiments - control_simulated_experiments
+p_value = mean(where(delta_simulated_experiments >= delta_conversions, 1, 0))
+```
+
+**p-value** = 0.0611
+
+## Generate Credible Intervals
+
+```{python}
+#| eval: false
+control_failures = trials - control_events
+treatment_failures = trials - treatment_events
+tail_alpha = 0.025
+
+beta_control_samples = beta(control_events, control_failures, size=NUMBER_SIMULATIONS)
+beta_treatment_samples = beta(treatment_events, treatment_failures, size=NUMBER_SIMULATIONS)
+beta_delta_samples = beta_treatment_samples - beta_control_samples
+
+lower_bound = percentile(beta_delta_samples, tail_alpha * 100)
+upper_bound = percentile(beta_delta_samples, 100 - tail_alpha * 100)
+```
+
+**95% Credible Interval**: ( -0.88% , 7.86% )
+
+---
+
+# Common Pitfalls
+
+1. Using the normal approximation when $np < 5$ or $n(1 - p) < 5$ can distort tail probabilities.
+2. Confusing _p_-values (likelihoods of data under $H_0$) with posterior probabilities about $p$.
+3. Ignoring the $+1$ in $\mathrm{Beta}(1,1)$ priors understates uncertainty when $n$ is small.
+
+---
+
+# Beta Distribution & Priors
+
+The **Beta distribution** naturally supports _updating beliefs_ as new data arrive:
+
+$$\text{Prior: } \mathrm{Beta}(\alpha_0, \beta_0) \;\xrightarrow[\text{observe } k, n]{}\; \text{Posterior: } \mathrm{Beta}(\alpha_0 + k,\, \beta_0 + n - k)$$
+
+This property allows the model to evolve over time — today's posterior becomes tomorrow's prior, 
+making the Beta approach ideal for iterative experiments or streaming data.
+
+---
+
+# Key Takeaways
+
+The Binomial distribution quantifies how surprising the observed data are under a fixed $p_0$, 
+while the Beta distribution estimates which values of $p$ are most plausible given the outcomes.
+
+Under large-sample conditions, both are well-approximated by the Normal distribution, though this 
+breaks down when $n$ is small or $p$ is near 0 or 1.
+
+The Beta model's ability to update priors as new data arrive makes it especially useful for 
+iterative experiments or streaming environments.
+
+---
+
+# Future Topics
+
+**Request future training sessions**: Bayesian Priors, Analyzing Continuous Data, SRM, CUPED, 
+and other AB Testing topics.

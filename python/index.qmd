@@ -1,0 +1,19 @@
+---
+title: "Python"
+toc: false
+---
+
+Articles on Python tooling, performance, and data engineering patterns.
+
+:::: {.grid}
+
+::: {.g-col-6}
+### [Why Switch to Polars from Pandas](polars-vs-pandas.qmd)
+**Oct 2025** &nbsp;·&nbsp; Polars · Pandas · Benchmarks
+
+Benchmarking Polars vs Pandas across common DataFrame operations: read, write, construct, pivot, join, and filter. Polars wins across the board — often by 10–30x.
+
+[Read →](polars-vs-pandas.qmd)
+:::
+
+::::
