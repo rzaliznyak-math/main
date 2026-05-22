@@ -1,0 +1,373 @@
+[
+  {
+    "objectID": "cv.html",
+    "href": "cv.html",
+    "title": "Russ Zaliznyak",
+    "section": "",
+    "text": "I love math, problem solving, and writing Python to help solve those problems. I use simulation studies to build intuition for AB Testing and leverage AI to speed up research and development."
+  },
+  {
+    "objectID": "cv.html#skills",
+    "href": "cv.html#skills",
+    "title": "Russ Zaliznyak",
+    "section": "",
+    "text": "I love math, problem solving, and writing Python to help solve those problems. I use simulation studies to build intuition for AB Testing and leverage AI to speed up research and development."
+  },
+  {
+    "objectID": "cv.html#goals",
+    "href": "cv.html#goals",
+    "title": "Russ Zaliznyak",
+    "section": "Goals",
+    "text": "Goals\nAdvance experimentation, build tools that make hard problems easy, and teach others. My goal is to lead efforts to scale capabilities — improving apps, libraries, and AI-driven tools."
+  },
+  {
+    "objectID": "cv.html#experience",
+    "href": "cv.html#experience",
+    "title": "Russ Zaliznyak",
+    "section": "Experience",
+    "text": "Experience\n\nPrincipal Data Scientist · January 2022 – Present\nTrajectory Changing\n\nBayesian Analysis: Introduced fast, business-focused AB Testing\nSimulation Engine: Determine optimal stopping thresholds\nAlphaBeta Testing App: Portal with latest methods (5,000+ views/month)\nNew Methods: CUPED, Informed Priors, Simulation Studies, Python Libraries\nAI: Connecting AI assistants to support apps + training GPT to answer questions\nTeacher & Mentor: TechTalks on Bayesian methods; sessions to mentor peers\n\n\n\nStaff Data Scientist · February 2019 – January 2022\nMaking A Difference\n\nDeployed Interactive FAQ Site: AB Test Fundamentals, MABs, SPRT\nIntroduced Sequential Testing & SPRT methods\nPlotly Dash Apps: Sample Size Calculator (Fixed/SPRT) + Experiment Analysis Tools\nRespected Experimentation Lecturer\nData Engineering & ETL: PySpark jobs to speed up test analysis\n\n\n\nSr. Data Scientist · September 2016 – February 2019\nFinding A Niche\n\nPrototyped Experimentation Training Program for Data Scientists\nDeveloped Experimentation Playbook & Guides for non-analysts\nLaunched App Recommendation Model\nBuilt Customer Cash Flow Prediction Model\n\n\n\nSr. Technical Data Analyst · September 2013 – September 2016\nLearning The Ropes\n\nDeployed logistic models to predict customer churn; paired with AB tests for outreach\nBuilt Tableau Dashboards to automate AB Test Design & Analysis\nExploratory Data Analysis"
+  },
+  {
+    "objectID": "cv.html#education",
+    "href": "cv.html#education",
+    "title": "Russ Zaliznyak",
+    "section": "Education",
+    "text": "Education\nSanta Clara University — MS, Mathematics · 2010–2013\nSan Jose State University — BS, Mathematics · 2005–2008\nSanta Clara University — BS, Finance · 2003–2005"
+  },
+  {
+    "objectID": "cv.html#selected-writing",
+    "href": "cv.html#selected-writing",
+    "title": "Russ Zaliznyak",
+    "section": "Selected Writing",
+    "text": "Selected Writing\n\n\n\nArticle\nPublished\n\n\n\n\nThe Value of Big Swings\nAug 2025\n\n\nWhy Switch to Polars\nOct 2025\n\n\nBeta vs Binomial Distribution\nDec 2025\n\n\nThe Winner’s Curse\nJan 2026\n\n\nExperiment Design & Analysis with NumPy\nFeb 2025\n\n\nThe Power of Data Simulation\nNov 2024"
+  },
+  {
+    "objectID": "cv.html#links",
+    "href": "cv.html#links",
+    "title": "Russ Zaliznyak",
+    "section": "Links",
+    "text": "Links\n\nITS Webinar: Going Bayes — Shifting Our Testing Methods\nThe Value of Big Swings\nExperiment Design & Analysis with NumPy Random\nThe Power of Data Simulation\nWhy Switch to Polars\n\n\nContact: rzaliznyak@gmail.com"
+  },
+  {
+    "objectID": "talks/index.html",
+    "href": "talks/index.html",
+    "title": "Talks & Videos",
+    "section": "",
+    "text": "Nov 6, 2025 · Intuit Tech Stories · Bayesian · Experimentation\n\n\nHow aligning business priorities with Bayesian Risk-Based Testing reduced Intuit’s experiment duration by over 60%. Covers the tradeoffs of moving away from frequentist defaults, the math behind Bayesian risk-based decisions, and how we scaled adoption across data science, product, and leadership teams.\nWatch →"
+  },
+  {
+    "objectID": "talks/index.html#going-bayes-shifting-our-testing-methods-to-reflect-our-priorities",
+    "href": "talks/index.html#going-bayes-shifting-our-testing-methods-to-reflect-our-priorities",
+    "title": "Talks & Videos",
+    "section": "",
+    "text": "Nov 6, 2025 · Intuit Tech Stories · Bayesian · Experimentation\n\n\nHow aligning business priorities with Bayesian Risk-Based Testing reduced Intuit’s experiment duration by over 60%. Covers the tradeoffs of moving away from frequentist defaults, the math behind Bayesian risk-based decisions, and how we scaled adoption across data science, product, and leadership teams.\nWatch →"
+  },
+  {
+    "objectID": "talks/index.html#how-intuit-uses-dash-enterprise",
+    "href": "talks/index.html#how-intuit-uses-dash-enterprise",
+    "title": "Talks & Videos",
+    "section": "How Intuit Uses Dash Enterprise",
+    "text": "How Intuit Uses Dash Enterprise\n\nMar 15, 2024 · Plotly · Dash · Experimentation Tooling\n\n\nHighlight reel from a Plotly webinar on building Intuit’s experimentation suite in Dash Enterprise — a sample size calculator, sequential AB testing app, and experiment simulation tool — adopted by 500+ users across Intuit’s A2D org. Reduced experiment runtime by 70%+ with zero HTML or engineering experience required.\nWatch →"
+  },
+  {
+    "objectID": "python/index.html",
+    "href": "python/index.html",
+    "title": "Python",
+    "section": "",
+    "text": "Articles on Python tooling, performance, and data engineering patterns.\n\n\nWhy Switch to Polars from Pandas\nOct 2025  ·  Polars · Pandas · Benchmarks\nBenchmarking Polars vs Pandas across common DataFrame operations: read, write, construct, pivot, join, and filter. Polars wins across the board — often by 10–30x.\nRead →"
+  },
+  {
+    "objectID": "ab-testing/winners-curse.html",
+    "href": "ab-testing/winners-curse.html",
+    "title": "The Winner’s Curse",
+    "section": "",
+    "text": "Only extreme results pass the significance threshold - biasing reported effect sizes upward — the Winner’s Curse"
+  },
+  {
+    "objectID": "ab-testing/winners-curse.html#baseline",
+    "href": "ab-testing/winners-curse.html#baseline",
+    "title": "The Winner’s Curse",
+    "section": "Baseline",
+    "text": "Baseline\nAssume our baseline metric floats around 65%.\n\ncontrol_mean = 0.65"
+  },
+  {
+    "objectID": "ab-testing/winners-curse.html#significance-threshold",
+    "href": "ab-testing/winners-curse.html#significance-threshold",
+    "title": "The Winner’s Curse",
+    "section": "Significance Threshold",
+    "text": "Significance Threshold\nUse a traditional significance threshold of 0.05. If our test conditions are equal, 5% of the time we will incorrectly and falsely detect a signal (Type I Error).\n\nalpha = 0.05"
+  },
+  {
+    "objectID": "ab-testing/winners-curse.html#minimum-detectable-effect",
+    "href": "ab-testing/winners-curse.html#minimum-detectable-effect",
+    "title": "The Winner’s Curse",
+    "section": "Minimum Detectable Effect",
+    "text": "Minimum Detectable Effect\nSet MDE = 101 (index-to-control), representing a +1% relative lift, a typical effect size that product experiments in industry are powered to detect.\n\nmde = 101\nindex_to_control_planned = mde / 100\ndelta_to_control_planned = control_mean*index_to_control_planned - control_mean\n\n\nNote: An MDE (index-to-control) of 101 corresponds to a +1% relative change — in this case increasing baseline rate from 65% to 65.65% — a delta-to-control of 0.65%."
+  },
+  {
+    "objectID": "ab-testing/winners-curse.html#statistical-power",
+    "href": "ab-testing/winners-curse.html#statistical-power",
+    "title": "The Winner’s Curse",
+    "section": "Statistical Power",
+    "text": "Statistical Power\nUse a traditional statistical power of 0.80. If our MDE is true, our experiment has an 80% chance of detecting statistical significance. Our False Negative risk is 20% (Type II error).\n\npower = 0.80\n\nThese assumptions reflect a textbook, well-powered experiment."
+  },
+  {
+    "objectID": "ab-testing/winners-curse.html#required-samples",
+    "href": "ab-testing/winners-curse.html#required-samples",
+    "title": "The Winner’s Curse",
+    "section": "Required Samples",
+    "text": "Required Samples\n\n\nMethod to Calculate Required Samples\nfrom math import ceil, sqrt\nfrom scipy.stats import norm\n\n\ndef two_proportion_required_samples(\n    alpha,\n    power,\n    control_rate,\n    treatment_rate,\n    control_to_treatment_ratio=1,\n    tail_type=\"one_tail\",\n):\n    \"\"\"Calculate the required number of samples for two-proportion test.\n    :param float alpha: Value in (0,1) that specifies desired False Positive Rate\n    :param float power: Value in (0,1) that specifies desired 1 - False Negative Rate\n    :param float control_rate: Value in (0,1) that specifies expected control rate\n    :param float treatment_rate: Value in (0,1) that specifies expected treatment rate\n    :param float control_to_treatment_ratio: The ratio of control to treatment samples\n    :param string tail_type: Specifies one-tail or two-tail experiment\\n\n        Defaults to \"two_tail\" if anything other than \"one_tail\" is given\n    :return: prob_tuple: Tuple of required control samples and treatment samples\n    :rtype: tuple\n    \"\"\"\n    alpha_adjusted = (\n        alpha\n        if tail_type is None\n        or tail_type.lower() == \"one_tail\"\n        else alpha / 2\n    )\n    beta = 1 - power\n\n    ##Determine how extreme z-score must be to reach statistically significant result\n    z_stat_critical = norm.ppf(1 - alpha_adjusted)\n    ##Determine z-score of treatment - control that corresponds to a True Positive Rate (1-beta)\n    z_power_critical = norm.ppf(beta)\n    ##Expected Difference between treatment and control\n    expected_delta = treatment_rate - control_rate\n    ##control Allocation Rate\n    control_allocation = (\n        control_to_treatment_ratio\n        / (control_to_treatment_ratio + 1)\n    )\n    ##treatment Allocation Rate\n    treatment_allocation = 1 - control_allocation\n\n    ##Calculate Variance of treatment Rate - control Rate\n    blended_p = (\n        treatment_rate * treatment_allocation\n        + control_rate * control_allocation\n    )\n    blended_q = 1 - blended_p\n    variance_blended = (\n        blended_p\n        * blended_q\n        / (\n            control_allocation\n            * treatment_allocation\n        )\n    )\n    ##Total Samples Required\n    total_samples_required = (\n        variance_blended\n        * (\n            (z_power_critical - z_stat_critical)\n            / (0 - expected_delta)\n        )\n        ** 2\n    )\n    ##Split total samples into control and treatment\n    control_samples = ceil(\n        control_allocation\n        * total_samples_required\n    )\n    treatment_samples = ceil(\n        treatment_allocation\n        * total_samples_required\n    )\n    ##Perhaps return required_delta in the future\n    required_delta = (\n        z_stat_critical * sqrt(variance_blended)\n        + 0\n    )\n    return (control_samples, treatment_samples)\n\n\n\n(\n    control_required_samples,\n    treatment_required_samples,\n) = two_proportion_required_samples(\n    alpha,\n    power,\n    control_mean,\n    control_mean * index_to_control_planned,\n    control_to_treatment_ratio=1,\n    tail_type=\"one_tail\",\n)\n\ncontrol: 66,293 treatment: 66,293 Total: 132,586"
+  },
+  {
+    "objectID": "ab-testing/winners-curse.html#null-distribution",
+    "href": "ab-testing/winners-curse.html#null-distribution",
+    "title": "The Winner’s Curse",
+    "section": "Null Distribution",
+    "text": "Null Distribution\n\n\nPlot Null\nimport numpy as np\nimport plotly.graph_objects as go\nfrom numpy.random import binomial, seed\nimport plotly.figure_factory as ff\n\nseed(10)\nNUMBER_SIMULATIONS = int(2e6)\n\ncontrol_simulation_samples_0 = (\n    binomial(\n        control_required_samples,\n        control_mean,\n        NUMBER_SIMULATIONS,\n    )\n    / control_required_samples\n)\ncontrol_simulation_samples_1 = (\n    binomial(\n        control_required_samples,\n        control_mean,\n        NUMBER_SIMULATIONS,\n    )\n    / control_required_samples\n)\n\nnull_simulations = (\n    control_simulation_samples_1\n    - control_simulation_samples_0\n)\n\n\nsignificance_threshold = np.percentile(null_simulations, 95)\n\nfig = ff.create_distplot(\n    [null_simulations[:10000]],\n    group_labels=[\"Null Distribution\"],\n    show_hist=False,\n    show_rug=False,\n)\nfig.data[0].fill = None            # ensure no fill\nfig.data[0].line.color = \"red\"\nfig.data[0].line.width = 2   \nfig.data[0].showlegend = False\n# Convert tuple traces to NumPy arrays so boolean masking works\nx = np.asarray(fig.data[0].x, dtype=float)\ny = np.asarray(fig.data[0].y, dtype=float)\n\n# Right-tail mask\nmask = x &gt;= significance_threshold\nif mask.any():\n    x_tail = x[mask]\n    y_tail = y[mask]\n\n    # Interpolate y at the exact threshold to make a clean polygon\n    y_thresh = np.interp(significance_threshold, x, y)\n\n    # Closed polygon for shaded area\n    poly_x = np.concatenate(\n        ([significance_threshold], x_tail, [x_tail[-1], significance_threshold])\n    )\n    poly_y = np.concatenate(([y_thresh], y_tail, [0], [0]))\n\n    fig.add_trace(\n        go.Scatter(\n            x=poly_x,\n            y=poly_y,\n            hoverinfo = \"skip\",\n            fill=\"toself\",\n            mode=\"lines\",\n            showlegend = False,\n            fillcolor=\"rgba(255,0,0,0.3)\",\n            name=\"&lt;b&gt;StatsSig&lt;/b&gt;\",\n        )\n    )\n    fig.add_trace(\n    go.Scatter(\n        hoverinfo=\"skip\",\n        name=\"avg\",\n        x=[np.mean(null_simulations)],\n        y=[0.000],\n        mode=\"markers\",\n        marker_symbol=\"circle\",\n        showlegend=False,\n        marker=dict(\n            color=\"red\",\n            size=20,\n            line=dict(color=\"black\", width=3),\n        ),\n    )\n)\n\n# Vertical reference line\nfig.add_vline(\n    x=significance_threshold,\n    line_dash=\"dash\",\n    line_color=\"red\",\n    annotation_text=f\"{100*(1-alpha):.0f}th %ile Threshold = {significance_threshold:.2%}\",\n    annotation_position=\"top right\",\n)\n\nfig.update_layout(\n    xaxis_tickformat=\".1%\",\n    height = 400,\n    width = 600\n)\nfig.update_yaxes(showticklabels=False)\nfig.data[0].hoverinfo = \"skip\"\nfig.show()\nnull_fig = fig\n\n\n        \n        \n        \n\n\n                            \n                                            \n\n\n The Null Distribution shows outcomes we expect to see if control and treatment are identical. Anything that falls beyond the 95th percentile at 0.43% is deemed Statistically Significant with a false positive rate of 5%."
+  },
+  {
+    "objectID": "ab-testing/winners-curse.html#alternative-distribution",
+    "href": "ab-testing/winners-curse.html#alternative-distribution",
+    "title": "The Winner’s Curse",
+    "section": "Alternative Distribution",
+    "text": "Alternative Distribution\n\n\nPlot Alternative\ncontrol_simulation_samples = (\n    binomial(\n        control_required_samples,\n        control_mean,\n        NUMBER_SIMULATIONS,\n    )\n    / control_required_samples\n)\ntreatment_simulation_samples = (\n    binomial(\n        treatment_required_samples,\n        control_mean * index_to_control_planned,\n        NUMBER_SIMULATIONS,\n    )\n    / treatment_required_samples\n)\n\nalt_simulations = (\n    treatment_simulation_samples\n    - control_simulation_samples\n)\n\nobserved_power = np.mean(np.where(alt_simulations &gt; significance_threshold , 1 , 0))\n\nfig = ff.create_distplot(\n    [alt_simulations[:10000]],\n    group_labels=[\"Alternative Distribution\"],\n    show_hist=False,\n    show_rug=False,\n)\nfig.data[0].fill = None            # ensure no fill\nfig.data[0].line.color = \"green\"\nfig.data[0].line.width = 2    \nfig.update_layout(xaxis_tickformat=\".1%\", showlegend=False)\nfig.add_trace(\n    go.Scatter(\n        hoverinfo=\"skip\",\n        name=\"avg\",\n        x=[np.mean(alt_simulations)],\n        y=[0.000],\n        mode=\"markers\",\n        marker_symbol=\"circle\",\n        showlegend=False,\n        marker=dict(\n            color=\"green\",\n            size=20,\n            line=dict(color=\"black\", width=3),\n        ),\n    )\n)\nalt_fig = fig\nalt_fig.update_yaxes(showticklabels=False)\n\nalt_fig.update_layout(\n    xaxis_tickformat=\".1%\",\n    height = 400,\n    width = 600\n)\nalt_fig.data[0].hoverinfo = \"skip\"\nalt_fig\n\n\n                            \n                                            \n\n\n The Alternative Distribution shows outcomes we expect to see if Minimum Detectable Effect is present. The distribution is centered around 0.65% since we set MDE = 101."
+  },
+  {
+    "objectID": "ab-testing/winners-curse.html#overlay-curves",
+    "href": "ab-testing/winners-curse.html#overlay-curves",
+    "title": "The Winner’s Curse",
+    "section": "Overlay Curves",
+    "text": "Overlay Curves\nstatistical power = 79.9% — the share of Alternative Distribution that is expected to surpass our significance threshold.\n\n\n                            \n                                            \n\n\n With the experimental design fixed, we can now examine how conditioning on statistical significance affects observed effect sizes."
+  },
+  {
+    "objectID": "ab-testing/winners-curse.html#analyze-simulations",
+    "href": "ab-testing/winners-curse.html#analyze-simulations",
+    "title": "The Winner’s Curse",
+    "section": "Analyze Simulations",
+    "text": "Analyze Simulations\n\nAmong simulated experiments from our Alternative Distribution that are statistically significant, what fraction of observed effects exceed the true effect (dtc) that was encoded into the simulations?\n\nLet \\(\\widehat{\\Delta}\\) denote the observed delta-to-control in our experiment and \\(\\Delta_{\\text{true}}\\) denote the true delta-to-control.\n\\[\n\\Pr\\!\\left(\\widehat{\\Delta} &gt; \\Delta_{\\text{true}} \\mid \\text{Statistical Significance}\\right)\n\\]\n\nstats_sig = alt_simulations &gt; significance_threshold\nover_true_effect = alt_simulations &gt; delta_to_control_planned\n\nobserved_power = np.mean(stats_sig)\npr_over_estimate_statssig = np.mean(over_true_effect[stats_sig])\n\n\n62.8% of our simulated experiments that reached Stats Sig overestimated the true delta-to-control we programmed into our simulations."
+  },
+  {
+    "objectID": "ab-testing/winners-curse.html#rule-of-thumb",
+    "href": "ab-testing/winners-curse.html#rule-of-thumb",
+    "title": "The Winner’s Curse",
+    "section": "Rule of Thumb",
+    "text": "Rule of Thumb\n\\[\n\\Pr\\!\\left(\\widehat{\\Delta} &gt; \\Delta_{\\text{true}} \\mid \\text{Statistical Significance}\\right)\n\\]\nThis probability can be understood by separating its two components:\n\nBecause the alternative distribution of the estimator is centered at the true delta-to-control, the observed delta-to-control is equally likely to fall above or below the true effect: \\[\n\\Pr(\\widehat{\\Delta} &gt; \\Delta_{\\text{true}}) = 0.5\n\\]\nBecause the true effect (delta-to-control = 0.65%) is present, the probability that the experiment reaches statistical significance is equal to the experiment’s statistical power: \\[\n\\Pr(\\text{Statistical Significance} \\mid \\Delta_{\\text{true}}) = \\text{Power}\n\\]\n\nConditioning on statistical significance therefore yields:\n\\[\n\\Pr\\!\\left(\\widehat{\\Delta} &gt; \\Delta_{\\text{true}} \\mid \\text{Statistical Significance}\\right)\n=\n\\frac{0.5}{\\text{Power}}\n\\]\n\\[\n\\Pr\\!\\left(\\widehat{\\Delta} &gt; \\Delta_{\\text{true}} \\mid \\text{Statistical Significance}\\right)\n=\n\\frac{0.5}{\\text{0.80}}\n= \\text{62.5\\%}\n\\]\nThis closely matches our simulation results, where 62.8% of statistically significant experiments overestimated the true effect — delta-to-control = 0.65%.\nThe next section considers what this bias implies for practitioners."
+  },
+  {
+    "objectID": "ab-testing/winners-curse.html#option-1-increase-power",
+    "href": "ab-testing/winners-curse.html#option-1-increase-power",
+    "title": "The Winner’s Curse",
+    "section": "Option 1: Increase Power",
+    "text": "Option 1: Increase Power\nIf you can afford to acquire more samples, increase your statistical power to reduce the chance of effect size inflation. But the problem of over-estimates never vanishes.\n\n\n                            \n                                            \n\n\n\n\nUntil an experiment reaches 50% power, statistically significant results are guaranteed to overestimate the true effect.\nAt 100% power, the minimum achievable overestimation rate is 50%."
+  },
+  {
+    "objectID": "ab-testing/winners-curse.html#option-2-use-priors",
+    "href": "ab-testing/winners-curse.html#option-2-use-priors",
+    "title": "The Winner’s Curse",
+    "section": "Option 2: Use Priors",
+    "text": "Option 2: Use Priors\nIf accurate effect size estimates are the goal, using prior information becomes necessary. \nPrior beliefs are weighed against observed results using precision-weighted averaging, so noisier experimental estimates are shrunk more aggressively toward historical baselines.\n\n\nMethod to Regularize Estimates\nimport numpy as np\n\n\ndef combine_prior_and_likelihood(\n    prior_mean,\n    prior_se,\n    likelihood_mean,\n    likelihood_se,\n):\n    \"\"\"\n    Combines a normal prior and a normal likelihood into a normal posterior\n    using precision-weighted averaging.\n\n    All inputs may be scalars or NumPy arrays (broadcastable to the same shape).\n    \"\"\"\n    prior_mean = np.asarray(prior_mean)\n    prior_se = np.asarray(prior_se)\n    likelihood_mean = np.asarray(likelihood_mean)\n    likelihood_se = np.asarray(likelihood_se)\n\n    posterior_variance = 1 / (\n        1 / prior_se**2 + 1 / likelihood_se**2\n    )\n    posterior_mean = posterior_variance * (\n        prior_mean / prior_se**2\n        + likelihood_mean / likelihood_se**2\n    )\n    posterior_se = np.sqrt(posterior_variance)\n\n    return posterior_mean, posterior_se\n\n\n\nExample\nBelow are simulated experiment data where the true control and treatment conversion rate are hard-coded — 65% for control and 66% for treatment.\n\n\nCode\nimport numpy as np\nimport pandas as pd\nfrom IPython.display import display\nfrom scipy import stats\n\n\nintuit_blue = \"#0177c9\"\nintuit_red = \"#bd0707\"\nTRIALS = int(5e4)\n\nnp.random.seed(211)\n\ncontrol_RATE = 0.65\ntreatment_RATE = 0.66\ndf_agg = (\n    pd.DataFrame(\n        {\n            \"A\": np.random.binomial(\n                TRIALS, control_RATE, 1\n            ),\n            \"B\": np.random.binomial(\n                TRIALS, treatment_RATE, 1\n            ),\n        }\n    )\n    .melt(\n        var_name=\"recipe\", value_name=\"Conversions\"\n    )\n    .assign(\n        trials=TRIALS,\n        rate=lambda x: x[\"Conversions\"]\n        / x[\"trials\"],\n    )\n)\n\n\ndf_agg[\"Rate\"] = [\n    \"{:.2%}\".format(c) for c in df_agg[\"rate\"]\n]\ndf_agg[\"Trials\"] = [\n    \"{:,d}\".format(int(c))\n    for c in df_agg[\"trials\"]\n]\ndf_agg[\"Conversions\"] = [\n    \"{:,d}\".format(int(c))\n    for c in df_agg[\"Conversions\"]\n]\n\n\ncontrol_rate = df_agg.iloc[0][\"rate\"]\ntreatment_rate = df_agg.iloc[1][\"rate\"]\ndelta = treatment_rate - control_rate\nn_c = float(df_agg.iloc[0][\"trials\"])\nn_t = float(df_agg.iloc[1][\"trials\"])\nindex_to_control = float(treatment_rate) / float(\n    control_rate\n)\ndelta_to_control = float(treatment_rate) - float(\n    control_rate\n)\ndelta_to_control_string = \"{:.2%}\".format(\n    delta_to_control\n)\nse_delta = np.sqrt(\n    control_rate * (1 - control_rate) / n_c\n    + treatment_rate * (1 - treatment_rate) / n_t\n)\n\n# z-score\nz = delta / se_delta\n\np_value = stats.norm.sf(np.abs(z))\n\n\n\n\n\n\n\n\n\n\n\nTrials\nConversions\nRate\n\n\nrecipe\n\n\n\n\n\n\n\nA\n50,000\n32,209\n64.42%\n\n\nB\n50,000\n33,241\n66.48%\n\n\n\n\n\n\n\n In this simulation, control underpeformed and treatment outperformed their true averages; causing an inflated estimate of 2.06% and p-value = 0.000000000003338.\n\n\nRegularization\nIn practice, regularization means shrinking experimental results toward historical averages rather than taking each statistically significant result at face value.\n\n\nplotting function code\nimport numpy as np\nimport plotly.graph_objects as go\nfrom scipy.stats import norm\n\n\ndef plot_distributions_cdf_only(\n    prior_mean,\n    prior_se,\n    like_mean,\n    like_se,\n    post_mean,\n    post_se,\n    metric_name,\n    num_points=400,\n):\n    # Build x-range\n    all_means = np.array(\n        [prior_mean, like_mean, post_mean]\n    )\n    all_ses = np.array(\n        [prior_se, like_se, post_se]\n    )\n    xmin = all_means.min() - 4 * all_ses.max()\n    xmax = all_means.max() + 4 * all_ses.max()\n    x = np.linspace(xmin, xmax, num_points)\n\n    # Compute CDFs\n    prior_cdf = norm.cdf(x, prior_mean, prior_se)\n    like_cdf = norm.cdf(x, like_mean, like_se)\n    post_cdf = norm.cdf(x, post_mean, post_se)\n\n    # Compute PDFs (for plotting)\n    prior_pdf = norm.pdf(x, prior_mean, prior_se)\n    like_pdf = norm.pdf(x, like_mean, like_se)\n    post_pdf = norm.pdf(x, post_mean, post_se)\n\n    fig = go.Figure()\n\n    # Posterior (blue shaded — updated)\n    fig.add_trace(\n        go.Scatter(\n            x=x,\n            y=post_pdf,\n            mode=\"lines\",\n            line=dict(\n                color=\"#0B3C5D\", width=3\n            ),\n            fill=\"tozeroy\",\n            fillcolor=\"rgba(25, 100, 160, 0.35)\",\n            name=\"Posterior\",\n            customdata=post_cdf,\n            hovertemplate=\"&lt;b&gt;Posterior&lt;/b&gt;&lt;br&gt;x = %{x:.2%}&lt;br&gt;P(X &lt; x) = %{customdata:.2%}&lt;br&gt;\",\n        )\n    )\n\n    # Observed (orange)\n    fig.add_trace(\n        go.Scatter(\n            x=x,\n            y=like_pdf,\n            mode=\"lines\",\n            line=dict(color=\"#E38B29\", width=2),\n            name=\"Observed\",\n            customdata=like_cdf,\n            hovertemplate=\"&lt;b&gt;Observed&lt;/b&gt;&lt;br&gt;x = %{x:.2%}&lt;br&gt;P(X &lt; x) = %{customdata:.2%}&lt;br&gt;\",\n        )\n    )\n\n    # Prior (dashed gray)\n    fig.add_trace(\n        go.Scatter(\n            x=x,\n            y=prior_pdf,\n            mode=\"lines\",\n            line=dict(\n                color=\"#676767\",\n                dash=\"dash\",\n                width=2,\n            ),\n            name=\"Prior\",\n            customdata=prior_cdf,\n            hovertemplate=\"&lt;b&gt;Prior&lt;/b&gt;&lt;br&gt;x = %{x:.2%}&lt;br&gt;P(X &lt; x) = %{customdata:.2%}&lt;br&gt;\",\n        )\n    )\n\n    # Vertical \"No Change\" line\n    fig.add_shape(\n        type=\"line\",\n        x0=0,\n        x1=0,\n        y0=0,\n        y1=max(post_pdf) * 1.1,\n        line=dict(color=\"black\", width=3),\n    )\n\n    fig.add_annotation(\n        x=0,\n        y=max(post_pdf) * 1.15,\n        text=\"No Change\",\n        showarrow=False,\n        font=dict(size=16),\n    )\n\n    fig.update_layout(\n        title=f\"{metric_name}\",\n        xaxis=dict(\n            title=\"Rate\",\n            tickformat=\".2%\",\n            showgrid=True,\n        ),\n        yaxis=dict(\n            showticklabels=False, showgrid=False\n        ),\n        template=\"simple_white\",\n        hovermode=\"closest\",\n    )\n\n    fig.show()\n\n\n\n\nPlot Output\nprior_mean = 0\nprior_se = 0.0025\n(\n    posterior_mean,\n    posterior_se,\n) = combine_prior_and_likelihood(\n    prior_mean, prior_se, delta, se_delta\n)\n\nplot_distributions_cdf_only(\n    prior_mean=prior_mean,\n    prior_se=prior_se,\n    like_mean=delta,\n    like_se=se_delta,\n    post_mean=posterior_mean,\n    post_se=posterior_se,\n    metric_name=\"Conversions\",\n)\n\n\n                            \n                                            \n\n\nThe posterior estimate is a precision-weighted average of the prior and the observed experimental result, shrinking noisier estimates more aggressively toward historical baselines."
+  },
+  {
+    "objectID": "ab-testing/index.html",
+    "href": "ab-testing/index.html",
+    "title": "AB Testing",
+    "section": "",
+    "text": "Articles on experimentation design, statistical analysis, and simulation-driven decision making.\n\n\nThe Value of Big Swings\nAug 2025  ·  Strategy · Simulation\nWhy bold experiments deliver more value with less traffic. Compares guaranteed small wins vs. high-variance transformational bets using 30,000 simulations.\nRead →\n\n\nThe Winner’s Curse\nJan 2026  ·  Bias · Bayesian\nStatistical significance is not an endorsement of the treatment effect. Quantifies how often significant results overestimate true lift.\nRead →\n\n\nBeta vs Binomial Distribution\nDec 2025  ·  Distributions · Bayesian\nWhen to use each distribution in experimentation. Covers p-values, credible intervals, and the Normal approximation — all built with simulations.\nRead →\n\n\nExperiment Design & Analysis with NumPy\nFeb 2025  ·  Simulation · Power\nUnderstanding p-values and statistical power through simulation. Builds a full AB test framework from scratch using numpy.random.\nRead →\n\n\nThe Power of Data Simulation\nNov 2024  ·  Simulation · Intuition\nUsing Python’s NumPy random generator to model randomness and build intuition for rate-based metrics. A foundation for all simulation-based work.\nRead →"
+  },
+  {
+    "objectID": "ab-testing/numpy-experiment-design.html",
+    "href": "ab-testing/numpy-experiment-design.html",
+    "title": "Experiment Design & Analysis with NumPy Random",
+    "section": "",
+    "text": "This paper builds a complete AB test from scratch using simulation. We start from significance testing basics, estimate p-values directly from simulated data, design experiments with explicit power targets, and visualize the null and alternative distributions."
+  },
+  {
+    "objectID": "ab-testing/numpy-experiment-design.html#exact-p-value-with-sims",
+    "href": "ab-testing/numpy-experiment-design.html#exact-p-value-with-sims",
+    "title": "Experiment Design & Analysis with NumPy Random",
+    "section": "Exact P-Value With Sims",
+    "text": "Exact P-Value With Sims\n\n\nCode\nfrom numpy.random import binomial, seed\nfrom numpy import mean, where\n\nseed(42)\nNUMBER_SIMULATIONS = int(1e6)\n\ncontrol_conversions = 525\ntrials = 1000\nnull_rate = 0.50\n\nsimulated_experiments = binomial(\n    n=trials,\n    p=null_rate,\n    size=NUMBER_SIMULATIONS,\n)"
+  },
+  {
+    "objectID": "ab-testing/numpy-experiment-design.html#our-first-p-value",
+    "href": "ab-testing/numpy-experiment-design.html#our-first-p-value",
+    "title": "Experiment Design & Analysis with NumPy Random",
+    "section": "Our First P-Value",
+    "text": "Our First P-Value\n\n\nCode\np_value = mean(where(simulated_experiments &gt;= control_conversions, 1, 0))\nprint(f\"p-value: {p_value:.4f}\")"
+  },
+  {
+    "objectID": "ab-testing/numpy-experiment-design.html#proper-p-value-practice",
+    "href": "ab-testing/numpy-experiment-design.html#proper-p-value-practice",
+    "title": "Experiment Design & Analysis with NumPy Random",
+    "section": "Proper P-Value Practice",
+    "text": "Proper P-Value Practice\nA p-value below \\(\\alpha = 0.05\\) means that, assuming the null is true, results this extreme would occur less than 5% of the time by chance.\n\n\n\n\n\n\nWarning\n\n\n\nA p-value does not measure the probability that the null hypothesis is true, nor the probability that the result was produced by random chance alone."
+  },
+  {
+    "objectID": "ab-testing/numpy-experiment-design.html#null-distribution",
+    "href": "ab-testing/numpy-experiment-design.html#null-distribution",
+    "title": "Experiment Design & Analysis with NumPy Random",
+    "section": "Null Distribution",
+    "text": "Null Distribution\n\n\nCode\nfrom numpy.random import binomial, seed\nimport numpy as np\n\nseed(10)\nNUMBER_SIMULATIONS = int(2e6)\ncontrol_mean = 0.65\nn_per_arm = 66_293\n\ncontrol_0 = binomial(n_per_arm, control_mean, NUMBER_SIMULATIONS) / n_per_arm\ncontrol_1 = binomial(n_per_arm, control_mean, NUMBER_SIMULATIONS) / n_per_arm\nnull_simulations = control_1 - control_0\n\nsignificance_threshold = np.percentile(null_simulations, 95)"
+  },
+  {
+    "objectID": "ab-testing/numpy-experiment-design.html#alternative-distribution",
+    "href": "ab-testing/numpy-experiment-design.html#alternative-distribution",
+    "title": "Experiment Design & Analysis with NumPy Random",
+    "section": "Alternative Distribution",
+    "text": "Alternative Distribution\n\n\nCode\nmde = 1.01  # 1% relative lift (ITC = 101)\ntreatment_rate = control_mean * mde\n\ncontrol_samples = binomial(n_per_arm, control_mean, NUMBER_SIMULATIONS) / n_per_arm\ntreatment_samples = binomial(n_per_arm, treatment_rate, NUMBER_SIMULATIONS) / n_per_arm\nalt_simulations = treatment_samples - control_samples\n\nobserved_power = np.mean(alt_simulations &gt; significance_threshold)\nprint(f\"Observed Power: {observed_power:.2%}\")"
+  },
+  {
+    "objectID": "ab-testing/numpy-experiment-design.html#increase-statistical-power",
+    "href": "ab-testing/numpy-experiment-design.html#increase-statistical-power",
+    "title": "Experiment Design & Analysis with NumPy Random",
+    "section": "Increase Statistical Power",
+    "text": "Increase Statistical Power\nPower increases when you:\n\nIncrease sample size \\(n\\)\nIncrease the minimum detectable effect (MDE)\nDecrease \\(\\alpha\\) (raises the required effect but sharpens the threshold)\n\n\n\nCode\n# Double the sample size and observe power change\nn_high_power = n_per_arm * 2\ncontrol_hp = binomial(n_high_power, control_mean, NUMBER_SIMULATIONS) / n_high_power\ntreatment_hp = binomial(n_high_power, treatment_rate, NUMBER_SIMULATIONS) / n_high_power\nalt_hp = treatment_hp - control_hp\n\nsig_threshold_hp = np.percentile(\n    binomial(n_high_power, control_mean, NUMBER_SIMULATIONS) / n_high_power\n    - binomial(n_high_power, control_mean, NUMBER_SIMULATIONS) / n_high_power,\n    95,\n)\npower_hp = np.mean(alt_hp &gt; sig_threshold_hp)\nprint(f\"Power at 2x samples: {power_hp:.2%}\")"
+  },
+  {
+    "objectID": "ab-testing/beta-vs-binomial.html#estimate-p-values",
+    "href": "ab-testing/beta-vs-binomial.html#estimate-p-values",
+    "title": "Beta vs Binomial Distribution",
+    "section": "Estimate P-values",
+    "text": "Estimate P-values\n\n\n[Set Experiment Results]\nimport pandas as pd\nfrom IPython.display import display\n\ncontrol_events = 500\ntreatment_events = 535\ndelta_conversions = treatment_events - control_events\ntrials = 1000\nnull_rate = 0\n\ndf = pd.DataFrame([{\n    \"control_trials\": f\"{trials:,}\",\n    \"control_events\": control_events,\n    \"treatment_trials\": f\"{trials:,}\",\n    \"treatment_events\": treatment_events,\n    \"Null Hypothesis\": f\"{0:.1%}\"\n}])\n\ndf = df.round(2)\n\ndisplay(df.style.hide(axis=\"index\"))\n\n\n\n\n\n\n\ncontrol_trials\ncontrol_events\ntreatment_trials\ntreatment_events\nNull Hypothesis\n\n\n\n\n1,000\n500\n1,000\n535\n0.0%\n\n\n\n\n\n\n\n\n\n\n[P-value with Binomial Dist]\nblended_rate = (\n    control_events + treatment_events\n) / (2 * trials)\ncontrol_simulated_experiments = (\n    binomial(\n        n=trials,\n        p=blended_rate,\n        size=NUMBER_SIMULATIONS,\n    )\n)\ntreatment_simulated_experiments = (\n    binomial(\n        n=trials,\n        p=blended_rate,\n        size=NUMBER_SIMULATIONS,\n    )\n)\ndelta_simualated_experiments = (\n    treatment_simulated_experiments\n    - control_simulated_experiments\n)\np_value = mean(\n    where(\n        delta_simualated_experiments\n        &gt;= delta_conversions,\n        1,\n        0,\n    )\n)\nfig = plot_histogram(\n    delta_simualated_experiments,\n    x_symbol=\"Difference of Conversions\",\n    highlight_tails=\"right\",\n    tail_alpha=p_value,\n)\n\n\nfig.show()\n\n\n                            \n                                            \n\n\n\np-value = 0.0611\n\n\n\n\n[P-value with Normal Dist]\ncontrol_se = (\n    trials\n    * blended_rate\n    * (1 - blended_rate)\n) ** 0.5\ntreatment_se = control_se\ndelta_se = (\n    control_se**2 + treatment_se**2\n) ** 0.5\n\ndelta_simualated_experiments = normal(\n    loc=0,\n    scale=delta_se,\n    size=NUMBER_SIMULATIONS,\n)\np_value = mean(\n    where(\n        delta_simualated_experiments\n        &gt;= delta_conversions,\n        1,\n        0,\n    )\n)\nfig = plot_histogram(\n    delta_simualated_experiments,\n    x_symbol=\"Difference of Conversions\",\n    highlight_tails=\"right\",\n    tail_alpha=p_value,\n)\n\n\nfig.show()\n\n\n                            \n                                            \n\n\n\np-value = 0.0586"
+  },
+  {
+    "objectID": "ab-testing/beta-vs-binomial.html#generate-credible-intervals",
+    "href": "ab-testing/beta-vs-binomial.html#generate-credible-intervals",
+    "title": "Beta vs Binomial Distribution",
+    "section": "Generate Credible Intervals",
+    "text": "Generate Credible Intervals\n\n\n\n\n[Credible Intervals with Beta]\n# Observed data\nfrom numpy.random import beta\n\ncontrol_failures = (\n    trials - control_events\n)\ntreatment_failures = (\n    trials - treatment_events\n)\ntail_alpha = 0.025\n\nbeta_control_samples = beta(\n    control_events,\n    control_failures,\n    size=NUMBER_SIMULATIONS,\n)\nbeta_treatment_samples = beta(\n    treatment_events,\n    treatment_failures,\n    size=NUMBER_SIMULATIONS,\n)\nbeta_delta_samples = (\n    beta_treatment_samples\n    - beta_control_samples\n)\nfig = plot_histogram(\n    beta_delta_samples,\n    x_symbol=\"Possible Difference of Conversion Rate\",\n    is_rate=True,\n    highlight_tails=\"both\",\n    tail_alpha=tail_alpha,\n    color=\"crimson\",\n    tail_color=\"royalblue\",\n)\n\nlower_bound = percentile(\n    beta_delta_samples, tail_alpha * 100\n)\nupper_bound = percentile(\n    beta_delta_samples,\n    100 - tail_alpha * 100,\n)\n\n\nfig.show()\n\n\n                            \n                                            \n\n\n\n95% Credible Interval: ( -0.88% , 7.86% )\n\n\n\n\n[Credible Intervals with Normal]\ntail_alpha = 0.025\n\n# --- Normal approximation parameters ---\ncontrol_mu = control_events / trials\ncontrol_sigma = (\n    control_events\n    * control_failures\n    / (\n        (\n            control_events\n            + control_failures\n        )\n        ** 2\n        * (\n            control_events\n            + control_failures\n            + 1\n        )\n    )\n) ** 0.5\n\ntreatment_mu = treatment_events / trials\ntreatment_sigma = (\n    treatment_events\n    * treatment_failures\n    / (\n        (\n            treatment_events\n            + treatment_failures\n        )\n        ** 2\n        * (\n            treatment_events\n            + treatment_failures\n            + 1\n        )\n    )\n) ** 0.5\n\ndelta_mu = treatment_mu - control_mu\ndelta_se = (\n    control_sigma**2\n    + treatment_sigma**2\n) ** 0.5\n\n\n# Draw samples from the Normal approximation\nbeta_delta_samples = normal(\n    loc=delta_mu,\n    scale=delta_se,\n    size=NUMBER_SIMULATIONS,\n)\n\n\nfig = plot_histogram(\n    beta_delta_samples,\n    x_symbol=\"Possible Difference of Conversion Rate\",\n    is_rate=True,\n    highlight_tails=\"both\",\n    tail_alpha=tail_alpha,\n    color=\"crimson\",\n    tail_color=\"royalblue\",\n)\n\nlower_bound = percentile(\n    beta_delta_samples, tail_alpha * 100\n)\nupper_bound = percentile(\n    beta_delta_samples,\n    100 - tail_alpha * 100,\n)\n\nfig.show()\n\n\n                            \n                                            \n\n\n\n95% Credible Interval: ( -0.88% , 7.88% )"
+  },
+  {
+    "objectID": "ab-testing/power-of-simulation.html",
+    "href": "ab-testing/power-of-simulation.html",
+    "title": "The Power of Data Simulation",
+    "section": "",
+    "text": "Simulating data is an indispensable tool in the business and data science community. It offers a cost-effective way to model complex relationships and rare events, enabling exploration of various scenarios without real-world consequences.\nSimulations can:\n\nMeasure competing methods’ performance on shared datasets\nAssess how statistical models perform when ground truth is known\nRefine analytical methodologies\nSupport training of machine learning models in the absence of real data\n\nUsing website conversion as our example, we simulate huge datasets and build intuition for the randomness we might expect to see."
+  },
+  {
+    "objectID": "ab-testing/power-of-simulation.html#graph-simulation-results",
+    "href": "ab-testing/power-of-simulation.html#graph-simulation-results",
+    "title": "The Power of Data Simulation",
+    "section": "Graph Simulation Results",
+    "text": "Graph Simulation Results\nAt the end of each simulation, record and plot how many conversions took place. With enough simulations, website conversion forms a predictable bell-shaped pattern.\n\n\nCode\nimport pandas as pd\nimport plotly.express as px\n\ndf = pd.DataFrame(control_simulated_results, columns=[\"value\"])\nfig = px.histogram(df, x=\"value\", nbins=60, title=\"Distribution of Simulated Conversions\")\nfig.show()"
+  },
+  {
+    "objectID": "ab-testing/power-of-simulation.html#use-simulation-results-to-estimate-randomness",
+    "href": "ab-testing/power-of-simulation.html#use-simulation-results-to-estimate-randomness",
+    "title": "The Power of Data Simulation",
+    "section": "Use Simulation Results to Estimate Randomness",
+    "text": "Use Simulation Results to Estimate Randomness\n\nWhat’s the chance of 950 conversions or fewer?\nWhat’s the chance of 1050 conversions or more?\nWhat’s the chance of between 950 and 1050 conversions (exclusive)?\n\n\n\nCode\nfrom numpy import where, mean\n\nprob = mean(\n    where(\n        (control_simulated_results &gt; 950) & (control_simulated_results &lt; 1050),\n        1,\n        0,\n    )\n)\nprint(f\"{prob:.2%}\")\n\n\n90.10%"
+  },
+  {
+    "objectID": "ab-testing/power-of-simulation.html#verify-simulation-results",
+    "href": "ab-testing/power-of-simulation.html#verify-simulation-results",
+    "title": "The Power of Data Simulation",
+    "section": "Verify Simulation Results",
+    "text": "Verify Simulation Results\nBecause rate-based metrics are normally distributed, verify with the Normal approximation:\n\\[F(0.095) = \\Phi\\left( \\frac{0.095 - 0.10}{0.003} \\right) = \\Phi\\left( -1.67 \\right) = 0.0478\\]\n\n\n\nType\nProbability\n\n\n\n\n950 conversions or less\n4.78%\n\n\n1050 conversions or more\n4.78%\n\n\nBetween 950 and 1050 conversions\n90.44%\n\n\n\nSlight differences are explained by the continuous nature of the Normal approximation. Our data is discrete."
+  },
+  {
+    "objectID": "ab-testing/big-swings.html",
+    "href": "ab-testing/big-swings.html",
+    "title": "The Value of Big Swings",
+    "section": "",
+    "text": "Smart A/B testing helps to maximize business metrics like conversion, retention, and revenue. But experimenters often face a strategic dilemma:\n\nPlay it safe with frequent, incremental wins\n\nSwing big with fewer, riskier tests that could deliver big rewards\n\nThis tradeoff is a recurring challenge when traffic is limited and profits need to grow.\nThis paper compares two distinct strategies:\n\nGuaranteed Small Wins: ten low-risk bets with small, consistent gains\n\nBig Swing: single high-variance transformational bet that could flop — or deliver a breakthrough\n\nWhich strategy delivers more value on average?"
+  },
+  {
+    "objectID": "ab-testing/big-swings.html#simulation-framework",
+    "href": "ab-testing/big-swings.html#simulation-framework",
+    "title": "The Value of Big Swings",
+    "section": "Simulation Framework",
+    "text": "Simulation Framework\nEach distribution in the Strategy Comparison section represents a space of ideas. To evaluate them, I simulate 30,000 A/B tests drawn from each distribution.\n\nCondition A (Control): baseline fixed at 65%, with outcomes fluctuating due to random sampling.\n\nCondition B (Treatment): true conversion rate is shifted by a random draw from the chosen distribution.\n\nEven when the treatment is encoded with lift, stochastic variation can make it underperform the control in a given run. Results are aggregated across simulations to compare average marginal impact.\n\n\n\n\nSimulation Example (Control)\nfrom numpy.random import binomial\n\ntotal_users = int(8e4)\ncontrol_users = int(total_users / 2)\nnumber_days = 20\ncontrol_users_per_day = (\n    control_users / number_days\n)\ncontrol_baseline = 0.65\n\ncontrol_conversions_by_day = binomial(\n    control_users,\n    control_baseline,\n    number_days,\n)\n\n\n\n\n\n\nSimulation Example (Treatment)\nfrom numpy.random import normal\n\ntreatment_users = int(total_users / 2)\ntreatment_users_per_day = (\n    treatment_users / number_days\n)\nindex_to_control = (\n    normal(99.5, 2.5, 1) / 100\n)\ntreatment_mean = (\n    control_baseline * index_to_control\n)\n\ntreatment_conversions_by_day = binomial(\n    treatment_users,\n    treatment_mean,\n    number_days,\n)"
+  },
+  {
+    "objectID": "ab-testing/big-swings.html#stopping-threshold",
+    "href": "ab-testing/big-swings.html#stopping-threshold",
+    "title": "The Value of Big Swings",
+    "section": "Stopping Threshold",
+    "text": "Stopping Threshold\nExpected Loss is used as our stopping threshold.\n\\[\n\\text{Expected Loss} = \\Pr(\\text{harm}) \\times \\mathbb{E}[\\text{Magnitude of Harm}]\n\\]\nWe refer to expected loss as Risk, which serves only as the stopping criterion below.\nThe Risk Threshold = 0.025% was thoughtfully chosen in advance of the experiment as a balanced stopping point given the parameters of this experiment design.\nFor now the rationale for selection is completely glossed over, but readers are encouraged to ping me for details about its selection. I promise to have a paper on how risk thresholds are selected."
+  },
+  {
+    "objectID": "ab-testing/big-swings.html#simulation-evaluation",
+    "href": "ab-testing/big-swings.html#simulation-evaluation",
+    "title": "The Value of Big Swings",
+    "section": "Simulation Evaluation",
+    "text": "Simulation Evaluation\n\nFor each simulation, and each day on or after Min (Test Days):\n\nCompute Risk (expected loss) for both control and treatment conditions.\nCompare each condition’s Risk to the Risk Threshold = 0.025%.\n\nDecision rules:\n\nIf only one condition breaches the threshold → select it as the winner.\nIf both breach → choose the condition with the lower risk.\nIf neither breaches by the end of the test → select the condition with the lowest final risk.\n\nAfter selecting a winner:\n\nSimulate rolling out the winner to the remaining test population and the post-test population, regardless of whether it was truly best."
+  },
+  {
+    "objectID": "ab-testing/big-swings.html#results",
+    "href": "ab-testing/big-swings.html#results",
+    "title": "The Value of Big Swings",
+    "section": "Results",
+    "text": "Results\nAll metrics shown are based on 30,000 simulations and represent expected values, i.e., average outcomes aggregated across all simulated experiments — with each simulation drawing a random treatment effect from its distribution.\n\n\n\n\n\n\n\n\nMetric\nOne Guaranteed Win Experiment\nOne Big Swing Experiment\n\n\n\n\nMean Run-time\nN = 59,516 (15 days)\nN = 38,713 (10 days)\n\n\nProjected Mean @ Year-End\n65.037% (100.06 ITC)\n65.390% (100.60 ITC)\n\n\nMarginal Events vs No Test\n216\n2,261\n\n\n\n\nCompared to a Guaranteed Win experiment, the Big Swing strategy shows clear advantages:\n\nRuns ~33% faster on average (10 days vs 15), freeing traffic sooner.\n\nProduces a higher average outcome per experiment (65.39% vs 65.04%), a meaningful gap at scale.\n\nGenerates ~2,261 additional conversions vs only 216 on average. Marginal events scale directly from the projected mean difference.\n\nWe need just over 10 Guaranteed Wins to average the same effect as one Big Swing."
+  },
+  {
+    "objectID": "python/polars-vs-pandas.html",
+    "href": "python/polars-vs-pandas.html",
+    "title": "Why I Switched to Polars From Pandas",
+    "section": "",
+    "text": "TL/DR;\nIf you use Pandas DataFrames to store and analyze large datasets, consider making a change to Polars.\nI use DataFrames because they allow me to think relationally — just like I do when I write SQL. I use them extensively in virtually all of my work; app development, exploratory data analysis, and summarizing large datasets.\nCheck out below the benchmarks I measured for typical DataFrame operations like read, write, construct, and group by. These will convince you that a change is necessary.\n\n\n\n\n\n\nSystem & Environment\n\n\n\n\n\n\nAll benchmarks ran on a 16-inch MacBook Pro (2021) equipped with an Apple M1 Max chip and 64 GB of unified memory, running macOS Sonoma 14.7. \nTests used Python 3.10.9, with Pandas 1.5.3 and Polars 1.33.0 installed.\n\n\n\n\n\n\n\n\n\n\nMethodology\n\n\n\n\n\nI benchmarked Polars and Pandas across common DataFrame operations using both real and simulated data.  - For read and write tests, I used a 10 MB CSV dataset from the Frictionless Data repository.  - For constructor, pivot, join, and filter benchmarks, I generated a simulated dataset to ensure consistent structure and reproducibility.  - Each operation was executed 1,000 times per library, and the mean execution time was recorded.\n\n\n\n\n\nRead | Write\nDownload 10 mb file: https://raw.githubusercontent.com/frictionlessdata/datasets/main/files/csv/10mb.csv\n\n\n\nMetric\nMean Speed Increase\nStandard Deviation\n\n\n\n\nRead\n18.40\n3.20\n\n\nWrite\n39.41\n5.85\n\n\n\n\n\n\n\n\n\nAI Generated Summary\n\n\n\n\n\nPolars is faster at reading and writing CSVs than Pandas because it’s built in Rust with parallelized, memory-efficient algorithms that fully utilize multiple CPU cores.\n\n\n\n\n\nConstruct | Pivot\n\n\nSimulate Dataset\nimport numpy as np\nimport string\nimport random\n\nN = int(5e6)\n\ndef random_str(n=5):\n    return ''.join(random.choices(string.ascii_letters, k=n))\n\ndata = {\n    \"id\": np.arange(N),\n    \"value\": np.random.randint(0, 1000, size=N),\n    \"flag\": np.random.choice([True, False], size=N),\n    \"category\": np.random.choice([\"A\", \"B\", \"C\", \"D\"], size=N),\n    \"score\": np.random.randn(N),\n    \"year\": np.random.randint(2000, 2025, size=N),\n    \"name\": [random_str(5) for _ in range(N)],   # random short strings\n    \"ratio\": np.random.random(size=N),\n    \"count\": np.random.randint(1, 100, size=N),\n}\n\n\n\n\n\nMetric\nMean Speed Increase\nStandard Deviation\n\n\n\n\nConstructor\n1.89\n0.14\n\n\nGroup By\n23.99\n1.72\n\n\n\n\n\n\n\n\n\nAI Generated Summary\n\n\n\n\n\nConstructor: Polars DataFrame constructor is faster than Pandas because it uses Rust’s zero-copy memory model and parallel data parsing, avoiding Python’s object overhead.\nPivot Tables: Polars outperforms Pandas in pivot table operations by executing grouped aggregations in parallel and leveraging an optimized query engine built on Apache Arrow for efficient columnar computation.\n\n\n\n\n\nJoins | Filter\n\n\n\nMetric\nMean Speed Increase\nStandard Deviation\n\n\n\n\nInner Join\n2.09\n0.52\n\n\nUnion All\n1.32\n0.64\n\n\nFilter\n1.16\n0.36\n\n\n\n\n\n\n\n\n\n\nAI Generated Summary\n\n\n\n\n\nJoins (Inner + Union All): Polars performs joins faster than Pandas by using parallelized hash join algorithms implemented in Rust and operating directly on Arrow memory, minimizing copying and serialization overhead.\nFilter Clauses: Polars evaluates filter expressions lazily and in parallel at the columnar level, enabling vectorized, cache-efficient filtering that significantly outpaces Pandas’ row-wise execution in Python.\n\n\n\n\n\nConclusion\nAcross the board Polars is faster at all of the typical DataFrame operations we tested. The syntax differences are minimal and AI can quickly convert your Pandas code.\nIf you work with large DataFrames, Polars is worth the 30-minute migration — faster runtimes, smaller memory footprint, and minimal code changes.\n\n\nCode References\n\n\n\n\n\n\n\n\n\n\n\nOperation\nPandas Example\nPolars Example\nTimes Faster\n\n\n\n\nRead CSV\ndf = pd.read_csv(\"data.csv\")\ndf = pl.read_csv(\"data.csv\")\n18.40\n\n\nWrite CSV\ndf.to_csv(\"out.csv\")\ndf.write_csv(\"out.csv\")\n39.41\n\n\nConstructor\ndf = pd.DataFrame(data)\ndf = pl.DataFrame(data)\n1.89\n\n\nGroup By\ndf.groupby(\"col\")[\"value\"].mean()\ndf.groupby(\"col\").agg(pl.col(\"value\").mean())\n23.99\n\n\nInner Join\ndf1.merge(df2, on=\"id\", how=\"inner\")\ndf1.join(df2, on=\"id\", how=\"inner\")\n2.09\n\n\nUnion All\npd.concat([df1, df2], ignore_index=True)\ndf1.vstack(df2)\n1.32\n\n\nFilter\ndf[df[\"value\"] &gt; 10]\ndf.filter(pl.col(\"value\") &gt; 10)\n1.16\n\n\n\n\n*** Results will vary depending on machine and size/structure of your datasets.\n\n\n\n\n\n\n\nAI Generated Summary: Why Union All Has High Variance\n\n\n\n\n\nPolars’ pl.concat() (or vstack()) uses multi-threaded Arrow buffer operations that cut average runtime but introduce non-deterministic variance. On macOS with M1 Max chips, the OS may schedule threads differently across performance and efficiency cores, causing some runs to finish faster or slower. In short, parallelism improves mean speed but naturally increases variance—explaining the wider spread in the “Union All” benchmark.\n\n\n\n\n\n\n\n\n\nAI Generated Summary: Why Constructor is Reliably Faster\n\n\n\n\n\nThe constructor benchmark is the most reliable because it’s a pure in-memory, CPU-bound operation with no I/O, threading, or garbage collection noise. Each run follows the same predictable memory layout, making it a clean measure of Polars’ and Pandas’ internal efficiency without interference from system variability."
+  },
+  {
+    "objectID": "index.html",
+    "href": "index.html",
+    "title": "Russ Zaliznyak",
+    "section": "",
+    "text": "Russ Zaliznyak\nPrincipal Data Scientist\n\nAB Testing Python Statistics Math\n\nSpent 10 years shipping experiments. I write about the things that are easy to get subtly wrong.\n\n Email\n LinkedIn\n GitHub\n CV\n\n\nWriting\nAB Testing\nPython\nTalks & Videos\nAll Talks\nGoing Bayes\nIntuit × Dash Enterprise\n\n\n\n\n\n\nJan 20, 2026 · AB Testing · Bias · Bayesian\n\nSignificance tells you an effect exists — not how large it is. When only extreme results cross the significance threshold, reported effect sizes are systematically inflated. In an 80%-powered experiment, 62.5% of significant results overestimate the true lift. Two fixes: run a bigger test, or shrink estimates toward a prior.\nRead →\n\n\n\n\n\nDec 9, 2025 · Statistics · Bayesian · Distributions\n\nBoth distributions arise from the same relationship — one models outcomes given a probability, the other models the probability given outcomes. Analyzes the same experiment both ways: Binomial for p-values, Beta for credible intervals. Extends to two-proportion tests and shows both are well-approximated by the Normal under large samples.\nRead →\n\n\n\n\n\nOct 21, 2025 · Python · Performance\n\nBenchmarking Polars vs Pandas across common DataFrame operations: read, write, construct, pivot, join, and filter. Polars wins across the board — often by 10–30x.\nRead →\n\n\n\n\n\nAug 29, 2025 · AB Testing · Strategy · Simulation\n\nWhy bold experiments deliver more value with less traffic. Compares guaranteed small wins vs. high-variance transformational bets using 30,000 simulations.\nRead →\n\n\n\n\n\nFeb 8, 2025 · AB Testing · Simulation · Power\n\nUnderstanding p-values and statistical power through simulation. Builds a full AB test framework from scratch using numpy.random.\nRead →\n\n\n\n\n\nNov 4, 2024 · Simulation · NumPy · Intuition\n\nUsing Python’s NumPy random generator to model randomness and build intuition for rate-based metrics. A foundation for all simulation-based work.\nRead →\n\n\n\n\n\n\n\nNov 6, 2025 · Intuit Tech Stories · Bayesian · Experimentation\n\nHow aligning business priorities with Bayesian Risk-Based Testing reduced Intuit’s experiment duration by over 60%. Covers the tradeoffs of moving away from frequentist defaults and scaling adoption across data science, product, and leadership.\nWatch →\n\n\n\n\n\nMar 2024 · Plotly · Dash · Experimentation Tooling\n\nTwo-minute highlight from a Plotly webinar on using Dash Enterprise to build an end-to-end experimentation analysis app — no HTML or engineering experience required. Reduced experiment runtime by 70%+.\nWatch →"
+  },
+  {
+    "objectID": "index.html#the-winners-curse",
+    "href": "index.html#the-winners-curse",
+    "title": "Russ Zaliznyak",
+    "section": "",
+    "text": "Jan 20, 2026 · AB Testing · Bias · Bayesian\n\nSignificance tells you an effect exists — not how large it is. When only extreme results cross the significance threshold, reported effect sizes are systematically inflated. In an 80%-powered experiment, 62.5% of significant results overestimate the true lift. Two fixes: run a bigger test, or shrink estimates toward a prior.\nRead →"
+  },
+  {
+    "objectID": "index.html#beta-vs-binomial-distribution",
+    "href": "index.html#beta-vs-binomial-distribution",
+    "title": "Russ Zaliznyak",
+    "section": "",
+    "text": "Dec 9, 2025 · Statistics · Bayesian · Distributions\n\nBoth distributions arise from the same relationship — one models outcomes given a probability, the other models the probability given outcomes. Analyzes the same experiment both ways: Binomial for p-values, Beta for credible intervals. Extends to two-proportion tests and shows both are well-approximated by the Normal under large samples.\nRead →"
+  },
+  {
+    "objectID": "index.html#why-switch-to-polars-from-pandas",
+    "href": "index.html#why-switch-to-polars-from-pandas",
+    "title": "Russ Zaliznyak",
+    "section": "",
+    "text": "Oct 21, 2025 · Python · Performance\n\nBenchmarking Polars vs Pandas across common DataFrame operations: read, write, construct, pivot, join, and filter. Polars wins across the board — often by 10–30x.\nRead →"
+  },
+  {
+    "objectID": "index.html#the-value-of-big-swings",
+    "href": "index.html#the-value-of-big-swings",
+    "title": "Russ Zaliznyak",
+    "section": "",
+    "text": "Aug 29, 2025 · AB Testing · Strategy · Simulation\n\nWhy bold experiments deliver more value with less traffic. Compares guaranteed small wins vs. high-variance transformational bets using 30,000 simulations.\nRead →"
+  },
+  {
+    "objectID": "index.html#experiment-design-analysis-with-numpy",
+    "href": "index.html#experiment-design-analysis-with-numpy",
+    "title": "Russ Zaliznyak",
+    "section": "",
+    "text": "Feb 8, 2025 · AB Testing · Simulation · Power\n\nUnderstanding p-values and statistical power through simulation. Builds a full AB test framework from scratch using numpy.random.\nRead →"
+  },
+  {
+    "objectID": "index.html#the-power-of-data-simulation",
+    "href": "index.html#the-power-of-data-simulation",
+    "title": "Russ Zaliznyak",
+    "section": "",
+    "text": "Nov 4, 2024 · Simulation · NumPy · Intuition\n\nUsing Python’s NumPy random generator to model randomness and build intuition for rate-based metrics. A foundation for all simulation-based work.\nRead →"
+  },
+  {
+    "objectID": "index.html#going-bayes-shifting-our-testing-methods-to-reflect-our-priorities",
+    "href": "index.html#going-bayes-shifting-our-testing-methods-to-reflect-our-priorities",
+    "title": "Russ Zaliznyak",
+    "section": "",
+    "text": "Nov 6, 2025 · Intuit Tech Stories · Bayesian · Experimentation\n\nHow aligning business priorities with Bayesian Risk-Based Testing reduced Intuit’s experiment duration by over 60%. Covers the tradeoffs of moving away from frequentist defaults and scaling adoption across data science, product, and leadership.\nWatch →"
+  },
+  {
+    "objectID": "index.html#how-intuit-uses-dash-enterprise",
+    "href": "index.html#how-intuit-uses-dash-enterprise",
+    "title": "Russ Zaliznyak",
+    "section": "",
+    "text": "Mar 2024 · Plotly · Dash · Experimentation Tooling\n\nTwo-minute highlight from a Plotly webinar on using Dash Enterprise to build an end-to-end experimentation analysis app — no HTML or engineering experience required. Reduced experiment runtime by 70%+.\nWatch →"
+  }
+]

@@ -1,8 +1,13 @@
-# Quarto-generated output — do not commit
+# Quarto build artifacts — ignore everywhere except docs/
+.quarto/
+*_files/
+
+# Ignore rendered output at source level, but not in docs/
 *.html
 search.json
 site_libs/
-*_files/
-.quarto/
 
-/.quarto/
+!docs/**/*.html
+!docs/search.json
+!docs/site_libs/
+!docs/site_libs/**
