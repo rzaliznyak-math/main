@@ -1,6 +1,6 @@
 ---
 title: "Russ Zaliznyak"
-subtitle: "AB Testing · Python · Finance · Statistics · Math"
+subtitle: "AB Testing · Python · Statistics · Math"
 toc: true
 toc-depth: 2
 ---
@@ -14,10 +14,14 @@ My writing focuses on practical methods in AB testing, statistical intuition, an
 
 ## The Winner's Curse
 
-`Jan 2026` &nbsp;·&nbsp; AB Testing · Bias · Bayesian
+::: {.post-meta}
+Jan 20, 2026 · AB Testing · Bias · Bayesian
+:::
 
-Statistical significance is not an endorsement of the treatment effect. Quantifies how often
-significant results overestimate true lift — and what to do about it.
+Significance tells you an effect exists — not how large it is. When only extreme results
+cross the significance threshold, reported effect sizes are systematically inflated.
+In an 80%-powered experiment, 62.5% of significant results overestimate the true lift.
+Two fixes: run a bigger test, or shrink estimates toward a prior.
 
 [Read →](ab-testing/winners-curse.qmd)
 
@@ -25,10 +29,14 @@ significant results overestimate true lift — and what to do about it.
 
 ## Beta vs Binomial Distribution
 
-`Dec 2025` &nbsp;·&nbsp; Statistics · Bayesian · Distributions
+::: {.post-meta}
+Dec 9, 2025 · Statistics · Bayesian · Distributions
+:::
 
-When to use each distribution in experimentation. Covers p-values, credible intervals,
-two-proportion tests, and the Normal approximation — all built with simulations.
+Both distributions arise from the same relationship — one models outcomes given a probability,
+the other models the probability given outcomes. Analyzes the same experiment both ways:
+Binomial for p-values, Beta for credible intervals. Extends to two-proportion tests and
+shows both are well-approximated by the Normal under large samples.
 
 [Read →](ab-testing/beta-vs-binomial.qmd)
 
@@ -36,7 +44,9 @@ two-proportion tests, and the Normal approximation — all built with simulation
 
 ## Why Switch to Polars from Pandas
 
-`Oct 2025` &nbsp;·&nbsp; Python · Performance
+::: {.post-meta}
+Oct 21, 2025 · Python · Performance
+:::
 
 Benchmarking Polars vs Pandas across common DataFrame operations: read, write, construct,
 pivot, join, and filter. Polars wins across the board — often by 10–30x.
@@ -47,7 +57,9 @@ pivot, join, and filter. Polars wins across the board — often by 10–30x.
 
 ## The Value of Big Swings
 
-`Aug 2025` &nbsp;·&nbsp; AB Testing · Strategy · Simulation
+::: {.post-meta}
+Aug 29, 2025 · AB Testing · Strategy · Simulation
+:::
 
 Why bold experiments deliver more value with less traffic. Compares guaranteed small wins
 vs. high-variance transformational bets using 30,000 simulations.
@@ -58,7 +70,9 @@ vs. high-variance transformational bets using 30,000 simulations.
 
 ## Experiment Design & Analysis with NumPy
 
-`Feb 2025` &nbsp;·&nbsp; AB Testing · Simulation · Power
+::: {.post-meta}
+Feb 8, 2025 · AB Testing · Simulation · Power
+:::
 
 Understanding p-values and statistical power through simulation. Builds a full AB test
 framework from scratch using `numpy.random`.
@@ -69,7 +83,9 @@ framework from scratch using `numpy.random`.
 
 ## The Power of Data Simulation
 
-`Nov 2024` &nbsp;·&nbsp; Simulation · NumPy · Intuition
+::: {.post-meta}
+Nov 4, 2024 · Simulation · NumPy · Intuition
+:::
 
 Using Python's NumPy random generator to model randomness and build intuition for
 rate-based metrics. A foundation for all simulation-based work.

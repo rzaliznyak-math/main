@@ -1,7 +1,0 @@
-author: "Russ Zaliznyak"
-format:
-  html:
-    toc: true
-    toc-depth: 3
-    code-fold: true
-    code-tools: true

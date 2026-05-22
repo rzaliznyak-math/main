@@ -4,7 +4,7 @@ project:
 
 website:
   title: "Russ Zaliznyak"
-  description: "AB Testing | Python | Finance | Statistics | Math"
+  description: "AB Testing | Python | Statistics | Math"
 
   navbar:
     background: primary
@@ -34,13 +34,9 @@ website:
           - text: "---"
           - text: "Why Switch to Polars"
             href: python/polars-vs-pandas.qmd
-      - text: "AI"
-        href: ai/index.qmd
-      - text: "Finance"
-        href: finance/index.qmd
-    right:
       - text: "CV"
         href: cv.qmd
+    right:
       - icon: github
         href: https://github.com/rzaliznyak-math
         target: _blank
