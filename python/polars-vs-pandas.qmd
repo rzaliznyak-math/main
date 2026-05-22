@@ -1,82 +1,201 @@
 ---
 title: "Why I Switched to Polars From Pandas"
 subtitle: "Benchmarking Polars vs Pandas DataFrames"
+author: "Russ Zaliznyak"
 date: "2025-10-21"
 description: >
   If you use Pandas DataFrames to store and analyze large datasets, consider switching to Polars.
-  Benchmarks across read, write, construct, pivot, join, and filter operations — Polars wins every time.
+  Benchmarks across read, write, construct, pivot, join, and filter — Polars wins every time.
 categories: [Python, Polars, Pandas, Performance]
+execute:
+  echo: false
 ---
 
-# TL;DR
-
-If you use **Pandas** DataFrames to store and analyze large datasets, consider making a change 
-to **Polars**.
-
-DataFrames allow me to think relationally — just like SQL — and I use them extensively in virtually 
-all of my work: app development, exploratory data analysis, and summarizing large datasets.
-
-::: {.callout-note}
-**System & Environment**
-
-All benchmarks ran on a **16-inch MacBook Pro (2021)** with an **Apple M1 Max** chip and **64 GB** 
-of unified memory, running macOS Sonoma 14.7.
-
-Tests used **Python 3.10.9**, **Pandas 1.5.3** and **Polars 1.33.0**.
-:::
-
-**Methodology**: Each operation was executed **1,000 times** per library, and the **mean execution 
-time** was recorded.
-
----
-
-# Read | Write
 
 ```{python}
-#| eval: false
-# Download 10 MB test file
-# https://raw.githubusercontent.com/frictionlessdata/datasets/main/files/csv/10mb.csv
-
-import pandas as pd
-import polars as pl
-import timeit
-
-FILE = "10mb.csv"
-
-pd_read_time = timeit.timeit(lambda: pd.read_csv(FILE), number=1000)
-pl_read_time = timeit.timeit(lambda: pl.read_csv(FILE), number=1000)
-
-print(f"Pandas mean read:  {pd_read_time / 1000:.4f}s")
-print(f"Polars mean read:  {pl_read_time / 1000:.4f}s")
-print(f"Speed increase:    {pd_read_time / pl_read_time:.2f}x")
+NUMBER_SIMULATIONS = int(1e3)
 ```
 
-| Metric | Mean Speed Increase | Standard Deviation |
-|---|---|---|
-| Read | 16.79x | 3.57 |
-| Write | 30.74x | 5.32 |
+<img src="./assets/rose.png"  style="max-width: 80%; border: 1px solid #aaa; border-radius: 4px;" />
 
-Polars is faster at reading and writing CSVs because it's built in Rust with parallelized, 
-memory-efficient algorithms that fully utilize multiple CPU cores.
+# TL/DR;
 
----
+If you use **`Pandas`** DataFrames to store and analyze large datasets, consider making a change to **`Polars`**.
+
+I use _DataFrames_ because they allow me to think relationally --- just like I do when I write SQL.
+I use them extensively in virtually all of my work; app development, exploratory data analysis, and summarizing large datasets.
+
+Check out below the benchmarks I measured for typical DataFrame operations like read, write, construct, and group by. These will convince you that a change is necessary.
+
+
+::: {.callout-note collapse="true" title="System & Environment"}
+- All benchmarks ran on a **16-inch MacBook Pro (2021)** equipped with an **Apple M1 Max** chip and **64 GB of unified memory**, running **macOS Sonoma 14.7**.  <br><br>
+- Tests used **Python 3.10.9**, with **Pandas 1.5.3** and **Polars 1.33.0** installed.
+:::
+
+
+::: {.callout-note collapse="true" title="Methodology"}
+I benchmarked **Polars** and **Pandas** across common DataFrame operations using both real and simulated data. <br><br>
+- For **read** and **write** tests, I used a **10 MB CSV dataset** from the [Frictionless Data repository](https://raw.githubusercontent.com/frictionlessdata/datasets/main/files/csv/10mb.csv).  <br>
+- For **constructor**, **pivot**, **join**, and **filter** benchmarks, I generated a **simulated dataset** to ensure consistent structure and reproducibility.  <br>
+- Each operation was executed **`{python} f"{NUMBER_SIMULATIONS:,}"` times** per library, and the **mean execution time** was recorded.  
+:::
+
+
+# Read | Write 
+
+[Download **10 mb file**: https://raw.githubusercontent.com/frictionlessdata/datasets/main/files/csv/10mb.csv](https://raw.githubusercontent.com/frictionlessdata/datasets/main/files/csv/10mb.csv){target=_blank}
+
+```{python}
+#| echo: false
+#| code-fold: false
+from numpy import mean, diff, array, std, percentile
+from timeit import default_timer
+import requests
+
+file_location = "./10mb.csv"
+
+url = "https://raw.githubusercontent.com/frictionlessdata/datasets/main/files/csv/10mb.csv"
+with open(file_location, "wb") as f:
+    f.write(requests.get(url).content)
+```
+
+
+```{python}
+#| code-summary: "Pandas read_csv()"
+#| echo: false
+#| code-fold: false
+import pandas as pd
+
+all_panda_read_times = []
+all_panda_read_times = [default_timer()]
+for j in range(NUMBER_SIMULATIONS):
+    df_Pandas = pd.read_csv(file_location)
+    all_panda_read_times.append(default_timer())
+
+all_panda_read_times = diff(all_panda_read_times)
+
+panda_mean_run_time = mean(all_panda_read_times)
+```
+
+```{python}
+#| code-summary: "Polars read_csv()"
+#| echo: false
+#| code-fold: false
+import polars as pl
+
+all_polar_read_times = [default_timer()]
+for j in range(NUMBER_SIMULATIONS):
+    df_polars = pl.read_csv(file_location)
+    all_polar_read_times.append(default_timer())
+
+all_polar_read_times = diff(all_polar_read_times)
+polar_mean_run_time = mean(all_polar_read_times)
+
+```
+
+```{python}
+#| code-summary: "Pandas to_csv()"
+#| echo: false
+#| code-fold: false
+import pandas as pd
+
+all_panda_write_times = [default_timer()]
+for j in range(NUMBER_SIMULATIONS):
+    df_Pandas.to_csv("temp.csv")
+    all_panda_write_times.append(default_timer())
+
+all_panda_write_times = diff(all_panda_write_times)
+panda_mean_write_time = mean(all_panda_write_times)
+
+```
+
+```{python}
+#| code-summary: "Polars write_csv()"
+#| echo: false
+#| code-fold: false
+import polars as pl
+
+all_polar_write_times = [default_timer()]
+for j in range(NUMBER_SIMULATIONS):
+    df_polars.write_csv("temp.csv")
+    all_polar_write_times.append(default_timer())
+
+all_polar_write_times = diff(all_polar_write_times)
+polar_write_run_time = mean(all_polar_write_times)
+
+```
+
+
+```{python}
+#| code-summary: "Read Comparison"
+#| echo: false
+#| code-fold: false
+
+from numpy import array
+import plotly.figure_factory as ff
+
+index_samples = array(all_panda_read_times)/array(all_polar_read_times)
+speed_increase_mean = mean(index_samples)
+speed_increase_std = std(index_samples)
+
+fig = ff.create_distplot(
+    [index_samples],
+    group_labels=["index_samples"],  
+    show_hist=False,              
+    show_rug=False,          
+)
+
+fig.update_layout(showlegend=False,height = 300)
+pass
+```
+
+
+```{python}
+#| code-summary: "Write Comparison"
+#| echo: false
+#| code-fold: true
+index_samples_write = array(all_panda_write_times)/array(all_polar_write_times)
+speed_increase_mean_write = mean(index_samples_write)
+speed_increase_std_write = std(index_samples_write)
+
+fig = ff.create_distplot(
+    [index_samples_write],
+    group_labels=["index_samples"],  
+    show_hist=False,              
+    show_rug=False,          
+)
+
+fig.update_layout(showlegend=False, height = 300)
+pass
+
+```
+
+| Metric       | Mean Speed Increase | Standard Deviation |
+|--------------|---------------------|--------------------|
+| Read         | `{python} f"{speed_increase_mean:.2f}"`         | `{python} f"{speed_increase_std:.2f}"`          |
+| Write        | `{python} f"{speed_increase_mean_write:.2f}"`   | `{python} f"{speed_increase_std_write:.2f}"`    |
+
+
+::: {.callout-tip collapse="false" title="AI Generated Summary"}
+Polars is faster at reading and writing CSVs than Pandas because it's built in Rust with parallelized, memory-efficient algorithms that fully utilize multiple CPU cores.
+:::
+
 
 # Construct | Pivot
 
-## Simulate Dataset
-
 ```{python}
-#| eval: false
+#| code-summary: "Simulate Dataset"
+#| echo: true
+#| code-fold: true
 import numpy as np
 import string
 import random
 
 N = int(5e6)
 
-
 def random_str(n=5):
-    return "".join(random.choices(string.ascii_letters, k=n))
-
+    return ''.join(random.choices(string.ascii_letters, k=n))
 
 data = {
     "id": np.arange(N),
@@ -85,65 +204,376 @@ data = {
     "category": np.random.choice(["A", "B", "C", "D"], size=N),
     "score": np.random.randn(N),
     "year": np.random.randint(2000, 2025, size=N),
-    "name": [random_str(5) for _ in range(N)],
+    "name": [random_str(5) for _ in range(N)],   # random short strings
     "ratio": np.random.random(size=N),
     "count": np.random.randint(1, 100, size=N),
 }
 ```
 
-| Metric | Mean Speed Increase | Standard Deviation |
-|---|---|---|
-| Constructor | 3.41x | 0.43 |
-| Group By | 10.18x | 1.58 |
 
-**Constructor**: Polars uses Rust's zero-copy memory model and parallel data parsing, avoiding 
-Python's object overhead.
+```{python}
+#| code-summary: "Pandas DataFrame()"
+#| echo: false
+#| code-fold: false
+import pandas as pd
 
-**Pivot Tables**: Polars executes grouped aggregations in parallel and leverages an optimized 
-query engine built on Apache Arrow.
+all_panda_constructor_times = [default_timer()]
+for j in range(NUMBER_SIMULATIONS):
+    df_Pandas = pd.DataFrame.from_dict(data)
+    all_panda_constructor_times.append(default_timer())
 
----
+all_panda_constructor_times = diff(all_panda_constructor_times)
+panda_constructor_mean_time = mean(all_panda_constructor_times)
+
+```
+
+
+```{python}
+#| code-summary: "Polars DataFrame()"
+#| echo: false
+#| code-fold: false
+import polars as pol
+
+all_polar_constructor_times = [default_timer()]
+for j in range(NUMBER_SIMULATIONS):
+    df_polars = pl.DataFrame(data)
+    all_polar_constructor_times.append(default_timer())
+
+all_polar_constructor_times = diff(all_polar_constructor_times)
+polar_constructor_mean_time = mean(all_polar_constructor_times)
+
+```
+
+
+```{python}
+#| code-summary: "Constructor Comparison"
+#| echo: false
+#| code-fold: false
+index_samples_constructor = array(all_polar_constructor_times)/array(all_panda_constructor_times)
+speed_increase_mean_constructor = mean(index_samples_constructor)
+speed_increase_std_constructor = std(index_samples_constructor)
+
+fig = ff.create_distplot(
+    [index_samples_constructor],
+    group_labels=["index_samples"],  
+    show_hist=False,              
+    show_rug=False,          
+)
+
+fig.update_layout(showlegend=False,height = 300)
+pass
+
+```
+
+
+```{python}
+#| code-summary: "Pandas group_by()"
+#| echo: false
+#| code-fold: false
+import pandas as pd
+
+all_panda_groupby_times = [default_timer()]
+for j in range(NUMBER_SIMULATIONS):
+    result = (
+    df_Pandas.groupby("category")
+      .agg(
+          count=("score", "size"),
+          avg_score=("score", "mean")
+      )
+      .reset_index()
+)
+    all_panda_groupby_times.append(default_timer())
+
+all_panda_groupby_times = diff(all_panda_groupby_times)
+panda_groupby_mean_time = mean(all_panda_groupby_times)
+
+```
+
+
+```{python}
+#| code-summary: "Polars group_by()"
+#| echo: false
+#| code-fold: false
+import polars as pl
+
+all_polar_groupby_times = [default_timer()]
+for j in range(NUMBER_SIMULATIONS):
+    result_polars = (
+    df_polars.group_by("category")
+      .agg([
+          pl.len().alias("count"),
+          pl.col("score").mean().alias("avg_score")
+      ])
+)
+    all_polar_groupby_times.append(default_timer())
+
+all_polar_groupby_times = diff(all_polar_groupby_times)
+polar_groupby_mean_time = mean(all_polar_groupby_times)
+
+```
+
+
+```{python}
+#| code-summary: "GroupBy Comparison"
+#| echo: false
+#| code-fold: false
+index_samples_groupby = array(all_panda_groupby_times)/array(all_polar_groupby_times)
+speed_increase_mean_groupby = mean(index_samples_groupby)
+speed_increase_std_groupby = std(index_samples_groupby)
+
+fig = ff.create_distplot(
+    [index_samples_groupby],
+    group_labels=["index_samples"],  
+    show_hist=False,              
+    show_rug=False,          
+)
+
+fig.update_layout(showlegend=False,height = 300)
+pass
+
+```
+
+
+| Metric       | Mean Speed Increase | Standard Deviation |
+|--------------|---------------------|--------------------|
+| Constructor  | `{python} f"{speed_increase_mean_constructor:.2f}"` | `{python} f"{speed_increase_std_constructor:.2f}"` |
+| Group By     | `{python} f"{speed_increase_mean_groupby:.2f}"`     | `{python} f"{speed_increase_std_groupby:.2f}"`     |
+
+
+::: {.callout-tip collapse="false" title="AI Generated Summary"}
+**Constructor:** Polars DataFrame constructor is faster than Pandas because it uses Rust's zero-copy memory model and parallel data parsing, avoiding Python's object overhead.  
+
+**Pivot Tables:** Polars outperforms Pandas in pivot table operations by executing grouped aggregations in parallel and leveraging an optimized query engine built on Apache Arrow for efficient columnar computation.
+
+:::
+
 
 # Joins | Filter
 
-| Metric | Mean Speed Increase | Standard Deviation |
-|---|---|---|
-| Inner Join | 1.71x | 1.19 |
-| Union All | 8.91x | 16.02 |
-| Filter | 2.38x | 1.46 |
+```{python}
+#| code-summary: "Pandas inner join"
+#| echo: false
+#| code-fold: false
+import pandas as pd
 
-**Joins**: Polars uses parallelized hash join algorithms implemented in Rust, operating directly 
-on Arrow memory and minimizing copying.
+all_panda_join_times = [default_timer()]
+for j in range(NUMBER_SIMULATIONS):
+    result_join = result.merge(result, on="category", how="inner")
+    all_panda_join_times.append(default_timer())
 
-**Filter**: Polars evaluates filter expressions lazily and in parallel at the columnar level, 
-enabling vectorized, cache-efficient filtering.
+all_panda_join_times = diff(all_panda_join_times)
+panda_join_mean_time = mean(all_panda_join_times)
 
-> **Note on Union All variance**: Polars' `vstack()` uses multi-threaded Arrow buffer operations 
-> that improve mean runtime but introduce non-deterministic variance — the OS schedules threads 
-> differently across performance and efficiency cores.
+```
 
----
+
+```{python}
+#| code-summary: "Polars Inner Join"
+#| echo: false
+#| code-fold: false
+import polars as pl
+
+all_polar_join_times = [default_timer()]
+for j in range(NUMBER_SIMULATIONS):
+    result_polars_join = result_polars.join(result_polars, on="category", how="inner")
+    all_polar_join_times.append(default_timer())
+
+all_polar_join_times = diff(all_polar_join_times)
+polar_join_mean_time = mean(all_polar_join_times)
+
+```
+
+
+```{python}
+#| code-summary: "Inner Join Comparison"
+#| echo: false
+#| code-fold: false
+index_samples_join = array(all_panda_join_times) / array(all_polar_join_times)
+speed_increase_mean_join = mean(index_samples_join)
+speed_increase_std_join = std(index_samples_join)
+
+fig = ff.create_distplot(
+    [index_samples_join],
+    group_labels=["index_samples"],
+    show_hist=False,
+    show_rug=False,
+)
+
+fig.update_layout(showlegend=False, height=300)
+pass
+
+```
+
+
+```{python}
+#| code-summary: "Pandas union"
+#| echo: false
+#| code-fold: false
+import pandas as pd
+
+all_panda_union_times = [default_timer()]
+for j in range(NUMBER_SIMULATIONS):
+    result_union = pd.concat([result, result], ignore_index=True)
+    all_panda_union_times.append(default_timer())
+
+all_panda_union_times = diff(all_panda_union_times)
+panda_union_mean_time = mean(all_panda_union_times)
+
+```
+
+
+```{python}
+#| code-summary: "Polars Union All"
+#| echo: false
+#| code-fold: false
+import polars as pl
+
+all_polar_union_times = [default_timer()]
+for j in range(NUMBER_SIMULATIONS):
+    result_polars_union = pl.concat([result_polars, result_polars])
+    all_polar_union_times.append(default_timer())
+
+all_polar_union_times = diff(all_polar_union_times)
+polar_union_mean_time = mean(all_polar_union_times)
+
+```
+
+
+```{python}
+#| code-summary: "Union Comparison"
+#| echo: false
+#| code-fold: false
+index_samples_union = array(all_panda_union_times) / array(all_polar_union_times)
+speed_increase_mean_union = mean(index_samples_union)
+speed_increase_std_union = std(index_samples_union)
+
+fig = ff.create_distplot(
+    [index_samples_union],
+    group_labels=["index_samples"],
+    show_hist=False,
+    show_rug=False,
+)
+
+fig.update_layout(showlegend=False, height=300)
+pass
+```
+
+
+```{python}
+#| code-summary: "Pandas Data Filtering"
+#| echo: false
+#| code-fold: false
+import pandas as pd
+
+all_panda_filter_times = [default_timer()]
+for j in range(NUMBER_SIMULATIONS):
+    result_filter = result[(result["avg_score"] > 10) | (result["count"] < 3)]
+    all_panda_filter_times.append(default_timer())
+
+all_panda_filter_times = diff(all_panda_filter_times)
+panda_filter_mean_time = mean(all_panda_filter_times)
+
+```
+
+
+```{python}
+#| code-summary: "Polars Data Filtering"
+#| echo: false
+#| code-fold: false
+import polars as pl
+
+all_polar_filter_times = [default_timer()]
+for j in range(NUMBER_SIMULATIONS):
+    result_polars_filter = result_polars.filter(
+    (pl.col("avg_score") > 10) | (pl.col("count") < 3)
+)
+    all_polar_filter_times.append(default_timer())
+
+all_polar_filter_times = diff(all_polar_filter_times)
+polar_filter_mean_time = mean(all_polar_filter_times)
+
+```
+
+
+```{python}
+#| code-summary: "Filter Comparison"
+#| echo: false
+#| code-fold: true
+index_samples_filter = array(all_panda_filter_times) / array(all_polar_filter_times)
+speed_increase_mean_filter = mean(index_samples_filter)
+speed_increase_std_filter = std(index_samples_filter)
+
+fig = ff.create_distplot(
+    [index_samples_filter],
+    group_labels=["index_samples"],
+    show_hist=False,
+    show_rug=False,
+)
+
+fig.update_layout(showlegend=False, height=300)
+pass
+
+```
+
+
+| Metric     | Mean Speed Increase | Standard Deviation |
+|------------|---------------------|--------------------|
+| Inner Join | `{python} f"{speed_increase_mean_join:.2f}"`   | `{python} f"{speed_increase_std_join:.2f}"`   |
+| Union All  | `{python} f"{speed_increase_mean_union:.2f}"`  | `{python} f"{speed_increase_std_union:.2f}"`  |
+| Filter     | `{python} f"{speed_increase_mean_filter:.2f}"` | `{python} f"{speed_increase_std_filter:.2f}"` |
+
+<br>
+
+
+::: {.callout-tip collapse="false" title="AI Generated Summary"}
+
+**Joins (Inner + Union All):** Polars performs joins faster than Pandas by using parallelized hash join algorithms implemented in Rust and operating directly on Arrow memory, minimizing copying and serialization overhead.  
+
+**Filter Clauses:** Polars evaluates filter expressions lazily and in parallel at the columnar level, enabling vectorized, cache-efficient filtering that significantly outpaces Pandas' row-wise execution in Python.
+
+:::
+
 
 # Conclusion
 
-Across the board, `Polars` is faster at all typical DataFrame operations tested. The syntax 
-differences are minimal and AI can quickly convert your `Pandas` code.
+Across the board `Polars` is faster at all of the typical DataFrame operations we tested. The syntax differences are minimal and AI can quickly convert your `Pandas` code.
 
-If you work with large DataFrames, Polars is worth the 30-minute migration: faster runtimes, 
-smaller memory footprint, and minimal code changes.
+If you work with large DataFrames, Polars is worth the 30-minute migration — faster runtimes, smaller memory footprint, and minimal code changes.
 
----
 
-# Code Reference
+# Code References
 
-| Operation | Pandas | Polars | Speed |
-|---|---|---|---|
-| **Read CSV** | `pd.read_csv("data.csv")` | `pl.read_csv("data.csv")` | 16.79x |
-| **Write CSV** | `df.to_csv("out.csv")` | `df.write_csv("out.csv")` | 30.74x |
-| **Constructor** | `pd.DataFrame(data)` | `pl.DataFrame(data)` | 3.41x |
-| **Group By** | `df.groupby("col")["value"].mean()` | `df.groupby("col").agg(pl.col("value").mean())` | 10.18x |
-| **Inner Join** | `df1.merge(df2, on="id", how="inner")` | `df1.join(df2, on="id", how="inner")` | 1.71x |
-| **Union All** | `pd.concat([df1, df2], ignore_index=True)` | `df1.vstack(df2)` | 8.91x |
-| **Filter** | `df[df["value"] > 10]` | `df.filter(pl.col("value") > 10)` | 2.38x |
 
-\*Results will vary depending on machine and dataset size/structure.
+::: { style="margin-top: -15px; font-size: 90%;"}
+
+::: {.table-responsive}
+| Operation | **Pandas Example** | **Polars Example** | **Times Faster** |
+|------------|--------------------|--------------------|-----------------------|
+| **Read CSV** | `df = pd.read_csv("data.csv")` | `df = pl.read_csv("data.csv")` | `{python} f"{speed_increase_mean:.2f}"` |
+| **Write CSV** | `df.to_csv("out.csv")` | `df.write_csv("out.csv")` | `{python} f"{speed_increase_mean_write:.2f}"` |
+| **Constructor** | `df = pd.DataFrame(data)` | `df = pl.DataFrame(data)` | `{python} f"{speed_increase_mean_constructor:.2f}"` |
+| **Group By** | `df.groupby("col")["value"].mean()` | `df.groupby("col").agg(pl.col("value").mean())` | `{python} f"{speed_increase_mean_groupby:.2f}"` |
+| **Inner Join** | `df1.merge(df2, on="id", how="inner")` | `df1.join(df2, on="id", how="inner")` | `{python} f"{speed_increase_mean_join:.2f}"` |
+| **Union All** | `pd.concat([df1, df2], ignore_index=True)` | `df1.vstack(df2)` | `{python} f"{speed_increase_mean_union:.2f}"` |
+| **Filter** | `df[df["value"] > 10]` | `df.filter(pl.col("value") > 10)` | `{python} f"{speed_increase_mean_filter:.2f}"` |
+:::
+
+*** _Results will vary depending on machine and size/structure of your datasets._
+
+
+:::
+
+
+::: {.callout-tip collapse="true" title="**AI Generated Summary**: Why Union All Has High Variance "}
+
+Polars' `pl.concat()` (or `vstack()`) uses **multi-threaded Arrow buffer operations** that cut average runtime but introduce **non-deterministic variance**. On macOS with M1 Max chips, the OS may schedule threads differently across performance and efficiency cores, causing some runs to finish faster or slower. In short, **parallelism improves mean speed but naturally increases variance**—explaining the wider spread in the "Union All" benchmark.
+
+
+:::
+
+::: {.callout-tip collapse="true" title="**AI Generated Summary**: Why Constructor is Reliably Faster "}
+
+The constructor benchmark is the most reliable because it's a **pure in-memory, CPU-bound operation** with no I/O, threading, or garbage collection noise. Each run follows the same predictable memory layout, making it a clean measure of Polars' and Pandas' internal efficiency without interference from system variability.
+
+
+:::
