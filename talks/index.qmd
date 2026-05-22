@@ -9,7 +9,7 @@ toc: false
 Nov 6, 2025 · Intuit Tech Stories · Bayesian · Experimentation
 :::
 
-[![](https://images.eq.tm.intuit.com/EloquaImages/clients/IntuitPeopleAndPlaces/%7Ba14c4a51-e0a0-4974-8af5-235d5cd9dabd%7D_tech-stories-nov6_going-bayes_masthead-1024x470.jpg){.talk-thumbnail}](https://share.vidyard.com/watch/wqUpv9CUAXj9cSrFzAQwQ3){target="_blank"}
+[![](going-bayes.jpg){.talk-thumbnail}](https://share.vidyard.com/watch/wqUpv9CUAXj9cSrFzAQwQ3){target="_blank"}
 
 How aligning business priorities with Bayesian Risk-Based Testing reduced Intuit's experiment
 duration by over 60%. Covers the tradeoffs of moving away from frequentist defaults, the math
