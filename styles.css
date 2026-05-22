@@ -43,6 +43,18 @@ hr {
 }
 
 /* ── Category badge ── */
+.badge-talk {
+  display: inline-block;
+  font-size: 0.75rem;
+  font-weight: 600;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  padding: 0.2em 0.7em;
+  border-radius: 4px;
+  background: #9b59b622;
+  color: #9b59b6;
+}
+
 .badge-category {
   display: inline-block;
   font-size: 0.75rem;

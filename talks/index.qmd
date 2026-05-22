@@ -23,7 +23,7 @@ and leadership teams.
 ## How Intuit Uses Dash Enterprise
 
 ::: {.post-meta}
-Mar 15, 2024 · Plotly · Dash · Experimentation Tooling
+2022 · Plotly · Dash · Experimentation Tooling
 :::
 
 [![](https://images.prismic.io/plotly-marketing-website-2/78eadf9c-7427-4ca9-b1f7-e62d411a59f4_intuit-app-2.png?auto=compress,format){.talk-thumbnail}](https://www.youtube.com/watch?v=IpcTF0UAIVQ){target="_blank"}

@@ -11,3 +11,5 @@ site_libs/
 !docs/search.json
 !docs/site_libs/
 !docs/site_libs/**
+
+/.quarto/

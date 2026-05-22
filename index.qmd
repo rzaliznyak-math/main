@@ -18,7 +18,7 @@ page-layout: full
 [AB Testing]{.badge-category} [Python]{.badge-category} [Statistics]{.badge-category} [Math]{.badge-category}
 :::
 
-[Spent 10 years shipping experiments. I write about the things that are easy to get subtly wrong.]{.profile-bio}
+[Writing on A/B testing, Bayesian methods, and Python — built on 10 years of running experiments in industry.]{.profile-bio}
 
 ::: {.profile-links}
 <i class="bi bi-envelope-fill"></i> [Email](mailto:rzaliznyak@gmail.com)
@@ -80,6 +80,20 @@ shows both are well-approximated by the Normal under large samples.
 
 ---
 
+## Going Bayes: Shifting Our Testing Methods To Reflect Our Priorities
+
+::: {.post-meta}
+Nov 6, 2025 · [Talk]{.badge-talk} · Intuit Tech Stories · Bayesian · Experimentation
+:::
+
+How aligning business priorities with Bayesian Risk-Based Testing reduced Intuit's experiment
+duration by over 60%. Covers the tradeoffs of moving away from frequentist defaults and
+scaling adoption across data science, product, and leadership.
+
+[Watch →](https://share.vidyard.com/watch/wqUpv9CUAXj9cSrFzAQwQ3){target="_blank"}
+
+---
+
 ## Why Switch to Polars from Pandas
 
 ::: {.post-meta}
@@ -132,31 +146,15 @@ rate-based metrics. A foundation for all simulation-based work.
 
 ---
 
-# Talks & Videos
-
-## Going Bayes: Shifting Our Testing Methods To Reflect Our Priorities
-
-::: {.post-meta}
-Nov 6, 2025 · Intuit Tech Stories · Bayesian · Experimentation
-:::
-
-How aligning business priorities with Bayesian Risk-Based Testing reduced Intuit's experiment
-duration by over 60%. Covers the tradeoffs of moving away from frequentist defaults and
-scaling adoption across data science, product, and leadership.
-
-[Watch →](https://share.vidyard.com/watch/wqUpv9CUAXj9cSrFzAQwQ3){target="_blank"}
-
----
-
 ## How Intuit Uses Dash Enterprise
 
 ::: {.post-meta}
-Mar 2024 · Plotly · Dash · Experimentation Tooling
+2022 · [Talk]{.badge-talk} · Plotly · Dash · Experimentation Tooling
 :::
 
-Two-minute highlight from a Plotly webinar on using Dash Enterprise to build an
-end-to-end experimentation analysis app — no HTML or engineering experience required.
-Reduced experiment runtime by 70%+.
+Highlight reel from a Plotly webinar on building Intuit's experimentation suite in Dash Enterprise —
+a sample size calculator, sequential AB testing app, and experiment simulation tool — adopted by
+500+ users across Intuit's A2D org. Reduced experiment runtime by 70%+.
 
 [Watch →](https://www.youtube.com/watch?v=IpcTF0UAIVQ){target="_blank"}
 
