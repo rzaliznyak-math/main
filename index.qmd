@@ -1,16 +1,54 @@
 ---
 title: "Russ Zaliznyak"
-subtitle: "AB Testing · Python · Statistics · Math"
-toc: true
-toc-depth: 2
+toc: false
+page-layout: full
 ---
 
-I work on experimentation systems, Bayesian optimization, and simulation-driven decision-making.
-My writing focuses on practical methods in AB testing, statistical intuition, and Python tooling.
+::::: {.home-layout}
 
-[Full CV →](cv.qmd) &nbsp;|&nbsp; [rzaliznyak@gmail.com](mailto:rzaliznyak@gmail.com)
+:::: {.profile-sidebar}
 
----
+![](profile.jpg){.profile-photo}
+
+[Russ Zaliznyak]{.profile-name}
+
+[Principal Data Scientist]{.profile-role}
+
+::: {.topic-badges}
+[AB Testing]{.badge-category} [Python]{.badge-category} [Statistics]{.badge-category} [Math]{.badge-category}
+:::
+
+[Spent 10 years shipping experiments. I write about the things that are easy to get subtly wrong.]{.profile-bio}
+
+::: {.profile-links}
+<i class="bi bi-envelope-fill"></i> [Email](mailto:rzaliznyak@gmail.com)
+
+<i class="bi bi-linkedin"></i> [LinkedIn](https://www.linkedin.com/in/russ-zaliznyak/){target="_blank"}
+
+<i class="bi bi-github"></i> [GitHub](https://github.com/rzaliznyak-math){target="_blank"}
+
+<i class="bi bi-file-person-fill"></i> [CV](cv.html)
+:::
+
+::: {.sidebar-nav}
+[Writing]{.sidebar-nav-label}
+
+[AB Testing](ab-testing/index.html)
+
+[Python](python/index.html)
+
+[Talks & Videos]{.sidebar-nav-label}
+
+[All Talks](talks/index.html)
+
+[Going Bayes](https://share.vidyard.com/watch/wqUpv9CUAXj9cSrFzAQwQ3){target="_blank"}
+
+[Intuit × Dash Enterprise](https://www.youtube.com/watch?v=IpcTF0UAIVQ){target="_blank"}
+:::
+
+::::
+
+:::: {.article-list}
 
 ## The Winner's Curse
 
@@ -91,3 +129,37 @@ Using Python's NumPy random generator to model randomness and build intuition fo
 rate-based metrics. A foundation for all simulation-based work.
 
 [Read →](ab-testing/power-of-simulation.qmd)
+
+---
+
+# Talks & Videos
+
+## Going Bayes: Shifting Our Testing Methods To Reflect Our Priorities
+
+::: {.post-meta}
+Nov 6, 2025 · Intuit Tech Stories · Bayesian · Experimentation
+:::
+
+How aligning business priorities with Bayesian Risk-Based Testing reduced Intuit's experiment
+duration by over 60%. Covers the tradeoffs of moving away from frequentist defaults and
+scaling adoption across data science, product, and leadership.
+
+[Watch →](https://share.vidyard.com/watch/wqUpv9CUAXj9cSrFzAQwQ3){target="_blank"}
+
+---
+
+## How Intuit Uses Dash Enterprise
+
+::: {.post-meta}
+Mar 2024 · Plotly · Dash · Experimentation Tooling
+:::
+
+Two-minute highlight from a Plotly webinar on using Dash Enterprise to build an
+end-to-end experimentation analysis app — no HTML or engineering experience required.
+Reduced experiment runtime by 70%+.
+
+[Watch →](https://www.youtube.com/watch?v=IpcTF0UAIVQ){target="_blank"}
+
+::::
+
+:::::

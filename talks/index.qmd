@@ -1,0 +1,36 @@
+---
+title: "Talks & Videos"
+toc: false
+---
+
+## Going Bayes: Shifting Our Testing Methods To Reflect Our Priorities
+
+::: {.post-meta}
+Nov 6, 2025 · Intuit Tech Stories · Bayesian · Experimentation
+:::
+
+[![](https://images.eq.tm.intuit.com/EloquaImages/clients/IntuitPeopleAndPlaces/%7Ba14c4a51-e0a0-4974-8af5-235d5cd9dabd%7D_tech-stories-nov6_going-bayes_masthead-1024x470.jpg){.talk-thumbnail}](https://share.vidyard.com/watch/wqUpv9CUAXj9cSrFzAQwQ3){target="_blank"}
+
+How aligning business priorities with Bayesian Risk-Based Testing reduced Intuit's experiment
+duration by over 60%. Covers the tradeoffs of moving away from frequentist defaults, the math
+behind Bayesian risk-based decisions, and how we scaled adoption across data science, product,
+and leadership teams.
+
+[Watch →](https://share.vidyard.com/watch/wqUpv9CUAXj9cSrFzAQwQ3){target="_blank" .btn .btn-outline-primary .btn-sm}
+
+---
+
+## How Intuit Uses Dash Enterprise
+
+::: {.post-meta}
+Mar 2024 · Plotly · Dash · Experimentation Tooling
+:::
+
+[![](https://images.prismic.io/plotly-marketing-website-2/78eadf9c-7427-4ca9-b1f7-e62d411a59f4_intuit-app-2.png?auto=compress,format){.talk-thumbnail}](https://www.youtube.com/watch?v=IpcTF0UAIVQ){target="_blank"}
+
+Two-minute highlight from a Plotly webinar on building an end-to-end experimentation
+analysis app using Dash Enterprise — no HTML or engineering experience required.
+The tool reduced experiment runtime by 70%+ and empowered analysts across the company
+to run and interpret their own experiments.
+
+[Watch →](https://www.youtube.com/watch?v=IpcTF0UAIVQ){target="_blank" .btn .btn-outline-primary .btn-sm}

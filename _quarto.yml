@@ -34,6 +34,15 @@ website:
           - text: "---"
           - text: "Why Switch to Polars"
             href: python/polars-vs-pandas.qmd
+      - text: "Talks & Videos"
+        menu:
+          - text: "All Talks"
+            href: talks/index.qmd
+          - text: "---"
+          - text: "Going Bayes — Intuit Tech Stories"
+            href: https://share.vidyard.com/watch/wqUpv9CUAXj9cSrFzAQwQ3
+          - text: "How Intuit Uses Dash Enterprise"
+            href: https://www.youtube.com/watch?v=IpcTF0UAIVQ
       - text: "CV"
         href: cv.qmd
     right:
