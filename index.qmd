@@ -2,6 +2,7 @@
 title: "Russ Zaliznyak"
 toc: false
 page-layout: full
+body-classes: home-page
 ---
 
 ::::: {.home-layout}
@@ -18,7 +19,7 @@ page-layout: full
 [AB Testing]{.badge-category} [Python]{.badge-category} [Statistics]{.badge-category} [Math]{.badge-category}
 :::
 
-[Writing on A/B testing, Bayesian methods, and Python — built on 10 years of running experiments in industry.]{.profile-bio}
+[Writing on A/B testing, Bayesian methods, and Python. Articles use simulation and code to build intuition — not just theory.]{.profile-bio}
 
 ::: {.profile-links}
 <i class="bi bi-envelope-fill"></i> [Email](mailto:rzaliznyak@gmail.com)
@@ -49,6 +50,20 @@ page-layout: full
 ::::
 
 :::: {.article-list}
+
+## AB Testing is an Optimization Problem
+
+::: {.post-meta}
+May 22, 2026 · [In Progress]{.badge-wip} · AB Testing · Decision Theory · Bayesian
+:::
+
+Frequentist stopping rules — run until p < 0.05 — are not derived from any business
+objective. Reframes AB testing as a decision optimization problem and shows how
+Bayesian methods align stopping criteria with what actually matters.
+
+[Read →](ab-testing/ab-testing-optimization.qmd)
+
+---
 
 ## The Winner's Curse
 

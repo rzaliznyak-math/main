@@ -1,0 +1,31 @@
+---
+title: "AB Testing is an Optimization Problem"
+subtitle: "Why Traditional Stopping Rules Are Arbitrary"
+author: "Russ Zaliznyak"
+date: "2026-05-22"
+description: >
+  Frequentist stopping rules — run until p < 0.05 — are not derived from any business
+  objective. Reframes AB testing as a decision optimization problem and shows how
+  Bayesian and sequential methods align stopping criteria with what actually matters.
+categories: [AB Testing, Bayesian, Decision Theory, Optimization]
+execute:
+  echo: false
+---
+
+::: {.post-meta}
+[In Progress]{.badge-wip}
+:::
+
+# Introduction
+
+In 1925, Ronald Fisher chose p < 0.05 as a convenient threshold for analyzing crop yields.
+That rule is now the global default for product experimentation — not because it's optimal,
+but because it was inherited.
+
+Thirty-one years later, Fisher wrote:
+
+> *"The calculation is absurdly academic, for in fact no scientific worker has a fixed level of significance at which from year to year, and in all circumstances, he rejects hypotheses."*
+>
+> — *Statistical Methods and Scientific Inference* (1956)
+
+In other words, stopping rules are completely arbitrary without context.

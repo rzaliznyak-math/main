@@ -7,8 +7,10 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes">
 
 <meta name="author" content="Russ Zaliznyak">
+<meta name="dcterms.date" content="2026-05-22">
+<meta name="description" content="Frequentist stopping rules — run until p < 0.05 — are not derived from any business objective. Reframes AB testing as a decision optimization problem and shows how Bayesian and sequential methods align stopping criteria with what actually matters.">
 
-<title>AB Testing – Russ Zaliznyak</title>
+<title>AB Testing is an Optimization Problem – Russ Zaliznyak</title>
 <style>
 code{white-space: pre-wrap;}
 span.smallcaps{font-variant: small-caps;}
@@ -109,7 +111,7 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 <link rel="stylesheet" href="../styles.css">
 </head>
 
-<body class="nav-sidebar floating nav-fixed fullcontent">
+<body class="nav-sidebar floating nav-fixed">
 
 <div id="quarto-search-results"></div>
   <header id="quarto-header" class="headroom fixed-top">
@@ -225,7 +227,7 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
       <button type="button" class="quarto-btn-toggle btn" data-bs-toggle="collapse" role="button" data-bs-target=".quarto-sidebar-collapse-item" aria-controls="quarto-sidebar" aria-expanded="false" aria-label="Toggle sidebar navigation" onclick="if (window.quartoToggleHeadroom) { window.quartoToggleHeadroom(); }">
         <i class="bi bi-layout-text-sidebar-reverse"></i>
       </button>
-        <nav class="quarto-page-breadcrumbs" aria-label="breadcrumb"><ol class="breadcrumb"><li class="breadcrumb-item">AB Testing</li></ol></nav>
+        <nav class="quarto-page-breadcrumbs" aria-label="breadcrumb"><ol class="breadcrumb"><li class="breadcrumb-item">AB Testing is an Optimization Problem</li></ol></nav>
         <a class="flex-grow-1" role="navigation" data-bs-toggle="collapse" data-bs-target=".quarto-sidebar-collapse-item" aria-controls="quarto-sidebar" aria-expanded="false" aria-label="Toggle sidebar navigation" onclick="if (window.quartoToggleHeadroom) { window.quartoToggleHeadroom(); }">      
         </a>
     </div>
@@ -238,15 +240,35 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 </nav>
 <div id="quarto-sidebar-glass" class="quarto-sidebar-collapse-item" data-bs-toggle="collapse" data-bs-target=".quarto-sidebar-collapse-item"></div>
 <!-- margin-sidebar -->
-    
+    <div id="quarto-margin-sidebar" class="sidebar margin-sidebar">
+        <nav id="TOC" role="doc-toc" class="toc-active">
+    <h2 id="toc-title">On this page</h2>
+   
+  <ul>
+  <li><a href="#introduction" id="toc-introduction" class="nav-link active" data-scroll-target="#introduction">Introduction</a></li>
+  </ul>
+</nav>
+    </div>
 <!-- main -->
 <main class="content" id="quarto-document-content">
 
 <header id="title-block-header" class="quarto-title-block default">
 <div class="quarto-title">
-<div class="quarto-title-block"><div><h1 class="title">AB Testing</h1><button type="button" class="btn code-tools-button" id="quarto-code-tools-source"><i class="bi"></i> Code</button></div></div>
-</div>
+<div class="quarto-title-block"><div><h1 class="title">AB Testing is an Optimization Problem</h1><button type="button" class="btn code-tools-button" id="quarto-code-tools-source"><i class="bi"></i> Code</button></div></div>
+<p class="subtitle lead">Why Traditional Stopping Rules Are Arbitrary</p>
+  <div class="quarto-categories">
+    <div class="quarto-category">AB Testing</div>
+    <div class="quarto-category">Bayesian</div>
+    <div class="quarto-category">Decision Theory</div>
+    <div class="quarto-category">Optimization</div>
+  </div>
+  </div>
 
+<div>
+  <div class="description">
+    <p>Frequentist stopping rules — run until p &lt; 0.05 — are not derived from any business objective. Reframes AB testing as a decision optimization problem and shows how Bayesian and sequential methods align stopping criteria with what actually matters.</p>
+  </div>
+</div>
 
 
 <div class="quarto-title-meta">
@@ -258,6 +280,12 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
           </div>
   </div>
     
+    <div>
+    <div class="quarto-title-meta-heading">Published</div>
+    <div class="quarto-title-meta-contents">
+      <p class="date">May 22, 2026</p>
+    </div>
+  </div>
   
     
   </div>
@@ -267,49 +295,23 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 </header>
 
 
-<p>Articles on experimentation design, statistical analysis, and simulation-driven decision making.</p>
-<div class="grid">
-<section id="ab-testing-is-an-optimization-problem" class="level3 g-col-6">
-<h3 class="anchored" data-anchor-id="ab-testing-is-an-optimization-problem"><a href="../ab-testing/ab-testing-optimization.html">AB Testing is an Optimization Problem</a></h3>
-<p><strong>May 2026</strong> &nbsp;·&nbsp; <span class="badge-wip">In Progress</span> &nbsp;·&nbsp; Decision Theory · Bayesian · Optimization</p>
-<p>Frequentist stopping rules are not derived from any business objective. Reframes AB testing as a decision optimization problem and shows how Bayesian methods align stopping criteria with what actually matters.</p>
-<p><a href="../ab-testing/ab-testing-optimization.html">Read →</a></p>
-</section>
-<section id="the-winners-curse" class="level3 g-col-6">
-<h3 class="anchored" data-anchor-id="the-winners-curse"><a href="../ab-testing/winners-curse.html">The Winner’s Curse</a></h3>
-<p><strong>Jan 2026</strong> &nbsp;·&nbsp; Bias · Bayesian</p>
-<p>Statistical significance is not an endorsement of the treatment effect. Quantifies how often significant results overestimate true lift.</p>
-<p><a href="../ab-testing/winners-curse.html">Read →</a></p>
-</section>
-<section id="beta-vs-binomial-distribution" class="level3 g-col-6">
-<h3 class="anchored" data-anchor-id="beta-vs-binomial-distribution"><a href="../ab-testing/beta-vs-binomial.html">Beta vs Binomial Distribution</a></h3>
-<p><strong>Dec 2025</strong> &nbsp;·&nbsp; Distributions · Bayesian</p>
-<p>When to use each distribution in experimentation. Covers p-values, credible intervals, and the Normal approximation — all built with simulations.</p>
-<p><a href="../ab-testing/beta-vs-binomial.html">Read →</a></p>
-</section>
-<section id="the-value-of-big-swings" class="level3 g-col-6">
-<h3 class="anchored" data-anchor-id="the-value-of-big-swings"><a href="../ab-testing/big-swings.html">The Value of Big Swings</a></h3>
-<p><strong>Aug 2025</strong> &nbsp;·&nbsp; Strategy · Simulation</p>
-<p>Why bold experiments deliver more value with less traffic. Compares guaranteed small wins vs.&nbsp;high-variance transformational bets using 30,000 simulations.</p>
-<p><a href="../ab-testing/big-swings.html">Read →</a></p>
-</section>
-<section id="experiment-design-analysis-with-numpy" class="level3 g-col-6">
-<h3 class="anchored" data-anchor-id="experiment-design-analysis-with-numpy"><a href="../ab-testing/numpy-experiment-design.html">Experiment Design &amp; Analysis with NumPy</a></h3>
-<p><strong>Feb 2025</strong> &nbsp;·&nbsp; Simulation · Power</p>
-<p>Understanding p-values and statistical power through simulation. Builds a full AB test framework from scratch using <code>numpy.random</code>.</p>
-<p><a href="../ab-testing/numpy-experiment-design.html">Read →</a></p>
-</section>
-<section id="the-power-of-data-simulation" class="level3 g-col-6">
-<h3 class="anchored" data-anchor-id="the-power-of-data-simulation"><a href="../ab-testing/power-of-simulation.html">The Power of Data Simulation</a></h3>
-<p><strong>Nov 2024</strong> &nbsp;·&nbsp; Simulation · Intuition</p>
-<p>Using Python’s NumPy random generator to model randomness and build intuition for rate-based metrics. A foundation for all simulation-based work.</p>
-<p><a href="../ab-testing/power-of-simulation.html">Read →</a></p>
-</section>
+<div class="post-meta">
+<p><span class="badge-wip">In Progress</span></p>
 </div>
+<section id="introduction" class="level1">
+<h1>Introduction</h1>
+<p>In 1925, Ronald Fisher chose p &lt; 0.05 as a convenient threshold for analyzing crop yields. That rule is now the global default for product experimentation — not because it’s optimal, but because it was inherited.</p>
+<p>Thirty-one years later, Fisher wrote:</p>
+<blockquote class="blockquote">
+<p><em>“The calculation is absurdly academic, for in fact no scientific worker has a fixed level of significance at which from year to year, and in all circumstances, he rejects hypotheses.”</em></p>
+<p>— <em>Statistical Methods and Scientific Inference</em> (1956)</p>
+</blockquote>
+<p>In other words, stopping rules are completely arbitrary without context.</p>
 
 
 <!-- -->
 
+</section>
 
 </main> <!-- /main -->
 <script id="quarto-html-after-body" type="application/javascript">
@@ -928,69 +930,36 @@ window.document.addEventListener("DOMContentLoaded", function (event) {
 });
 </script><div class="modal fade" id="quarto-embedded-source-code-modal" tabindex="-1" aria-labelledby="quarto-embedded-source-code-modal-label" aria-hidden="true"><div class="modal-dialog modal-dialog-scrollable"><div class="modal-content"><div class="modal-header"><h5 class="modal-title" id="quarto-embedded-source-code-modal-label">Source Code</h5><button class="btn-close" data-bs-dismiss="modal"></button></div><div class="modal-body"><div class="">
 <div class="sourceCode" id="cb1" data-shortcodes="false"><pre class="sourceCode markdown code-with-copy"><code class="sourceCode markdown"><span id="cb1-1"><a href="#cb1-1" aria-hidden="true" tabindex="-1"></a><span class="co">---</span></span>
-<span id="cb1-2"><a href="#cb1-2" aria-hidden="true" tabindex="-1"></a><span class="an">title:</span><span class="co"> "AB Testing"</span></span>
-<span id="cb1-3"><a href="#cb1-3" aria-hidden="true" tabindex="-1"></a><span class="an">toc:</span><span class="co"> false</span></span>
-<span id="cb1-4"><a href="#cb1-4" aria-hidden="true" tabindex="-1"></a><span class="co">---</span></span>
-<span id="cb1-5"><a href="#cb1-5" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb1-6"><a href="#cb1-6" aria-hidden="true" tabindex="-1"></a>Articles on experimentation design, statistical analysis, and simulation-driven decision making.</span>
-<span id="cb1-7"><a href="#cb1-7" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb1-8"><a href="#cb1-8" aria-hidden="true" tabindex="-1"></a>:::: {.grid}</span>
-<span id="cb1-9"><a href="#cb1-9" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb1-10"><a href="#cb1-10" aria-hidden="true" tabindex="-1"></a>::: {.g-col-6}</span>
-<span id="cb1-11"><a href="#cb1-11" aria-hidden="true" tabindex="-1"></a><span class="fu">### [AB Testing is an Optimization Problem](ab-testing-optimization.qmd)</span></span>
-<span id="cb1-12"><a href="#cb1-12" aria-hidden="true" tabindex="-1"></a>**May 2026** <span class="dv">&amp;nbsp;</span>·<span class="dv">&amp;nbsp;</span> <span class="co">[</span><span class="ot">In Progress</span><span class="co">]</span>{.badge-wip} <span class="dv">&amp;nbsp;</span>·<span class="dv">&amp;nbsp;</span> Decision Theory · Bayesian · Optimization</span>
-<span id="cb1-13"><a href="#cb1-13" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb1-14"><a href="#cb1-14" aria-hidden="true" tabindex="-1"></a>Frequentist stopping rules are not derived from any business objective. Reframes AB testing as a decision optimization problem and shows how Bayesian methods align stopping criteria with what actually matters.</span>
-<span id="cb1-15"><a href="#cb1-15" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb1-16"><a href="#cb1-16" aria-hidden="true" tabindex="-1"></a><span class="co">[</span><span class="ot">Read →</span><span class="co">](ab-testing-optimization.qmd)</span></span>
+<span id="cb1-2"><a href="#cb1-2" aria-hidden="true" tabindex="-1"></a><span class="an">title:</span><span class="co"> "AB Testing is an Optimization Problem"</span></span>
+<span id="cb1-3"><a href="#cb1-3" aria-hidden="true" tabindex="-1"></a><span class="an">subtitle:</span><span class="co"> "Why Traditional Stopping Rules Are Arbitrary"</span></span>
+<span id="cb1-4"><a href="#cb1-4" aria-hidden="true" tabindex="-1"></a><span class="an">author:</span><span class="co"> "Russ Zaliznyak"</span></span>
+<span id="cb1-5"><a href="#cb1-5" aria-hidden="true" tabindex="-1"></a><span class="an">date:</span><span class="co"> "2026-05-22"</span></span>
+<span id="cb1-6"><a href="#cb1-6" aria-hidden="true" tabindex="-1"></a><span class="an">description:</span><span class="co"> &gt;</span></span>
+<span id="cb1-7"><a href="#cb1-7" aria-hidden="true" tabindex="-1"></a><span class="co">  Frequentist stopping rules — run until p &lt; 0.05 — are not derived from any business</span></span>
+<span id="cb1-8"><a href="#cb1-8" aria-hidden="true" tabindex="-1"></a><span class="co">  objective. Reframes AB testing as a decision optimization problem and shows how</span></span>
+<span id="cb1-9"><a href="#cb1-9" aria-hidden="true" tabindex="-1"></a><span class="co">  Bayesian and sequential methods align stopping criteria with what actually matters.</span></span>
+<span id="cb1-10"><a href="#cb1-10" aria-hidden="true" tabindex="-1"></a><span class="an">categories:</span><span class="co"> [AB Testing, Bayesian, Decision Theory, Optimization]</span></span>
+<span id="cb1-11"><a href="#cb1-11" aria-hidden="true" tabindex="-1"></a><span class="an">execute:</span></span>
+<span id="cb1-12"><a href="#cb1-12" aria-hidden="true" tabindex="-1"></a><span class="co">  echo: false</span></span>
+<span id="cb1-13"><a href="#cb1-13" aria-hidden="true" tabindex="-1"></a><span class="co">---</span></span>
+<span id="cb1-14"><a href="#cb1-14" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb1-15"><a href="#cb1-15" aria-hidden="true" tabindex="-1"></a>::: {.post-meta}</span>
+<span id="cb1-16"><a href="#cb1-16" aria-hidden="true" tabindex="-1"></a><span class="co">[</span><span class="ot">In Progress</span><span class="co">]</span>{.badge-wip}</span>
 <span id="cb1-17"><a href="#cb1-17" aria-hidden="true" tabindex="-1"></a>:::</span>
 <span id="cb1-18"><a href="#cb1-18" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb1-19"><a href="#cb1-19" aria-hidden="true" tabindex="-1"></a>::: {.g-col-6}</span>
-<span id="cb1-20"><a href="#cb1-20" aria-hidden="true" tabindex="-1"></a><span class="fu">### [The Winner's Curse](winners-curse.qmd)</span></span>
-<span id="cb1-21"><a href="#cb1-21" aria-hidden="true" tabindex="-1"></a>**Jan 2026** <span class="dv">&amp;nbsp;</span>·<span class="dv">&amp;nbsp;</span> Bias · Bayesian</span>
-<span id="cb1-22"><a href="#cb1-22" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb1-23"><a href="#cb1-23" aria-hidden="true" tabindex="-1"></a>Statistical significance is not an endorsement of the treatment effect. Quantifies how often significant results overestimate true lift.</span>
+<span id="cb1-19"><a href="#cb1-19" aria-hidden="true" tabindex="-1"></a><span class="fu"># Introduction</span></span>
+<span id="cb1-20"><a href="#cb1-20" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb1-21"><a href="#cb1-21" aria-hidden="true" tabindex="-1"></a>In 1925, Ronald Fisher chose p &lt; 0.05 as a convenient threshold for analyzing crop yields.</span>
+<span id="cb1-22"><a href="#cb1-22" aria-hidden="true" tabindex="-1"></a>That rule is now the global default for product experimentation — not because it's optimal,</span>
+<span id="cb1-23"><a href="#cb1-23" aria-hidden="true" tabindex="-1"></a>but because it was inherited.</span>
 <span id="cb1-24"><a href="#cb1-24" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb1-25"><a href="#cb1-25" aria-hidden="true" tabindex="-1"></a><span class="co">[</span><span class="ot">Read →</span><span class="co">](winners-curse.qmd)</span></span>
-<span id="cb1-26"><a href="#cb1-26" aria-hidden="true" tabindex="-1"></a>:::</span>
-<span id="cb1-27"><a href="#cb1-27" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb1-28"><a href="#cb1-28" aria-hidden="true" tabindex="-1"></a>::: {.g-col-6}</span>
-<span id="cb1-29"><a href="#cb1-29" aria-hidden="true" tabindex="-1"></a><span class="fu">### [Beta vs Binomial Distribution](beta-vs-binomial.qmd)</span></span>
-<span id="cb1-30"><a href="#cb1-30" aria-hidden="true" tabindex="-1"></a>**Dec 2025** <span class="dv">&amp;nbsp;</span>·<span class="dv">&amp;nbsp;</span> Distributions · Bayesian</span>
-<span id="cb1-31"><a href="#cb1-31" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb1-32"><a href="#cb1-32" aria-hidden="true" tabindex="-1"></a>When to use each distribution in experimentation. Covers p-values, credible intervals, and the Normal approximation — all built with simulations.</span>
-<span id="cb1-33"><a href="#cb1-33" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb1-34"><a href="#cb1-34" aria-hidden="true" tabindex="-1"></a><span class="co">[</span><span class="ot">Read →</span><span class="co">](beta-vs-binomial.qmd)</span></span>
-<span id="cb1-35"><a href="#cb1-35" aria-hidden="true" tabindex="-1"></a>:::</span>
-<span id="cb1-36"><a href="#cb1-36" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb1-37"><a href="#cb1-37" aria-hidden="true" tabindex="-1"></a>::: {.g-col-6}</span>
-<span id="cb1-38"><a href="#cb1-38" aria-hidden="true" tabindex="-1"></a><span class="fu">### [The Value of Big Swings](big-swings.qmd)</span></span>
-<span id="cb1-39"><a href="#cb1-39" aria-hidden="true" tabindex="-1"></a>**Aug 2025** <span class="dv">&amp;nbsp;</span>·<span class="dv">&amp;nbsp;</span> Strategy · Simulation</span>
-<span id="cb1-40"><a href="#cb1-40" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb1-41"><a href="#cb1-41" aria-hidden="true" tabindex="-1"></a>Why bold experiments deliver more value with less traffic. Compares guaranteed small wins vs. high-variance transformational bets using 30,000 simulations.</span>
-<span id="cb1-42"><a href="#cb1-42" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb1-43"><a href="#cb1-43" aria-hidden="true" tabindex="-1"></a><span class="co">[</span><span class="ot">Read →</span><span class="co">](big-swings.qmd)</span></span>
-<span id="cb1-44"><a href="#cb1-44" aria-hidden="true" tabindex="-1"></a>:::</span>
-<span id="cb1-45"><a href="#cb1-45" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb1-46"><a href="#cb1-46" aria-hidden="true" tabindex="-1"></a>::: {.g-col-6}</span>
-<span id="cb1-47"><a href="#cb1-47" aria-hidden="true" tabindex="-1"></a><span class="fu">### [Experiment Design &amp; Analysis with NumPy](numpy-experiment-design.qmd)</span></span>
-<span id="cb1-48"><a href="#cb1-48" aria-hidden="true" tabindex="-1"></a>**Feb 2025** <span class="dv">&amp;nbsp;</span>·<span class="dv">&amp;nbsp;</span> Simulation · Power</span>
-<span id="cb1-49"><a href="#cb1-49" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb1-50"><a href="#cb1-50" aria-hidden="true" tabindex="-1"></a>Understanding p-values and statistical power through simulation. Builds a full AB test framework from scratch using <span class="in">`numpy.random`</span>.</span>
-<span id="cb1-51"><a href="#cb1-51" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb1-52"><a href="#cb1-52" aria-hidden="true" tabindex="-1"></a><span class="co">[</span><span class="ot">Read →</span><span class="co">](numpy-experiment-design.qmd)</span></span>
-<span id="cb1-53"><a href="#cb1-53" aria-hidden="true" tabindex="-1"></a>:::</span>
-<span id="cb1-54"><a href="#cb1-54" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb1-55"><a href="#cb1-55" aria-hidden="true" tabindex="-1"></a>::: {.g-col-6}</span>
-<span id="cb1-56"><a href="#cb1-56" aria-hidden="true" tabindex="-1"></a><span class="fu">### [The Power of Data Simulation](power-of-simulation.qmd)</span></span>
-<span id="cb1-57"><a href="#cb1-57" aria-hidden="true" tabindex="-1"></a>**Nov 2024** <span class="dv">&amp;nbsp;</span>·<span class="dv">&amp;nbsp;</span> Simulation · Intuition</span>
-<span id="cb1-58"><a href="#cb1-58" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb1-59"><a href="#cb1-59" aria-hidden="true" tabindex="-1"></a>Using Python's NumPy random generator to model randomness and build intuition for rate-based metrics. A foundation for all simulation-based work.</span>
-<span id="cb1-60"><a href="#cb1-60" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb1-61"><a href="#cb1-61" aria-hidden="true" tabindex="-1"></a><span class="co">[</span><span class="ot">Read →</span><span class="co">](power-of-simulation.qmd)</span></span>
-<span id="cb1-62"><a href="#cb1-62" aria-hidden="true" tabindex="-1"></a>:::</span>
-<span id="cb1-63"><a href="#cb1-63" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb1-64"><a href="#cb1-64" aria-hidden="true" tabindex="-1"></a>::::</span></code><button title="Copy to Clipboard" class="code-copy-button" data-in-quarto-modal=""><i class="bi"></i></button></pre></div>
+<span id="cb1-25"><a href="#cb1-25" aria-hidden="true" tabindex="-1"></a>Thirty-one years later, Fisher wrote:</span>
+<span id="cb1-26"><a href="#cb1-26" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb1-27"><a href="#cb1-27" aria-hidden="true" tabindex="-1"></a><span class="at">&gt; *"The calculation is absurdly academic, for in fact no scientific worker has a fixed level of significance at which from year to year, and in all circumstances, he rejects hypotheses."*</span></span>
+<span id="cb1-28"><a href="#cb1-28" aria-hidden="true" tabindex="-1"></a><span class="at">&gt;</span></span>
+<span id="cb1-29"><a href="#cb1-29" aria-hidden="true" tabindex="-1"></a><span class="at">&gt; — *Statistical Methods and Scientific Inference* (1956)</span></span>
+<span id="cb1-30"><a href="#cb1-30" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb1-31"><a href="#cb1-31" aria-hidden="true" tabindex="-1"></a>In other words, stopping rules are completely arbitrary without context.</span></code><button title="Copy to Clipboard" class="code-copy-button" data-in-quarto-modal=""><i class="bi"></i></button></pre></div>
 </div></div></div></div></div>
 </div> <!-- /content -->
 <footer class="footer">

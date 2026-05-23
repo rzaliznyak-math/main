@@ -32,7 +32,7 @@ th {
 
 /* ── Dividers ── */
 hr {
-  margin: 2.5rem 0;
+  margin: 1.5rem 0 4rem 0;
   opacity: 0.2;
 }
 
@@ -43,6 +43,18 @@ hr {
 }
 
 /* ── Category badge ── */
+.badge-wip {
+  display: inline-block;
+  font-size: 0.75rem;
+  font-weight: 600;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  padding: 0.2em 0.7em;
+  border-radius: 4px;
+  background: #f39c1222;
+  color: #f39c12;
+}
+
 .badge-talk {
   display: inline-block;
   font-size: 0.75rem;
@@ -75,7 +87,7 @@ hr {
 }
 
 /* ── Home page two-column layout ── */
-#title-block-header {
+body.home-page #title-block-header {
   display: none !important;
 }
 
@@ -276,7 +288,7 @@ hr {
 .post-meta {
   font-size: 0.85rem;
   color: var(--bs-secondary-color, #6c757d);
-  margin-top: -0.5rem;
+  margin-top: 0.25rem;
   margin-bottom: 0.75rem;
   letter-spacing: 0.01em;
 }

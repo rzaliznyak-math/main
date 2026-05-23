@@ -8,12 +8,12 @@ Articles on experimentation design, statistical analysis, and simulation-driven 
 :::: {.grid}
 
 ::: {.g-col-6}
-### [The Value of Big Swings](big-swings.qmd)
-**Aug 2025** &nbsp;·&nbsp; Strategy · Simulation
+### [AB Testing is an Optimization Problem](ab-testing-optimization.qmd)
+**May 2026** &nbsp;·&nbsp; [In Progress]{.badge-wip} &nbsp;·&nbsp; Decision Theory · Bayesian · Optimization
 
-Why bold experiments deliver more value with less traffic. Compares guaranteed small wins vs. high-variance transformational bets using 30,000 simulations.
+Frequentist stopping rules are not derived from any business objective. Reframes AB testing as a decision optimization problem and shows how Bayesian methods align stopping criteria with what actually matters.
 
-[Read →](big-swings.qmd)
+[Read →](ab-testing-optimization.qmd)
 :::
 
 ::: {.g-col-6}
@@ -32,6 +32,15 @@ Statistical significance is not an endorsement of the treatment effect. Quantifi
 When to use each distribution in experimentation. Covers p-values, credible intervals, and the Normal approximation — all built with simulations.
 
 [Read →](beta-vs-binomial.qmd)
+:::
+
+::: {.g-col-6}
+### [The Value of Big Swings](big-swings.qmd)
+**Aug 2025** &nbsp;·&nbsp; Strategy · Simulation
+
+Why bold experiments deliver more value with less traffic. Compares guaranteed small wins vs. high-variance transformational bets using 30,000 simulations.
+
+[Read →](big-swings.qmd)
 :::
 
 ::: {.g-col-6}

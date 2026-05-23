@@ -27,6 +27,8 @@ website:
             href: ab-testing/winners-curse.qmd
           - text: "The Value of Big Swings"
             href: ab-testing/big-swings.qmd
+          - text: "AB Testing is an Optimization Problem"
+            href: ab-testing/ab-testing-optimization.qmd
       - text: "Python"
         menu:
           - text: "All Articles"
