@@ -3,29 +3,371 @@ title: "AB Testing is an Optimization Problem"
 subtitle: "Why Traditional Stopping Rules Are Arbitrary"
 author: "Russ Zaliznyak"
 date: "2026-05-22"
-description: >
-  Frequentist stopping rules — run until p < 0.05 — are not derived from any business
-  objective. Reframes AB testing as a decision optimization problem and shows how
-  Bayesian and sequential methods align stopping criteria with what actually matters.
 categories: [AB Testing, Bayesian, Decision Theory, Optimization]
+page-layout: full
+jupyter: py311
 execute:
   echo: false
+css: wider.css
 ---
 
 ::: {.post-meta}
 [In Progress]{.badge-wip}
 :::
 
-# Introduction
+Ronald Fisher chose p < 0.05 in 1925 to analyze crop yields. A century later, it's still
+the default for product experimentation — not because it's optimal, but because it was never questioned.
+Fisher himself noted:
 
-In 1925, Ronald Fisher chose p < 0.05 as a convenient threshold for analyzing crop yields.
-That rule is now the global default for product experimentation — not because it's optimal,
-but because it was inherited.
-
-Thirty-one years later, Fisher wrote:
-
-> *"The calculation is absurdly academic, for in fact no scientific worker has a fixed level of significance at which from year to year, and in all circumstances, he rejects hypotheses."*
+> *"The calculation is absurdly academic, for in fact no scientific worker has a fixed level
+> of significance at which from year to year, and in all circumstances, he rejects hypotheses."*
 >
-> — *Statistical Methods and Scientific Inference* (1956)
+> — Ronald Fisher, *Statistical Methods and Scientific Inference* (1956)
 
-In other words, stopping rules are completely arbitrary without context.
+# What Drives Stopping Criteria?
+
+The stopping rule that minimizes regret isn't universal — it depends on the economics
+of your specific test. Four inputs determine it:
+
+```{=html}
+<div class="stopping-factors-ui mt-3 mb-4">
+
+  <!-- Buttons with inputs always visible below each -->
+  <div class="factor-columns">
+
+    <div class="factor-col">
+      <button class="btn btn-outline-primary factor-btn active w-100" data-target="baseline">
+        Baseline
+      </button>
+      <div class="factor-inputs">
+        <label class="param-label">Baseline Rate</label>
+        <input type="text" class="form-control" value="65%" disabled>
+      </div>
+    </div>
+
+    <div class="factor-col">
+      <button class="btn btn-outline-primary factor-btn w-100" data-target="traffic">
+        Test Traffic &amp; Split
+      </button>
+      <div class="factor-inputs">
+        <div class="d-flex gap-2">
+          <div class="flex-fill">
+            <label class="param-label">Traffic</label>
+            <input type="text" class="form-control" value="100,000" disabled>
+          </div>
+          <div class="flex-fill">
+            <label class="param-label">Split</label>
+            <input type="text" class="form-control" value="50 / 50" disabled>
+          </div>
+          <div class="flex-fill">
+            <label class="param-label">Max Test Days</label>
+            <input type="text" class="form-control" value="20" disabled>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="factor-col">
+      <button class="btn btn-outline-primary factor-btn w-100" data-target="posttest">
+        Post-Test Traffic
+      </button>
+      <div class="factor-inputs">
+        <label class="param-label">Post-Test Traffic</label>
+        <input type="text" class="form-control" value="500,000" disabled>
+      </div>
+    </div>
+
+    <div class="factor-col">
+      <button class="btn btn-outline-primary factor-btn w-100" data-target="effects">
+        Expected Effects
+      </button>
+      <div class="factor-inputs">
+        <label class="param-label">Experiment Type</label>
+        <select class="form-select">
+          <option selected>Typical</option>
+          <option disabled>Bold</option>
+          <option disabled>Transformative</option>
+        </select>
+      </div>
+    </div>
+
+  </div>
+
+  <!-- Definition box -->
+  <div class="factor-content p-3 border rounded mt-3" id="factor-display">
+    <div class="factor-panel" id="panel-baseline">
+      The pre-experiment conversion rate. Sets the variance of your test statistic
+      and determines how much room for improvement exists.
+    </div>
+    <div class="factor-panel d-none" id="panel-traffic">
+      Daily users in the experiment and their control/treatment split.
+      More traffic means faster evidence. Uneven splits trade speed for risk protection.
+    </div>
+    <div class="factor-panel d-none" id="panel-posttest">
+      How long the winning variant runs after the decision. A longer deployment
+      horizon means more value at stake — justifying a more aggressive stopping rule.
+    </div>
+    <div class="factor-panel d-none" id="panel-effects">
+      The realistic lift you expect. Larger effects are detectable faster.
+      Smaller effects require more traffic or more tolerance for uncertainty.
+    </div>
+  </div>
+
+  <div class="mt-3">
+    <button id="generate-btn" class="btn btn-primary btn-sm">Reveal 10k Control Simulations</button>
+  </div>
+
+</div>
+
+<div id="sim-section" style="display:none;">
+<script>
+  document.getElementById('generate-btn').addEventListener('click', function() {
+    document.getElementById('sim-section').style.display = 'block';
+    this.disabled = true;
+    this.textContent = '✓ 10k Controls Generated';
+  });
+</script>
+
+<script>
+document.querySelectorAll('.factor-btn').forEach(btn => {
+  btn.addEventListener('click', () => {
+    document.querySelectorAll('.factor-btn').forEach(b => b.classList.remove('active'));
+    document.querySelectorAll('.factor-panel').forEach(p => p.classList.add('d-none'));
+    btn.classList.add('active');
+    document.getElementById('panel-' + btn.dataset.target).classList.remove('d-none');
+  });
+});
+</script>
+```
+
+```{python}
+#| code-fold: true
+#| code-summary: "Experiment Assumptions"
+
+import simulationengine as se
+
+# ── Experiment Assumptions ─────────────────────────────────────────
+CONTROL_MEAN       = 0.65      # pre-experiment conversion rate
+MAX_TEST_N         = 100_000   # total users in the experiment
+SPLIT              = 0.50      # treatment allocation (50/50)
+NUMBER_TEST_DAYS   = 20        # maximum experiment duration
+POST_TEST_N        = 500_000   # users exposed after decision is made
+NUMBER_SIMULATIONS = 10_000    # simulations to run
+SEED               = 42
+
+df = se.create_simulation_df(
+    number_test_days=NUMBER_TEST_DAYS,
+    number_simulations=NUMBER_SIMULATIONS,
+    seed=SEED,
+    condition_parameters=[
+        {
+            "mean": CONTROL_MEAN,
+            "trials": int(MAX_TEST_N * SPLIT),
+        },
+    ],
+)
+
+```
+
+```{python}
+#| code-fold: true
+#| code-summary: "Simulation Charts"
+
+import json
+import plotly.graph_objects as go
+import numpy as np
+from plotly.subplots import make_subplots
+from IPython.display import HTML
+
+# ── Time series data (first 100 sims) ────────────────────────────
+import json
+import plotly.graph_objects as go
+import numpy as np
+import polars as pl
+from plotly.subplots import make_subplots
+from IPython.display import HTML
+
+# ── Time series data (first 100 sims, cumulative conversion rate) ─
+N_SIMS = 100
+plot_df = (
+    df.filter(pl.col("simulation") <= N_SIMS)
+    .sort(["simulation", "day"])
+    .with_columns([
+        pl.col("condition_0_value").cum_sum().over("simulation").alias("cum_value"),
+        pl.col("condition_0_trials").cum_sum().over("simulation").alias("cum_trials"),
+    ])
+    .with_columns(
+        (pl.col("cum_value") / pl.col("cum_trials")).alias("conversion_rate")
+    )
+)
+
+colors = [
+    f"rgba(15, 70, 160, {0.4 + 0.3 * np.random.random()})"
+    for i in range(N_SIMS)
+]
+
+# ── Pre-compute histogram bins for all 10k sims × 20 days ────────
+all_df = (
+    df.sort(["simulation", "day"])
+    .with_columns([
+        pl.col("condition_0_value").cum_sum().over("simulation").alias("cum_value"),
+        pl.col("condition_0_trials").cum_sum().over("simulation").alias("cum_trials"),
+    ])
+    .with_columns(
+        (pl.col("cum_value") / pl.col("cum_trials")).alias("conversion_rate")
+    )
+)
+hist_data = {}
+global_min = float(all_df["conversion_rate"].min())
+global_max = float(all_df["conversion_rate"].max())
+
+for day in range(1, NUMBER_TEST_DAYS + 1):
+    rates = all_df.filter(all_df["day"] == day)["conversion_rate"].to_numpy()
+    counts, edges = np.histogram(rates, bins=50)
+    bin_centers = [float((edges[i] + edges[i+1]) / 2) for i in range(len(counts))]
+    hist_data[str(day)] = {"x": bin_centers, "y": counts.tolist()}
+
+# ── Build subplot figure ──────────────────────────────────────────
+fig = make_subplots(
+    cols=2,
+    column_widths=[0.58, 0.42],
+    subplot_titles=[
+        f"Conversion Rate by Day (100 Sims)",
+        "Distribution at Day 1 (10k Sims)",
+    ],
+)
+
+# Left: time series traces (all hidden initially)
+for i, sim in enumerate(range(1, N_SIMS + 1)):
+    sim_df = plot_df.filter(plot_df["simulation"] == sim)
+    fig.add_trace(go.Scatter(
+        x=sim_df["day"].to_list(),
+        y=sim_df["conversion_rate"].to_list(),
+        mode="lines",
+        line=dict(color=colors[i], width=2.5),
+        opacity=0,
+        showlegend=False,
+        name=f"Sim {sim}",
+        hovertemplate="Sim %{fullData.name} · %{y:.2%}<extra></extra>",
+    ), col=1, row=1)
+
+# True mean reference line on left
+fig.add_hline(
+    y=CONTROL_MEAN,
+    line_dash="dash",
+    line_color="rgba(20, 60, 160, 0.8)",
+    annotation_text=f"True mean ({CONTROL_MEAN:.0%})",
+    annotation_position="bottom right",
+    col=1, row=1,
+)
+
+# Right: histogram for day 1
+d1 = hist_data["1"]
+fig.add_trace(go.Bar(
+    x=d1["x"],
+    y=d1["y"],
+    marker_color="rgba(15, 70, 160, 0.55)",
+    name="Distribution",
+    showlegend=False,
+    hovertemplate="Rate: %{x:.2%}<br>Count: %{y}<extra></extra>",
+), col=2, row=1)
+
+fig.add_vline(
+    x=CONTROL_MEAN,
+    line_dash="dash",
+    line_color="rgba(20, 60, 160, 0.8)",
+    annotation_text=f"{CONTROL_MEAN:.0%}",
+    annotation_position="top right",
+    col=2, row=1,
+)
+
+fig.update_layout(
+    template="plotly_white",
+    height=350,
+    margin=dict(t=50, b=50, l=60, r=20),
+    hovermode="closest",
+    hoverlabel=dict(bgcolor="white", font_size=12, namelength=0),
+)
+fig.update_xaxes(tickformat="d", col=1, row=1)
+fig.update_xaxes(tickformat=".1%", range=[global_min, global_max], col=2, row=1)
+fig.update_xaxes(title_text="Day", col=1, row=1)
+fig.update_xaxes(title_text="Conversion Rate", col=2, row=1)
+fig.update_yaxes(title_text="Conversion Rate", tickformat=".1%", col=1, row=1)
+fig.update_yaxes(title_text="", showticklabels=False, col=2, row=1)
+
+fig
+
+```
+
+```{python}
+#| output: asis
+print(f'<script>window.__histData = {json.dumps(hist_data)};</script>')
+```
+
+```{=html}
+<div style="margin: 0.75rem 0 0.5rem 0; display: flex; gap: 2rem; flex-wrap: wrap;">
+
+  <div style="display:flex; align-items:center; gap:0.75rem; flex:1; min-width:200px;">
+    <label style="font-size:0.85rem; font-weight:600; white-space:nowrap;">
+      Simulation: <span id="sim-label">1</span>
+    </label>
+    <input id="sim-slider" type="range" min="1" max="100" step="1" value="1"
+           style="flex:1; accent-color:#1e46a0;">
+  </div>
+
+  <div style="display:flex; align-items:center; gap:0.75rem; flex:1; min-width:200px;">
+    <label style="font-size:0.85rem; font-weight:600; white-space:nowrap;">
+      Day: <span id="day-label">1</span>
+    </label>
+    <input id="day-slider" type="range" min="1" max="20" step="1" value="1"
+           style="flex:1; accent-color:#1e46a0;">
+  </div>
+
+</div>
+
+<script>
+(function() {
+  function attach() {
+    const plots = document.querySelectorAll('.plotly-graph-div');
+    const plot  = plots[plots.length - 1];
+    if (!plot || !plot._fullData) { setTimeout(attach, 300); return; }
+
+    const simSlider = document.getElementById('sim-slider');
+    const simLabel  = document.getElementById('sim-label');
+    const daySlider = document.getElementById('day-slider');
+    const dayLabel  = document.getElementById('day-label');
+    const n         = 100;   // number of sim traces
+
+    // ── Sim slider: show only selected trace ──────────────────────
+    function showSim(idx) {
+      const upd = { 'line.width': [], 'opacity': [] };
+      for (let i = 0; i < n; i++) {
+        upd['line.width'].push(i === idx ? 3 : 2);
+        upd['opacity'].push(i === idx ? 1.0 : 0.0);
+      }
+      Plotly.restyle(plot, upd, [...Array(n).keys()]);
+    }
+
+    simSlider.addEventListener('input', function() {
+      simLabel.textContent = this.value;
+      showSim(parseInt(this.value) - 1);
+    });
+
+    // ── Day slider: update histogram bars ────────────────────────
+    daySlider.addEventListener('input', function() {
+      const day = this.value;
+      dayLabel.textContent = day;
+      const d = window.__histData[day];
+      Plotly.restyle(plot, { x: [d.x], y: [d.y] }, [n]);
+      Plotly.relayout(plot, { 'annotations[1].text': `Distribution at Day ${day} (10k Sims)` });
+    });
+
+    // Pre-select sim 1
+    showSim(0);
+  }
+  attach();
+})();
+</script>
+
+</div>
+```

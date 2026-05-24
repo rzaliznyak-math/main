@@ -17,18 +17,18 @@ website:
           - text: "All Articles"
             href: ab-testing/index.qmd
           - text: "---"
-          - text: "The Power of Data Simulation"
-            href: ab-testing/power-of-simulation.qmd
-          - text: "Experiment Design & Analysis"
-            href: ab-testing/numpy-experiment-design.qmd
-          - text: "Beta vs Binomial Distribution"
-            href: ab-testing/beta-vs-binomial.qmd
-          - text: "The Winner's Curse"
-            href: ab-testing/winners-curse.qmd
-          - text: "The Value of Big Swings"
-            href: ab-testing/big-swings.qmd
           - text: "AB Testing is an Optimization Problem"
             href: ab-testing/ab-testing-optimization.qmd
+          - text: "The Winner's Curse"
+            href: ab-testing/winners-curse.qmd
+          - text: "Beta vs Binomial Distribution"
+            href: ab-testing/beta-vs-binomial.qmd
+          - text: "The Value of Big Swings"
+            href: ab-testing/big-swings.qmd
+          - text: "Experiment Design & Analysis"
+            href: ab-testing/numpy-experiment-design.qmd
+          - text: "The Power of Data Simulation"
+            href: ab-testing/power-of-simulation.qmd
       - text: "Python"
         menu:
           - text: "All Articles"

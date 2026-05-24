@@ -1,0 +1,68 @@
+/* Wider centered content for this article */
+main.content,
+#quarto-document-content {
+  max-width: 900px;
+  margin-left: auto;
+  margin-right: auto;
+  padding: 0 2rem;
+}
+
+.quarto-title-block {
+  max-width: 900px;
+  margin-left: auto;
+  margin-right: auto;
+  padding: 0 2rem;
+}
+
+/* Factor columns layout */
+.factor-columns {
+  display: grid;
+  grid-template-columns: 1fr 2fr 1fr 1fr;
+  gap: 1rem;
+  align-items: start;
+}
+
+.factor-col {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.factor-inputs {
+  padding: 0.75rem;
+  background: var(--bs-tertiary-bg, #f8f9fa);
+  border: 1px solid var(--bs-border-color);
+  border-radius: 6px;
+}
+
+/* Factor param inputs */
+.factor-params {
+  margin-top: 1rem;
+  padding-top: 1rem;
+  border-top: 1px solid var(--bs-border-color);
+  max-width: 260px;
+}
+
+.param-label {
+  font-size: 0.7rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: var(--bs-secondary-color, #6c757d);
+  margin-bottom: 0.25rem;
+  display: block;
+}
+
+.factor-inputs .form-control:disabled {
+  background-color: transparent;
+  font-size: 0.875rem;
+  color: var(--bs-body-color);
+  cursor: default;
+  border-color: var(--bs-border-color);
+}
+
+@media (max-width: 768px) {
+  .factor-columns {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}
