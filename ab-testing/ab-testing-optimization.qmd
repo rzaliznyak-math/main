@@ -114,18 +114,17 @@ of your specific test. Four inputs determine it:
   </div>
 
   <div class="mt-3">
-    <button id="generate-btn" class="btn btn-primary btn-sm">Reveal 10k Control Simulations</button>
   </div>
 
 </div>
 
-<div id="sim-section" style="display:none;">
+
+
 <script>
-  document.getElementById('generate-btn').addEventListener('click', function() {
-    document.getElementById('sim-section').style.display = 'block';
-    this.disabled = true;
-    this.textContent = '✓ 10k Controls Generated';
-  });
+const simCollapse = document.getElementById('sim-collapse');
+const simHeader   = document.getElementById('sim-accordion-header');
+simCollapse.addEventListener('show.bs.collapse',  () => { simHeader.style.borderBottom = 'none'; simHeader.style.borderRadius = '6px 6px 0 0'; });
+simCollapse.addEventListener('hide.bs.collapse',  () => { simHeader.style.borderBottom = ''; simHeader.style.borderRadius = '6px 6px 0 0'; });
 </script>
 
 <script>
@@ -169,6 +168,21 @@ df = se.create_simulation_df(
 
 ```
 
+```{=html}
+<div class="mt-3 mb-2" id="sim-accordion-wrap">
+  <div class="accordion-item" style="border: 1.5px dashed #90b8e0; border-radius: 6px 6px 0 0; background: #f0f6fd; margin-bottom: 0;" id="sim-accordion-header">
+    <h2 class="accordion-header" style="margin:0;">
+      <button class="accordion-button collapsed px-3 shadow-none"
+              style="font-size:1rem; font-weight:600; color:#1e46a0; background:transparent; min-height:0; height:30px; display:flex; align-items:center; padding-top:0; padding-bottom:0;"
+              type="button" data-bs-toggle="collapse"
+              data-bs-target="#sim-collapse">
+        Reveal 10,000 Random Walks of Control
+      </button>
+    </h2>
+  </div>
+  <div id="sim-collapse" class="collapse" style="border: 1.5px dashed #90b8e0; border-top: none; border-radius: 0 0 6px 6px; padding: 1rem; background: #fff;">
+```
+
 ```{python}
 #| code-fold: true
 #| code-summary: "Simulation Charts"
@@ -176,16 +190,9 @@ df = se.create_simulation_df(
 import json
 import plotly.graph_objects as go
 import numpy as np
-from plotly.subplots import make_subplots
-from IPython.display import HTML
-
-# ── Time series data (first 100 sims) ────────────────────────────
-import json
-import plotly.graph_objects as go
-import numpy as np
 import polars as pl
 from plotly.subplots import make_subplots
-from IPython.display import HTML
+from IPython.display import display as ipy_display
 
 # ── Time series data (first 100 sims, cumulative conversion rate) ─
 N_SIMS = 100
@@ -201,10 +208,14 @@ plot_df = (
     )
 )
 
-colors = [
-    f"rgba(15, 70, 160, {0.4 + 0.3 * np.random.random()})"
-    for i in range(N_SIMS)
-]
+# ── Serialize all 100 sims for JS slider ─────────────────────────
+sim_data = {}
+for sim in range(1, N_SIMS + 1):
+    sim_df = plot_df.filter(plot_df["simulation"] == sim)
+    sim_data[str(sim)] = {
+        "x": sim_df["day"].to_list(),
+        "y": [round(v, 6) for v in sim_df["conversion_rate"].to_list()],
+    }
 
 # ── Pre-compute histogram bins for all 10k sims × 20 days ────────
 all_df = (
@@ -227,54 +238,48 @@ for day in range(1, NUMBER_TEST_DAYS + 1):
     bin_centers = [float((edges[i] + edges[i+1]) / 2) for i in range(len(counts))]
     hist_data[str(day)] = {"x": bin_centers, "y": counts.tolist()}
 
-# ── Build subplot figure ──────────────────────────────────────────
+# ── Subplot: time series (left) + histogram (right) ──────────────
 fig = make_subplots(
     cols=2,
-    column_widths=[0.58, 0.42],
+    column_widths=[0.5, 0.5],
+    horizontal_spacing=0.08,
     subplot_titles=[
-        f"Conversion Rate by Day (100 Sims)",
+        "Conversion Rate by Day (100 Sims)",
         "Distribution at Day 1 (10k Sims)",
     ],
 )
 
-# Left: time series traces (all hidden initially)
-for i, sim in enumerate(range(1, N_SIMS + 1)):
-    sim_df = plot_df.filter(plot_df["simulation"] == sim)
-    fig.add_trace(go.Scatter(
-        x=sim_df["day"].to_list(),
-        y=sim_df["conversion_rate"].to_list(),
-        mode="lines",
-        line=dict(color=colors[i], width=2.5),
-        opacity=0,
-        showlegend=False,
-        name=f"Sim {sim}",
-        hovertemplate="Sim %{fullData.name} · %{y:.2%}<extra></extra>",
-    ), col=1, row=1)
+# Single trace — JS swaps x/y on slider change (trace index 0)
+s1 = plot_df.filter(plot_df["simulation"] == 1)
+fig.add_trace(go.Scatter(
+    x=s1["day"].to_list(),
+    y=s1["conversion_rate"].to_list(),
+    mode="lines",
+    line=dict(color="rgba(15, 70, 160, 0.9)", width=3),
+    opacity=1.0,
+    showlegend=False,
+    name="Sim 1",
+    hovertemplate="Sim %{fullData.name} · %{y:.2%}<extra></extra>",
+), col=1, row=1)
 
-# True mean reference line on left
 fig.add_hline(
-    y=CONTROL_MEAN,
-    line_dash="dash",
+    y=CONTROL_MEAN, line_dash="dash",
     line_color="rgba(20, 60, 160, 0.8)",
     annotation_text=f"True mean ({CONTROL_MEAN:.0%})",
     annotation_position="bottom right",
     col=1, row=1,
 )
 
-# Right: histogram for day 1
 d1 = hist_data["1"]
 fig.add_trace(go.Bar(
-    x=d1["x"],
-    y=d1["y"],
+    x=d1["x"], y=d1["y"],
     marker_color="rgba(15, 70, 160, 0.55)",
-    name="Distribution",
     showlegend=False,
     hovertemplate="Rate: %{x:.2%}<br>Count: %{y}<extra></extra>",
 ), col=2, row=1)
 
 fig.add_vline(
-    x=CONTROL_MEAN,
-    line_dash="dash",
+    x=CONTROL_MEAN, line_dash="dash",
     line_color="rgba(20, 60, 160, 0.8)",
     annotation_text=f"{CONTROL_MEAN:.0%}",
     annotation_position="top right",
@@ -283,16 +288,19 @@ fig.add_vline(
 
 fig.update_layout(
     template="plotly_white",
-    height=350,
-    margin=dict(t=50, b=50, l=60, r=20),
+    height=300,
+    autosize=True,
+    margin=dict(t=30, b=30, l=50, r=20),
     hovermode="closest",
     hoverlabel=dict(bgcolor="white", font_size=12, namelength=0),
 )
-fig.update_xaxes(tickformat="d", col=1, row=1)
-fig.update_xaxes(tickformat=".1%", range=[global_min, global_max], col=2, row=1)
-fig.update_xaxes(title_text="Day", col=1, row=1)
-fig.update_xaxes(title_text="Conversion Rate", col=2, row=1)
-fig.update_yaxes(title_text="Conversion Rate", tickformat=".1%", col=1, row=1)
+fig.update_xaxes(tickformat="d", title_text="Day", col=1, row=1)
+fig.update_xaxes(tickformat=".1%", title_text="Conversion Rate",
+                 range=[global_min, global_max], col=2, row=1)
+ts_min = float(plot_df["conversion_rate"].min())
+ts_max = float(plot_df["conversion_rate"].max())
+fig.update_yaxes(tickformat=".1%", title_text="Conversion Rate",
+                 range=[ts_min, ts_max], col=1, row=1)
 fig.update_yaxes(title_text="", showticklabels=False, col=2, row=1)
 
 fig
@@ -301,11 +309,11 @@ fig
 
 ```{python}
 #| output: asis
-print(f'<script>window.__histData = {json.dumps(hist_data)};</script>')
+print(f'<script>window.__histData = {json.dumps(hist_data)}; window.__simData = {json.dumps(sim_data)};</script>')
 ```
 
 ```{=html}
-<div style="margin: 0.75rem 0 0.5rem 0; display: flex; gap: 2rem; flex-wrap: wrap;">
+<div style="margin: 0.25rem 0 0.5rem 0; display: flex; gap: 2rem; flex-wrap: wrap;">
 
   <div style="display:flex; align-items:center; gap:0.75rem; flex:1; min-width:200px;">
     <label style="font-size:0.85rem; font-weight:600; white-space:nowrap;">
@@ -328,24 +336,21 @@ print(f'<script>window.__histData = {json.dumps(hist_data)};</script>')
 <script>
 (function() {
   function attach() {
-    const plots = document.querySelectorAll('.plotly-graph-div');
-    const plot  = plots[plots.length - 1];
+    const plots    = document.querySelectorAll('.plotly-graph-div');
+    const plot     = plots[plots.length - 1];
     if (!plot || !plot._fullData) { setTimeout(attach, 300); return; }
+
+    Plotly.Plots.resize(plot);
 
     const simSlider = document.getElementById('sim-slider');
     const simLabel  = document.getElementById('sim-label');
     const daySlider = document.getElementById('day-slider');
     const dayLabel  = document.getElementById('day-label');
-    const n         = 100;   // number of sim traces
 
-    // ── Sim slider: show only selected trace ──────────────────────
     function showSim(idx) {
-      const upd = { 'line.width': [], 'opacity': [] };
-      for (let i = 0; i < n; i++) {
-        upd['line.width'].push(i === idx ? 3 : 2);
-        upd['opacity'].push(i === idx ? 1.0 : 0.0);
-      }
-      Plotly.restyle(plot, upd, [...Array(n).keys()]);
+      const simNum = idx + 1;
+      const d = window.__simData[String(simNum)];
+      Plotly.restyle(plot, { x: [d.x], y: [d.y], name: [`Sim ${simNum}`] }, [0]);
     }
 
     simSlider.addEventListener('input', function() {
@@ -353,21 +358,27 @@ print(f'<script>window.__histData = {json.dumps(hist_data)};</script>')
       showSim(parseInt(this.value) - 1);
     });
 
-    // ── Day slider: update histogram bars ────────────────────────
     daySlider.addEventListener('input', function() {
       const day = this.value;
       dayLabel.textContent = day;
       const d = window.__histData[day];
-      Plotly.restyle(plot, { x: [d.x], y: [d.y] }, [n]);
+      Plotly.restyle(plot, { x: [d.x], y: [d.y] }, [1]);
       Plotly.relayout(plot, { 'annotations[1].text': `Distribution at Day ${day} (10k Sims)` });
     });
 
-    // Pre-select sim 1
     showSim(0);
   }
-  attach();
+
+  const collapse = document.getElementById('sim-collapse');
+  if (collapse) {
+    collapse.addEventListener('shown.bs.collapse', attach);
+  } else {
+    attach();
+  }
 })();
 </script>
 
+</div>
+</div>
 </div>
 ```
