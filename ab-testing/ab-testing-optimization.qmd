@@ -140,6 +140,7 @@ document.querySelectorAll('.factor-btn').forEach(btn => {
 ```
 
 ```{python}
+#| echo: false
 #| code-fold: true
 #| code-summary: "Experiment Assumptions"
 
@@ -153,6 +154,8 @@ NUMBER_TEST_DAYS   = 20        # maximum experiment duration
 POST_TEST_N        = 500_000   # users exposed after decision is made
 NUMBER_SIMULATIONS = 10_000    # simulations to run
 SEED               = 42
+ITC_MEAN           = 100       # income-to-control mean
+ITC_SE_TYPICAL     = 0.25      # income-to-control standard error (typical)
 
 df = se.create_simulation_df(
     number_test_days=NUMBER_TEST_DAYS,
@@ -165,6 +168,15 @@ df = se.create_simulation_df(
         },
     ],
 )
+
+random_effect_parameters_0 = {
+    "itc_mean": 100,
+    "itc_se": ITC_SE_TYPICAL,
+    "trials": int(MAX_TEST_N * SPLIT),
+}
+
+df = se.add_random_effect_condition(df, random_effect_parameters_0)
+df = se.add_cumulative_columns(df)
 
 ```
 
@@ -199,13 +211,7 @@ N_SIMS = 100
 plot_df = (
     df.filter(pl.col("simulation") <= N_SIMS)
     .sort(["simulation", "day"])
-    .with_columns([
-        pl.col("condition_0_value").cum_sum().over("simulation").alias("cum_value"),
-        pl.col("condition_0_trials").cum_sum().over("simulation").alias("cum_trials"),
-    ])
-    .with_columns(
-        (pl.col("cum_value") / pl.col("cum_trials")).alias("conversion_rate")
-    )
+    .rename({"condition_0_mean_cumsum": "conversion_rate"})
 )
 
 # ── Serialize all 100 sims for JS slider ─────────────────────────
@@ -220,13 +226,7 @@ for sim in range(1, N_SIMS + 1):
 # ── Pre-compute histogram bins for all 10k sims × 20 days ────────
 all_df = (
     df.sort(["simulation", "day"])
-    .with_columns([
-        pl.col("condition_0_value").cum_sum().over("simulation").alias("cum_value"),
-        pl.col("condition_0_trials").cum_sum().over("simulation").alias("cum_trials"),
-    ])
-    .with_columns(
-        (pl.col("cum_value") / pl.col("cum_trials")).alias("conversion_rate")
-    )
+    .rename({"condition_0_mean_cumsum": "conversion_rate"})
 )
 hist_data = {}
 global_min = float(all_df["conversion_rate"].min())
@@ -243,10 +243,20 @@ fig = make_subplots(
     cols=2,
     column_widths=[0.5, 0.5],
     horizontal_spacing=0.08,
-    subplot_titles=[
-        "Conversion Rate by Day (100 Sims)",
-        "Distribution at Day 1 (10k Sims)",
-    ],
+)
+
+# Manually add left-aligned titles
+fig.add_annotation(
+    text="Each simulation is different than the last!",
+    xref="paper", yref="paper",
+    x=0.0, y=1.07, xanchor="left", yanchor="bottom",
+    showarrow=False, font=dict(size=13),
+)
+fig.add_annotation(
+    text="Control Estimates Improve Over Time (Day = 1)",
+    xref="paper", yref="paper",
+    x=0.54, y=1.07, xanchor="left", yanchor="bottom",
+    showarrow=False, font=dict(size=13),
 )
 
 # Single trace — JS swaps x/y on slider change (trace index 0)
@@ -290,7 +300,7 @@ fig.update_layout(
     template="plotly_white",
     height=300,
     autosize=True,
-    margin=dict(t=30, b=30, l=50, r=20),
+    margin=dict(t=45, b=30, l=50, r=20),
     hovermode="closest",
     hoverlabel=dict(bgcolor="white", font_size=12, namelength=0),
 )
@@ -363,7 +373,7 @@ print(f'<script>window.__histData = {json.dumps(hist_data)}; window.__simData = 
       dayLabel.textContent = day;
       const d = window.__histData[day];
       Plotly.restyle(plot, { x: [d.x], y: [d.y] }, [1]);
-      Plotly.relayout(plot, { 'annotations[1].text': `Distribution at Day ${day} (10k Sims)` });
+      Plotly.relayout(plot, { 'annotations[1].text': `Control Estimates Improve Over Time (Day = ${day})` });
     });
 
     showSim(0);
