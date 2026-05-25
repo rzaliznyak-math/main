@@ -22,7 +22,7 @@ main.content,
 /* Factor columns layout */
 .factor-columns {
   display: grid;
-  grid-template-columns: 0.85fr 2fr 0.9fr 1.25fr;
+  grid-template-columns: 0.75fr 2.1fr 0.9fr 1.25fr;
   gap: 1rem;
   align-items: start;
 }
@@ -73,4 +73,20 @@ main.content,
   .factor-columns {
     grid-template-columns: repeat(2, 1fr);
   }
+}
+
+/* More visible accordion chevron */
+#sim-accordion-header .accordion-button::after,
+#treatment-accordion-header .accordion-button::after {
+  display: none;
+}
+
+#sim-accordion-header .accordion-button .accordion-chevron,
+#treatment-accordion-header .accordion-button .accordion-chevron {
+  transition: transform 0.2s;
+}
+
+#sim-accordion-header .accordion-button:not(.collapsed) .accordion-chevron,
+#treatment-accordion-header .accordion-button:not(.collapsed) .accordion-chevron {
+  transform: rotate(180deg);
 }

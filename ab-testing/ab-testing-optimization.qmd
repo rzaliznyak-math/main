@@ -15,19 +15,13 @@ css: wider.css
 [In Progress]{.badge-wip}
 :::
 
-Ronald Fisher chose p < 0.05 in 1925 to analyze crop yields. A century later, it's still
-the default for product experimentation — not because it's optimal, but because it was never questioned.
-Fisher himself noted:
+Traditional stopping rules use p-values to control error rates — specifically, the probability of falsely claiming a winner (Type I error). This is statistically sound, but it answers the wrong question.
 
-> *"The calculation is absurdly academic, for in fact no scientific worker has a fixed level
-> of significance at which from year to year, and in all circumstances, he rejects hypotheses."*
->
-> — Ronald Fisher, *Statistical Methods and Scientific Inference* (1956)
+Instead, we need to ask: what stopping rule maximizes our long-term outcomes?
 
 # What Drives Stopping Criteria?
 
-The stopping rule that minimizes regret isn't universal — it depends on the economics
-of your specific test. Four inputs determine it:
+In order to determine optimal stopping rules, we're going to simulate 10,000 experiments like the one below:
 
 ```{=html}
 <div class="stopping-factors-ui mt-3 mb-4">
@@ -60,8 +54,8 @@ of your specific test. Four inputs determine it:
             <input type="text" class="form-control" value="50 / 50" disabled>
           </div>
           <div class="flex-fill">
-            <label class="param-label" style="text-align:center; display:block;">Max Test Days</label>
-            <input type="text" class="form-control" value="20" disabled>
+            <label class="param-label" style="text-align:center; display:block;">Min / Max Days</label>
+            <input type="text" class="form-control" value="7 / 20" disabled>
           </div>
         </div>
       </div>
@@ -100,7 +94,7 @@ of your specific test. Four inputs determine it:
       and determines how much room for improvement exists.
     </div>
     <div class="factor-panel d-none" id="panel-traffic">
-      Daily users in the experiment and their control/treatment split.
+      Total users in the experiment and their control/treatment split.
       More traffic means faster evidence. Uneven splits trade speed for risk protection.
     </div>
     <div class="factor-panel d-none" id="panel-posttest">
@@ -108,8 +102,7 @@ of your specific test. Four inputs determine it:
       horizon means more value at stake — justifying a more aggressive stopping rule.
     </div>
     <div class="factor-panel d-none" id="panel-effects">
-      The realistic lift you expect. Larger effects are detectable faster.
-      Smaller effects require more traffic or more tolerance for uncertainty.
+      The realistic lift you expect comes from a <em>distribution</em> of possible effects — not a single number. Larger effects are detectable faster; smaller or more uncertain effects demand more traffic or more tolerance for risk.
     </div>
   </div>
 
@@ -125,8 +118,8 @@ document.addEventListener('DOMContentLoaded', function() {
   const simCollapse = document.getElementById('sim-collapse');
   const simHeader   = document.getElementById('sim-accordion-header');
   const simBtn      = document.getElementById('sim-accordion-btn');
-  simCollapse.addEventListener('show.bs.collapse',  () => { simHeader.style.borderBottom = 'none'; simHeader.style.borderRadius = '6px 6px 0 0'; simBtn.textContent = 'Hide Random Walks of Control'; });
-  simCollapse.addEventListener('hide.bs.collapse',  () => { simHeader.style.borderBottom = '1.5px dashed #90b8e0'; simHeader.style.borderRadius = '6px'; simBtn.textContent = 'Show Random Walks of Control'; });
+  simCollapse.addEventListener('show.bs.collapse',  () => { simHeader.style.borderBottom = 'none'; simHeader.style.borderRadius = '6px 6px 0 0'; simBtn.querySelector('span:first-child').textContent = 'Hide Random Walks of Control'; });
+  simCollapse.addEventListener('hide.bs.collapse',  () => { simHeader.style.borderBottom = '1.5px dashed #90b8e0'; simHeader.style.borderRadius = '6px'; simBtn.querySelector('span:first-child').textContent = 'Show Random Walks of Control'; });
 });
 </script>
 
@@ -181,21 +174,25 @@ random_effect_parameters_0 = {
 
 df = se.add_random_effect_condition(df, random_effect_parameters_0)
 df = se.add_cumulative_columns(df)
+df = se.compute_cumulative_std_rates(df)
+df = se.compute_delta_stats(df)
+df = se.compute_test_stats(df)
 
 ```
 
 ```{=html}
 <div class="mt-3 mb-2" id="sim-accordion-wrap">
   <div class="accordion-item" style="border: 1.5px dashed #90b8e0; border-radius: 6px; background: #f0f6fd; margin-bottom: 0;" id="sim-accordion-header">
-    <h2 class="accordion-header" style="margin:0;">
+    <div class="accordion-header" style="margin:0;">
       <button class="accordion-button collapsed px-3 shadow-none"
               id="sim-accordion-btn"
-              style="font-size:1rem; font-weight:600; color:#1e46a0; background:transparent; min-height:0; height:30px; display:flex; align-items:center; padding-top:0; padding-bottom:0;"
+              style="font-size:0.9rem; font-weight:600; color:#1e46a0; background:transparent; min-height:0; height:44px; width:100%; display:flex; align-items:center; padding-top:0; padding-bottom:0;"
               type="button" data-bs-toggle="collapse"
               data-bs-target="#sim-collapse">
-        Show Random Walks of Control
+        <span style="flex:1;">Show Random Walks of Control</span>
+        <span class="accordion-chevron" style="flex-shrink:0; margin-left:0.75rem; font-size:1.8rem; line-height:1; transition:transform 0.2s;">&#8964;</span>
       </button>
-    </h2>
+    </div>
   </div>
   <div id="sim-collapse" class="collapse" style="border: 1.5px dashed #90b8e0; border-top: none; border-radius: 0 0 6px 6px; padding: 1rem; background: #fff;">
 ```
@@ -370,6 +367,20 @@ print(f'<script>window.__histData = {json.dumps(hist_data)}; window.__simData = 
     simSlider.addEventListener('input', function() {
       simLabel.textContent = this.value;
       showSim(parseInt(this.value) - 1);
+      const tSlider = document.getElementById('t-sim-slider');
+      const tLabel  = document.getElementById('t-sim-label');
+      if (tSlider && tSlider.value !== this.value) {
+        tSlider.value = this.value;
+        if (tLabel) tLabel.textContent = this.value;
+        tSlider.dispatchEvent(new Event('input'));
+      }
+      const pvSlider = document.getElementById('pval-sim-slider');
+      const pvLabel  = document.getElementById('pval-sim-label');
+      if (pvSlider && pvSlider.value !== this.value) {
+        pvSlider.value = this.value;
+        if (pvLabel) pvLabel.textContent = this.value;
+        pvSlider.dispatchEvent(new Event('input'));
+      }
     });
 
     daySlider.addEventListener('input', function() {
@@ -399,15 +410,16 @@ print(f'<script>window.__histData = {json.dumps(hist_data)}; window.__simData = 
 ```{=html}
 <div class="mt-3 mb-2" id="treatment-accordion-wrap">
   <div class="accordion-item" style="border: 1.5px dashed #90b8e0; border-radius: 6px; background: #f0f6fd; margin-bottom: 0;" id="treatment-accordion-header">
-    <h2 class="accordion-header" style="margin:0;">
+    <div class="accordion-header" style="margin:0;">
       <button class="accordion-button collapsed px-3 shadow-none"
               id="treatment-accordion-btn"
-              style="font-size:1rem; font-weight:600; color:#1e46a0; background:transparent; min-height:0; height:30px; display:flex; align-items:center; padding-top:0; padding-bottom:0;"
+              style="font-size:0.9rem; font-weight:600; color:#1e46a0; background:transparent; min-height:0; height:44px; width:100%; display:flex; align-items:center; padding-top:0; padding-bottom:0;"
               type="button" data-bs-toggle="collapse"
               data-bs-target="#treatment-collapse">
-        Show Random Walks of Treatment
+        <span style="flex:1;">Show Random Walks of Treatment</span>
+        <span class="accordion-chevron" style="flex-shrink:0; margin-left:0.75rem; font-size:1.8rem; line-height:1; transition:transform 0.2s;">&#8964;</span>
       </button>
-    </h2>
+    </div>
   </div>
   <div id="treatment-collapse" class="collapse" style="border: 1.5px dashed #90b8e0; border-top: none; border-radius: 0 0 6px 6px; padding: 1rem; background: #fff;">
 ```
@@ -431,20 +443,27 @@ for sim in range(1, N_SIMS + 1):
         "true_mean": round(float(sim_df["condition_1_true_mean"].mean()), 6),
     }
 
-# ── Pre-compute treatment histogram bins ─────────────────────────
-treat_all_df = (
-    df.sort(["simulation", "day"])
-    .rename({"condition_1_mean_cumsum": "conversion_rate"})
+# ── ITC histogram (last day, one value per simulation) ────────────
+itc_df = (
+    df.filter(pl.col("day") == NUMBER_TEST_DAYS)
+    .with_columns(
+        (100 * pl.col("condition_1_true_mean") / pl.col("condition_0_true_mean")).alias("itc")
+    )
+    .sort("simulation")
 )
-treat_hist_data = {}
-t_global_min = float(treat_all_df["conversion_rate"].min())
-t_global_max = float(treat_all_df["conversion_rate"].max())
+itc_values = itc_df["itc"].to_numpy()
+itc_counts, itc_edges = np.histogram(itc_values, bins=50)
+itc_centers = [float((itc_edges[i] + itc_edges[i+1]) / 2) for i in range(len(itc_counts))]
+itc_hist = {"x": itc_centers, "y": itc_counts.tolist()}
+itc_max_count = int(itc_counts.max())
 
-for day in range(1, NUMBER_TEST_DAYS + 1):
-    rates = treat_all_df.filter(treat_all_df["day"] == day)["conversion_rate"].to_numpy()
-    counts, edges = np.histogram(rates, bins=50)
-    bin_centers = [float((edges[i] + edges[i+1]) / 2) for i in range(len(counts))]
-    treat_hist_data[str(day)] = {"x": bin_centers, "y": counts.tolist()}
+itc_max_dev = max(abs(float(itc_values.max()) - 100), abs(100 - float(itc_values.min())))
+itc_range = [100 - itc_max_dev * 1.1, 100 + itc_max_dev * 1.1]
+
+treat_itc_per_sim = {}
+for sim in range(1, N_SIMS + 1):
+    rows = itc_df.filter(pl.col("simulation") == sim)["itc"]
+    treat_itc_per_sim[str(sim)] = round(float(rows[0]), 4)
 
 # ── Subplot figure ────────────────────────────────────────────────
 t_fig = make_subplots(cols=2, column_widths=[0.5, 0.5], horizontal_spacing=0.08)
@@ -459,7 +478,7 @@ t_fig.add_annotation(
     showarrow=False, font=dict(size=13),
 )
 t_fig.add_annotation(
-    text="Treatment Estimates Improve Over Time (Day = 1)",
+    text="Distribution of True Treatment Effects (ITC)",
     xref="paper", yref="paper",
     x=0.54, y=1.07, xanchor="left", yanchor="bottom",
     showarrow=False, font=dict(size=13),
@@ -501,24 +520,41 @@ t_fig.add_trace(go.Scatter(
     name="True Mean",
 ), col=1, row=1)
 
-# Trace 2: fixed vline at 65% (CONTROL_MEAN) on histogram
-t_max_count = max(max(v["y"]) for v in treat_hist_data.values())
-t_fig.add_trace(go.Scatter(
-    x=[CONTROL_MEAN, CONTROL_MEAN],
-    y=[0, t_max_count],
-    mode="lines",
-    line=dict(color="rgba(20, 60, 160, 0.8)", width=1.5, dash="dash"),
+# Trace 2: ITC histogram (fixed across all sims)
+t_fig.add_trace(go.Bar(
+    x=itc_hist["x"], y=itc_hist["y"],
+    marker_color="rgba(15, 70, 160, 0.45)",
     showlegend=False,
-    hoverinfo="skip",
-    name="True Mean",
+    hovertemplate="ITC: %{x:.1f}<br>Count: %{y}<extra></extra>",
 ), col=2, row=1)
 
-td1 = treat_hist_data["1"]
-t_fig.add_trace(go.Bar(
-    x=td1["x"], y=td1["y"],
-    marker_color="rgba(15, 70, 160, 0.55)",
+# annotation[3]: ITC value label above the green dot
+s1_itc = treat_itc_per_sim["1"]
+s1_color = "green" if s1_itc >= 100 else "red"
+t_fig.add_annotation(
+    x=s1_itc,
+    y=itc_max_count * 0.1,
+    xref="x2", yref="y2",
+    text=f"True Effect: {s1_itc:.2f}",
+    showarrow=True,
+    arrowhead=2,
+    arrowsize=2,
+    arrowwidth=2,
+    arrowcolor=s1_color,
+    ax=0, ay=-40,
+    font=dict(size=14, color=s1_color),
+    bgcolor="white",
+    bordercolor=s1_color,
+    borderwidth=1,
+)
+t_fig.add_trace(go.Scatter(
+    x=[s1_itc],
+    y=[0],
+    mode="markers",
+    marker=dict(color=s1_color, size=12, symbol="circle"),
     showlegend=False,
-    hovertemplate="Rate: %{x:.2%}<br>Count: %{y}<extra></extra>",
+    hoverinfo="skip",
+    name="Selected Sim",
 ), col=2, row=1)
 
 t_fig.update_layout(
@@ -530,8 +566,8 @@ t_fig.update_layout(
     hoverlabel=dict(bgcolor="white", font_size=12, namelength=0),
 )
 t_fig.update_xaxes(tickformat="d", title_text="Day", col=1, row=1)
-t_fig.update_xaxes(tickformat=".1%", title_text="Conversion Rate",
-                   range=[t_global_min, t_global_max], col=2, row=1)
+t_fig.update_xaxes(tickformat=".1f", title_text="Index-to-Control (ITC)",
+                   range=itc_range, col=2, row=1)
 t_treat_min = float(treat_plot_df["conversion_rate"].min())
 t_treat_max = float(treat_plot_df["conversion_rate"].max())
 t_fig.update_yaxes(tickformat=".1%", title_text="Conversion Rate",
@@ -543,12 +579,11 @@ t_fig
 
 ```{python}
 #| output: asis
-print(f'<script>window.__treatHistData = {json.dumps(treat_hist_data)}; window.__treatSimData = {json.dumps(treat_sim_data)};</script>')
+print(f'<script>window.__treatSimData = {json.dumps(treat_sim_data)}; window.__treatItcPerSim = {json.dumps(treat_itc_per_sim)};</script>')
 ```
 
 ```{=html}
 <div style="margin: 0.25rem 0 0.5rem 0; display: flex; gap: 2rem; flex-wrap: wrap;">
-
   <div style="display:flex; align-items:center; gap:0.75rem; flex:1; min-width:200px;">
     <label style="font-size:0.85rem; font-weight:600; white-space:nowrap;">
       Simulation: <span id="t-sim-label">1</span>
@@ -556,15 +591,6 @@ print(f'<script>window.__treatHistData = {json.dumps(treat_hist_data)}; window._
     <input id="t-sim-slider" type="range" min="1" max="100" step="1" value="1"
            style="flex:1; accent-color:#1e46a0;">
   </div>
-
-  <div style="display:flex; align-items:center; gap:0.75rem; flex:1; min-width:200px;">
-    <label style="font-size:0.85rem; font-weight:600; white-space:nowrap;">
-      Day: <span id="t-day-label">1</span>
-    </label>
-    <input id="t-day-slider" type="range" min="1" max="20" step="1" value="1"
-           style="flex:1; accent-color:#1e46a0;">
-  </div>
-
 </div>
 
 <script>
@@ -577,32 +603,44 @@ print(f'<script>window.__treatHistData = {json.dumps(treat_hist_data)}; window._
 
     const simSlider = document.getElementById('t-sim-slider');
     const simLabel  = document.getElementById('t-sim-label');
-    const daySlider = document.getElementById('t-day-slider');
-    const dayLabel  = document.getElementById('t-day-label');
 
     function showSim(idx) {
       const simNum = idx + 1;
       const d = window.__treatSimData[String(simNum)];
+      const itc = window.__treatItcPerSim[String(simNum)];
       const pct = (d.true_mean * 100).toFixed(2) + '%';
+      const color = itc >= 100 ? 'green' : 'red';
       Plotly.restyle(tplot, { x: [d.x], y: [d.y], name: [`Sim ${simNum}`] }, [0]);
       Plotly.restyle(tplot, { y: [[d.true_mean, d.true_mean]] }, [1]);
+      Plotly.restyle(tplot, { x: [[itc]], 'marker.color': [color] }, [3]);
       Plotly.relayout(tplot, {
         'annotations[2].y': d.true_mean,
         'annotations[2].text': `True mean (${pct})`,
+        'annotations[3].x': itc,
+        'annotations[3].text': `True Effect: ${itc.toFixed(2)}`,
+        'annotations[3].font.color': color,
+        'annotations[3].arrowcolor': color,
+        'annotations[3].bordercolor': color,
       });
     }
 
     simSlider.addEventListener('input', function() {
       simLabel.textContent = this.value;
       showSim(parseInt(this.value) - 1);
-    });
-
-    daySlider.addEventListener('input', function() {
-      const day = this.value;
-      dayLabel.textContent = day;
-      const d = window.__treatHistData[day];
-      Plotly.restyle(tplot, { x: [d.x], y: [d.y] }, [3]);
-      Plotly.relayout(tplot, { 'annotations[1].text': `Treatment Estimates Improve Over Time (Day = ${day})` });
+      const cSlider = document.getElementById('sim-slider');
+      const cLabel  = document.getElementById('sim-label');
+      if (cSlider && cSlider.value !== this.value) {
+        cSlider.value = this.value;
+        if (cLabel) cLabel.textContent = this.value;
+        cSlider.dispatchEvent(new Event('input'));
+      }
+      const pvSlider = document.getElementById('pval-sim-slider');
+      const pvLabel  = document.getElementById('pval-sim-label');
+      if (pvSlider && pvSlider.value !== this.value) {
+        pvSlider.value = this.value;
+        if (pvLabel) pvLabel.textContent = this.value;
+        pvSlider.dispatchEvent(new Event('input'));
+      }
     });
 
     showSim(0);
@@ -627,8 +665,167 @@ document.addEventListener('DOMContentLoaded', function() {
   const tc = document.getElementById('treatment-collapse');
   const th = document.getElementById('treatment-accordion-header');
   const tb = document.getElementById('treatment-accordion-btn');
-  tc.addEventListener('show.bs.collapse', () => { th.style.borderBottom = 'none'; th.style.borderRadius = '6px 6px 0 0'; tb.textContent = 'Hide Random Walks of Treatment'; });
-  tc.addEventListener('hide.bs.collapse', () => { th.style.borderBottom = '1.5px dashed #90b8e0'; th.style.borderRadius = '6px'; tb.textContent = 'Show Random Walks of Treatment'; });
+  tc.addEventListener('show.bs.collapse', () => { th.style.borderBottom = 'none'; th.style.borderRadius = '6px 6px 0 0'; tb.querySelector('span:first-child').textContent = 'Hide Random Walks of Treatment'; });
+  tc.addEventListener('hide.bs.collapse', () => { th.style.borderBottom = '1.5px dashed #90b8e0'; th.style.borderRadius = '6px'; tb.querySelector('span:first-child').textContent = 'Show Random Walks of Treatment'; });
 });
 </script>
 ```
+
+```{=html}
+<div class="mt-3 mb-2" id="pvalue-accordion-wrap">
+  <div class="accordion-item" style="border: 1.5px dashed #90b8e0; border-radius: 6px; background: #f0f6fd; margin-bottom: 0;" id="pvalue-accordion-header">
+    <div class="accordion-header" style="margin:0;">
+      <button class="accordion-button collapsed px-3 shadow-none"
+              id="pvalue-accordion-btn"
+              style="font-size:0.9rem; font-weight:600; color:#1e46a0; background:transparent; min-height:0; height:44px; width:100%; display:flex; align-items:center; padding-top:0; padding-bottom:0;"
+              type="button" data-bs-toggle="collapse"
+              data-bs-target="#pvalue-collapse">
+        <span style="flex:1; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">Show Random Walks of P-Values</span>
+        <span class="accordion-chevron" style="flex-shrink:0; margin-left:0.75rem; font-size:1.8rem; line-height:1; transition:transform 0.2s;">&#8964;</span>
+      </button>
+    </div>
+  </div>
+  <div id="pvalue-collapse" class="collapse" style="border: 1.5px dashed #90b8e0; border-top: none; border-radius: 0 0 6px 6px; padding: 1rem; background: #fff;">
+```
+
+```{python}
+#| echo: false
+
+s1_pv_df = df.filter(pl.col("simulation") == 1).sort("day")
+
+pv_fig = go.Figure()
+
+pv_fig.add_trace(go.Scatter(
+    x=s1_pv_df["day"].to_list(),
+    y=[round(1 - v, 6) for v in s1_pv_df["condition_1_pr_positive_diff"].to_list()],
+    mode="lines",
+    name="Treatment",
+    line=dict(color="#e45c3a", width=2),
+    hovertemplate="p = %{y:.3f}<extra></extra>",
+    hoverlabel=dict(bgcolor="#c03a1e", font_color="white", bordercolor="#c03a1e", font_size=14),
+))
+pv_fig.add_trace(go.Scatter(
+    x=s1_pv_df["day"].to_list(),
+    y=[round(1 - v, 6) for v in s1_pv_df["condition_0_pr_highest_diff"].to_list()],
+    mode="lines",
+    name="Control",
+    line=dict(color="#1e46a0", width=2),
+    hovertemplate="p = %{y:.3f}<extra></extra>",
+    hoverlabel=dict(font_size=14),
+))
+pv_fig.add_hline(
+    y=0.05,
+    line_dash="dash",
+    line_color="gray",
+    opacity=0.6,
+    annotation_text="p = 0.05",
+    annotation_position="right",
+)
+pv_fig.update_layout(
+    height=320,
+    yaxis=dict(range=[0, 1.05], title="P-Value", tickformat=".3f"),
+    xaxis=dict(title="Day"),
+    legend=dict(orientation="h", yanchor="bottom", y=1.01, xanchor="left", x=0),
+    margin=dict(t=40, b=40, l=60, r=80),
+    paper_bgcolor="white",
+    plot_bgcolor="white",
+)
+pv_fig.update_yaxes(gridcolor="#eeeeee")
+pv_fig.update_xaxes(gridcolor="#eeeeee")
+
+pv_fig
+```
+
+```{python}
+#| output: asis
+
+pval_sim_data = {}
+for sim in range(1, N_SIMS + 1):
+    sim_df = df.filter(pl.col("simulation") == sim).sort("day")
+    pval_sim_data[str(sim)] = {
+        "x":       sim_df["day"].to_list(),
+        "treat":   [round(1 - v, 6) for v in sim_df["condition_1_pr_positive_diff"].to_list()],
+        "control": [round(1 - v, 6) for v in sim_df["condition_0_pr_highest_diff"].to_list()],
+    }
+
+print(f'<script>window.__pvalSimData = {json.dumps(pval_sim_data)};</script>')
+```
+
+```{=html}
+<div style="margin: 0.25rem 0 0.5rem 0; display: flex; gap: 2rem; flex-wrap: wrap;">
+  <div style="display:flex; align-items:center; gap:0.75rem; flex:1; min-width:200px;">
+    <label style="font-size:0.85rem; font-weight:600; white-space:nowrap;">
+      Simulation: <span id="pval-sim-label">1</span>
+    </label>
+    <input id="pval-sim-slider" type="range" min="1" max="100" step="1" value="1"
+           style="flex:1; accent-color:#1e46a0;">
+  </div>
+</div>
+
+<script>
+(function() {
+  function attachPval() {
+    const pvplot = document.querySelector('#pvalue-collapse .plotly-graph-div');
+    if (!pvplot || !pvplot._fullData) { setTimeout(attachPval, 300); return; }
+
+    Plotly.Plots.resize(pvplot);
+
+    const slider = document.getElementById('pval-sim-slider');
+    const label  = document.getElementById('pval-sim-label');
+
+    function showSim(idx) {
+      const simNum = idx + 1;
+      const d = window.__pvalSimData[String(simNum)];
+      Plotly.restyle(pvplot, { x: [d.x], y: [d.treat]   }, [0]);
+      Plotly.restyle(pvplot, { x: [d.x], y: [d.control] }, [1]);
+    }
+
+    slider.addEventListener('input', function() {
+      label.textContent = this.value;
+      showSim(parseInt(this.value) - 1);
+      const cSlider = document.getElementById('sim-slider');
+      const cLabel  = document.getElementById('sim-label');
+      if (cSlider && cSlider.value !== this.value) {
+        cSlider.value = this.value;
+        if (cLabel) cLabel.textContent = this.value;
+        cSlider.dispatchEvent(new Event('input'));
+      }
+      const tSlider = document.getElementById('t-sim-slider');
+      const tLabel  = document.getElementById('t-sim-label');
+      if (tSlider && tSlider.value !== this.value) {
+        tSlider.value = this.value;
+        if (tLabel) tLabel.textContent = this.value;
+        tSlider.dispatchEvent(new Event('input'));
+      }
+    });
+
+    showSim(0);
+  }
+
+  const pc2 = document.getElementById('pvalue-collapse');
+  if (pc2) {
+    pc2.addEventListener('shown.bs.collapse', attachPval);
+    const ph = document.getElementById('pvalue-accordion-header');
+    const pb2 = document.getElementById('pvalue-accordion-btn');
+    pc2.addEventListener('show.bs.collapse', () => { ph.style.borderBottom = 'none'; ph.style.borderRadius = '6px 6px 0 0'; pb2.querySelector('span:first-child').textContent = 'Hide Random Walks of P-Values'; });
+    pc2.addEventListener('hide.bs.collapse', () => { ph.style.borderBottom = '1.5px dashed #90b8e0'; ph.style.borderRadius = '6px'; pb2.querySelector('span:first-child').textContent = 'Show Random Walks of P-Values'; });
+  } else {
+    attachPval();
+  }
+})();
+</script>
+
+</div>
+</div>
+```
+
+```{=html}
+<div class="alert mt-3" style="background:#f8f9fa; border-left: 4px solid #1e46a0; border-radius:4px; padding: 0.85rem 1.1rem; font-size:0.9rem; color:#333;">
+  <strong>Control:</strong> Each simulation is a different realization of the same baseline, but different noise. This is the randomness inherent in experimentation.<br><br>
+  <strong>Treatment:</strong> Each simulation of Treatment has a different true effect. Sometimes harmful, sometimes beneficial, often marginal. Even when we collect test data, we never know the exact truth.
+</div>
+```
+
+# Determine Optimal Stopping Rule
+
+With a strategy.
