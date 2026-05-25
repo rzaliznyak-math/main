@@ -40,7 +40,7 @@ of your specific test. Four inputs determine it:
         Baseline
       </button>
       <div class="factor-inputs">
-        <label class="param-label">Baseline Rate</label>
+        <label class="param-label" style="text-align:center; display:block;">Conversion</label>
         <input type="text" class="form-control" value="65%" disabled>
       </div>
     </div>
@@ -52,15 +52,15 @@ of your specific test. Four inputs determine it:
       <div class="factor-inputs">
         <div class="d-flex gap-2">
           <div class="flex-fill">
-            <label class="param-label">Traffic</label>
+            <label class="param-label" style="text-align:center; display:block;">Traffic</label>
             <input type="text" class="form-control" value="100,000" disabled>
           </div>
           <div class="flex-fill">
-            <label class="param-label">Split</label>
+            <label class="param-label" style="text-align:center; display:block;">Split</label>
             <input type="text" class="form-control" value="50 / 50" disabled>
           </div>
           <div class="flex-fill">
-            <label class="param-label">Max Test Days</label>
+            <label class="param-label" style="text-align:center; display:block;">Max Test Days</label>
             <input type="text" class="form-control" value="20" disabled>
           </div>
         </div>
@@ -72,7 +72,7 @@ of your specific test. Four inputs determine it:
         Post-Test Traffic
       </button>
       <div class="factor-inputs">
-        <label class="param-label">Post-Test Traffic</label>
+        <label class="param-label" style="text-align:center; display:block;">Post-Test Traffic</label>
         <input type="text" class="form-control" value="500,000" disabled>
       </div>
     </div>
@@ -82,11 +82,11 @@ of your specific test. Four inputs determine it:
         Expected Effects
       </button>
       <div class="factor-inputs">
-        <label class="param-label">Experiment Type</label>
+        <label class="param-label" style="text-align:center; display:block;">Experiment Type</label>
         <select class="form-select">
-          <option selected>Typical</option>
+          <option disabled>Typical</option>
           <option disabled>Bold</option>
-          <option disabled>Transformative</option>
+          <option selected>Transformative</option>
         </select>
       </div>
     </div>
@@ -121,10 +121,13 @@ of your specific test. Four inputs determine it:
 
 
 <script>
-const simCollapse = document.getElementById('sim-collapse');
-const simHeader   = document.getElementById('sim-accordion-header');
-simCollapse.addEventListener('show.bs.collapse',  () => { simHeader.style.borderBottom = 'none'; simHeader.style.borderRadius = '6px 6px 0 0'; });
-simCollapse.addEventListener('hide.bs.collapse',  () => { simHeader.style.borderBottom = ''; simHeader.style.borderRadius = '6px 6px 0 0'; });
+document.addEventListener('DOMContentLoaded', function() {
+  const simCollapse = document.getElementById('sim-collapse');
+  const simHeader   = document.getElementById('sim-accordion-header');
+  const simBtn      = document.getElementById('sim-accordion-btn');
+  simCollapse.addEventListener('show.bs.collapse',  () => { simHeader.style.borderBottom = 'none'; simHeader.style.borderRadius = '6px 6px 0 0'; simBtn.textContent = 'Hide Random Walks of Control'; });
+  simCollapse.addEventListener('hide.bs.collapse',  () => { simHeader.style.borderBottom = '1.5px dashed #90b8e0'; simHeader.style.borderRadius = '6px'; simBtn.textContent = 'Show Random Walks of Control'; });
+});
 </script>
 
 <script>
@@ -156,6 +159,7 @@ NUMBER_SIMULATIONS = 10_000    # simulations to run
 SEED               = 42
 ITC_MEAN           = 100       # income-to-control mean
 ITC_SE_TYPICAL     = 0.25      # income-to-control standard error (typical)
+ITC_SE_TRANSFORMATIVE = 1      # income-to-control standard error (transformative)
 
 df = se.create_simulation_df(
     number_test_days=NUMBER_TEST_DAYS,
@@ -171,7 +175,7 @@ df = se.create_simulation_df(
 
 random_effect_parameters_0 = {
     "itc_mean": 100,
-    "itc_se": ITC_SE_TYPICAL,
+    "itc_se": ITC_SE_TRANSFORMATIVE,
     "trials": int(MAX_TEST_N * SPLIT),
 }
 
@@ -182,13 +186,14 @@ df = se.add_cumulative_columns(df)
 
 ```{=html}
 <div class="mt-3 mb-2" id="sim-accordion-wrap">
-  <div class="accordion-item" style="border: 1.5px dashed #90b8e0; border-radius: 6px 6px 0 0; background: #f0f6fd; margin-bottom: 0;" id="sim-accordion-header">
+  <div class="accordion-item" style="border: 1.5px dashed #90b8e0; border-radius: 6px; background: #f0f6fd; margin-bottom: 0;" id="sim-accordion-header">
     <h2 class="accordion-header" style="margin:0;">
       <button class="accordion-button collapsed px-3 shadow-none"
+              id="sim-accordion-btn"
               style="font-size:1rem; font-weight:600; color:#1e46a0; background:transparent; min-height:0; height:30px; display:flex; align-items:center; padding-top:0; padding-bottom:0;"
               type="button" data-bs-toggle="collapse"
               data-bs-target="#sim-collapse">
-        Reveal 10,000 Random Walks of Control
+        Show Random Walks of Control
       </button>
     </h2>
   </div>
@@ -247,7 +252,7 @@ fig = make_subplots(
 
 # Manually add left-aligned titles
 fig.add_annotation(
-    text="Each simulation is different than the last!",
+    text="Each simulation takes its own path!",
     xref="paper", yref="paper",
     x=0.0, y=1.07, xanchor="left", yanchor="bottom",
     showarrow=False, font=dict(size=13),
@@ -269,7 +274,7 @@ fig.add_trace(go.Scatter(
     opacity=1.0,
     showlegend=False,
     name="Sim 1",
-    hovertemplate="Sim %{fullData.name} · %{y:.2%}<extra></extra>",
+    hovertemplate="%{fullData.name} · %{y:.2%}<extra></extra>",
 ), col=1, row=1)
 
 fig.add_hline(
@@ -346,8 +351,7 @@ print(f'<script>window.__histData = {json.dumps(hist_data)}; window.__simData = 
 <script>
 (function() {
   function attach() {
-    const plots    = document.querySelectorAll('.plotly-graph-div');
-    const plot     = plots[plots.length - 1];
+    const plot = document.querySelector('#sim-collapse .plotly-graph-div');
     if (!plot || !plot._fullData) { setTimeout(attach, 300); return; }
 
     Plotly.Plots.resize(plot);
@@ -390,5 +394,241 @@ print(f'<script>window.__histData = {json.dumps(hist_data)}; window.__simData = 
 
 </div>
 </div>
+```
+
+```{=html}
+<div class="mt-3 mb-2" id="treatment-accordion-wrap">
+  <div class="accordion-item" style="border: 1.5px dashed #90b8e0; border-radius: 6px; background: #f0f6fd; margin-bottom: 0;" id="treatment-accordion-header">
+    <h2 class="accordion-header" style="margin:0;">
+      <button class="accordion-button collapsed px-3 shadow-none"
+              id="treatment-accordion-btn"
+              style="font-size:1rem; font-weight:600; color:#1e46a0; background:transparent; min-height:0; height:30px; display:flex; align-items:center; padding-top:0; padding-bottom:0;"
+              type="button" data-bs-toggle="collapse"
+              data-bs-target="#treatment-collapse">
+        Show Random Walks of Treatment
+      </button>
+    </h2>
+  </div>
+  <div id="treatment-collapse" class="collapse" style="border: 1.5px dashed #90b8e0; border-top: none; border-radius: 0 0 6px 6px; padding: 1rem; background: #fff;">
+```
+
+```{python}
+# ── Treatment time series (first 100 sims) ───────────────────────
+treat_plot_df = (
+    df.filter(pl.col("simulation") <= N_SIMS)
+    .sort(["simulation", "day"])
+    .rename({"condition_1_mean_cumsum": "conversion_rate"})
+)
+
+treat_true_mean = float(df["condition_1_true_mean"].mean())
+
+treat_sim_data = {}
+for sim in range(1, N_SIMS + 1):
+    sim_df = treat_plot_df.filter(treat_plot_df["simulation"] == sim)
+    treat_sim_data[str(sim)] = {
+        "x": sim_df["day"].to_list(),
+        "y": [round(v, 6) for v in sim_df["conversion_rate"].to_list()],
+        "true_mean": round(float(sim_df["condition_1_true_mean"].mean()), 6),
+    }
+
+# ── Pre-compute treatment histogram bins ─────────────────────────
+treat_all_df = (
+    df.sort(["simulation", "day"])
+    .rename({"condition_1_mean_cumsum": "conversion_rate"})
+)
+treat_hist_data = {}
+t_global_min = float(treat_all_df["conversion_rate"].min())
+t_global_max = float(treat_all_df["conversion_rate"].max())
+
+for day in range(1, NUMBER_TEST_DAYS + 1):
+    rates = treat_all_df.filter(treat_all_df["day"] == day)["conversion_rate"].to_numpy()
+    counts, edges = np.histogram(rates, bins=50)
+    bin_centers = [float((edges[i] + edges[i+1]) / 2) for i in range(len(counts))]
+    treat_hist_data[str(day)] = {"x": bin_centers, "y": counts.tolist()}
+
+# ── Subplot figure ────────────────────────────────────────────────
+t_fig = make_subplots(cols=2, column_widths=[0.5, 0.5], horizontal_spacing=0.08)
+
+ts1 = treat_plot_df.filter(treat_plot_df["simulation"] == 1)
+s1_true_mean = round(float(ts1["condition_1_true_mean"].mean()), 6)
+
+t_fig.add_annotation(
+    text="Each simulation has a different true mean!",
+    xref="paper", yref="paper",
+    x=0.0, y=1.07, xanchor="left", yanchor="bottom",
+    showarrow=False, font=dict(size=13),
+)
+t_fig.add_annotation(
+    text="Treatment Estimates Improve Over Time (Day = 1)",
+    xref="paper", yref="paper",
+    x=0.54, y=1.07, xanchor="left", yanchor="bottom",
+    showarrow=False, font=dict(size=13),
+)
+
+# annotation[2]: per-sim true effect label on time series line
+t_fig.add_annotation(
+    x=NUMBER_TEST_DAYS,
+    y=s1_true_mean,
+    xref="x1", yref="y1",
+    text=f"True mean ({s1_true_mean:.2%})",
+    showarrow=False,
+    xanchor="right",
+    yanchor="top",
+    font=dict(size=12, color="rgba(20, 60, 160, 0.8)"),
+)
+
+ts1 = treat_plot_df.filter(treat_plot_df["simulation"] == 1)
+
+t_fig.add_trace(go.Scatter(
+    x=ts1["day"].to_list(),
+    y=ts1["conversion_rate"].to_list(),
+    mode="lines",
+    line=dict(color="rgba(15, 70, 160, 0.9)", width=3),
+    opacity=1.0,
+    showlegend=False,
+    name="Sim 1",
+    hovertemplate="%{fullData.name} · %{y:.2%}<extra></extra>",
+), col=1, row=1)
+
+# Trace 2: per-sim true mean line on time series
+t_fig.add_trace(go.Scatter(
+    x=[1, NUMBER_TEST_DAYS],
+    y=[s1_true_mean, s1_true_mean],
+    mode="lines",
+    line=dict(color="rgba(20, 60, 160, 0.8)", width=1.5, dash="dash"),
+    showlegend=False,
+    hoverinfo="skip",
+    name="True Mean",
+), col=1, row=1)
+
+# Trace 2: fixed vline at 65% (CONTROL_MEAN) on histogram
+t_max_count = max(max(v["y"]) for v in treat_hist_data.values())
+t_fig.add_trace(go.Scatter(
+    x=[CONTROL_MEAN, CONTROL_MEAN],
+    y=[0, t_max_count],
+    mode="lines",
+    line=dict(color="rgba(20, 60, 160, 0.8)", width=1.5, dash="dash"),
+    showlegend=False,
+    hoverinfo="skip",
+    name="True Mean",
+), col=2, row=1)
+
+td1 = treat_hist_data["1"]
+t_fig.add_trace(go.Bar(
+    x=td1["x"], y=td1["y"],
+    marker_color="rgba(15, 70, 160, 0.55)",
+    showlegend=False,
+    hovertemplate="Rate: %{x:.2%}<br>Count: %{y}<extra></extra>",
+), col=2, row=1)
+
+t_fig.update_layout(
+    template="plotly_white",
+    height=300,
+    autosize=True,
+    margin=dict(t=45, b=30, l=50, r=20),
+    hovermode="closest",
+    hoverlabel=dict(bgcolor="white", font_size=12, namelength=0),
+)
+t_fig.update_xaxes(tickformat="d", title_text="Day", col=1, row=1)
+t_fig.update_xaxes(tickformat=".1%", title_text="Conversion Rate",
+                   range=[t_global_min, t_global_max], col=2, row=1)
+t_treat_min = float(treat_plot_df["conversion_rate"].min())
+t_treat_max = float(treat_plot_df["conversion_rate"].max())
+t_fig.update_yaxes(tickformat=".1%", title_text="Conversion Rate",
+                   range=[t_treat_min, t_treat_max], col=1, row=1)
+t_fig.update_yaxes(title_text="", showticklabels=False, col=2, row=1)
+
+t_fig
+```
+
+```{python}
+#| output: asis
+print(f'<script>window.__treatHistData = {json.dumps(treat_hist_data)}; window.__treatSimData = {json.dumps(treat_sim_data)};</script>')
+```
+
+```{=html}
+<div style="margin: 0.25rem 0 0.5rem 0; display: flex; gap: 2rem; flex-wrap: wrap;">
+
+  <div style="display:flex; align-items:center; gap:0.75rem; flex:1; min-width:200px;">
+    <label style="font-size:0.85rem; font-weight:600; white-space:nowrap;">
+      Simulation: <span id="t-sim-label">1</span>
+    </label>
+    <input id="t-sim-slider" type="range" min="1" max="100" step="1" value="1"
+           style="flex:1; accent-color:#1e46a0;">
+  </div>
+
+  <div style="display:flex; align-items:center; gap:0.75rem; flex:1; min-width:200px;">
+    <label style="font-size:0.85rem; font-weight:600; white-space:nowrap;">
+      Day: <span id="t-day-label">1</span>
+    </label>
+    <input id="t-day-slider" type="range" min="1" max="20" step="1" value="1"
+           style="flex:1; accent-color:#1e46a0;">
+  </div>
+
 </div>
+
+<script>
+(function() {
+  function attachTreatment() {
+    const tplot = document.querySelector('#treatment-collapse .plotly-graph-div');
+    if (!tplot || !tplot._fullData) { setTimeout(attachTreatment, 300); return; }
+
+    Plotly.Plots.resize(tplot);
+
+    const simSlider = document.getElementById('t-sim-slider');
+    const simLabel  = document.getElementById('t-sim-label');
+    const daySlider = document.getElementById('t-day-slider');
+    const dayLabel  = document.getElementById('t-day-label');
+
+    function showSim(idx) {
+      const simNum = idx + 1;
+      const d = window.__treatSimData[String(simNum)];
+      const pct = (d.true_mean * 100).toFixed(2) + '%';
+      Plotly.restyle(tplot, { x: [d.x], y: [d.y], name: [`Sim ${simNum}`] }, [0]);
+      Plotly.restyle(tplot, { y: [[d.true_mean, d.true_mean]] }, [1]);
+      Plotly.relayout(tplot, {
+        'annotations[2].y': d.true_mean,
+        'annotations[2].text': `True mean (${pct})`,
+      });
+    }
+
+    simSlider.addEventListener('input', function() {
+      simLabel.textContent = this.value;
+      showSim(parseInt(this.value) - 1);
+    });
+
+    daySlider.addEventListener('input', function() {
+      const day = this.value;
+      dayLabel.textContent = day;
+      const d = window.__treatHistData[day];
+      Plotly.restyle(tplot, { x: [d.x], y: [d.y] }, [3]);
+      Plotly.relayout(tplot, { 'annotations[1].text': `Treatment Estimates Improve Over Time (Day = ${day})` });
+    });
+
+    showSim(0);
+  }
+
+  const tc = document.getElementById('treatment-collapse');
+  if (tc) {
+    tc.addEventListener('shown.bs.collapse', attachTreatment);
+  } else {
+    attachTreatment();
+  }
+})();
+</script>
+
+</div>
+</div>
+```
+
+```{=html}
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+  const tc = document.getElementById('treatment-collapse');
+  const th = document.getElementById('treatment-accordion-header');
+  const tb = document.getElementById('treatment-accordion-btn');
+  tc.addEventListener('show.bs.collapse', () => { th.style.borderBottom = 'none'; th.style.borderRadius = '6px 6px 0 0'; tb.textContent = 'Hide Random Walks of Treatment'; });
+  tc.addEventListener('hide.bs.collapse', () => { th.style.borderBottom = '1.5px dashed #90b8e0'; th.style.borderRadius = '6px'; tb.textContent = 'Show Random Walks of Treatment'; });
+});
+</script>
 ```

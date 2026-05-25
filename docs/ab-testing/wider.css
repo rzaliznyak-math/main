@@ -22,7 +22,7 @@ main.content,
 /* Factor columns layout */
 .factor-columns {
   display: grid;
-  grid-template-columns: 1fr 2fr 1fr 1fr;
+  grid-template-columns: 0.85fr 2fr 0.9fr 1.25fr;
   gap: 1rem;
   align-items: start;
 }
@@ -58,12 +58,15 @@ main.content,
   display: block;
 }
 
-.factor-inputs .form-control:disabled {
+.factor-inputs .form-control:disabled,
+.factor-inputs .form-select:disabled,
+.factor-inputs .form-select {
   background-color: transparent;
   font-size: 0.875rem;
   color: var(--bs-body-color);
   cursor: default;
   border-color: var(--bs-border-color);
+  text-align: center;
 }
 
 @media (max-width: 768px) {
