@@ -4,6 +4,7 @@ project:
 
 website:
   title: "Russ Zaliznyak"
+  favicon: favicon.svg
   description: "AB Testing | Python | Statistics | Math"
 
   navbar:

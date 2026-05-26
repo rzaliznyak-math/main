@@ -76,12 +76,7 @@ In order to determine optimal stopping rules, we're going to simulate 10,000 exp
         Expected Effects
       </button>
       <div class="factor-inputs">
-        <label class="param-label" style="text-align:center; display:block;">Experiment Type</label>
-        <select class="form-select">
-          <option disabled>Typical</option>
-          <option disabled>Bold</option>
-          <option selected>Transformative</option>
-        </select>
+        <div id="itc-density-chart" style="height:62px; width:100%; margin-top:2px;"></div>
       </div>
     </div>
 
@@ -102,7 +97,7 @@ In order to determine optimal stopping rules, we're going to simulate 10,000 exp
       horizon means more value at stake — justifying a more aggressive stopping rule.
     </div>
     <div class="factor-panel d-none" id="panel-effects">
-      The realistic lift you expect comes from a <em>distribution</em> of possible effects — not a single number. Larger effects are detectable faster; smaller or more uncertain effects demand more traffic or more tolerance for risk.
+      The realistic lift you expect comes from a <em>distribution</em> of possible effects — not a single number. Experiments have an equal chance of being good or bad.
     </div>
   </div>
 
@@ -121,6 +116,45 @@ document.addEventListener('DOMContentLoaded', function() {
   simCollapse.addEventListener('show.bs.collapse',  () => { simHeader.style.borderBottom = 'none'; simHeader.style.borderRadius = '6px 6px 0 0'; simBtn.querySelector('span:first-child').textContent = 'Hide Random Walks of Control'; });
   simCollapse.addEventListener('hide.bs.collapse',  () => { simHeader.style.borderBottom = '1.5px dashed #90b8e0'; simHeader.style.borderRadius = '6px'; simBtn.querySelector('span:first-child').textContent = 'Show Random Walks of Control'; });
 });
+</script>
+
+<script>
+(function renderItcDensity() {
+  const el = document.getElementById('itc-density-chart');
+  if (!el) return;
+  if (typeof Plotly === 'undefined' || !window.__itcDensity) { setTimeout(renderItcDensity, 200); return; }
+  const d = window.__itcDensity;
+  Plotly.newPlot(el, [
+    {
+      x: d.xL, y: d.yL, customdata: d.sfL,
+      fill: 'tozeroy', mode: 'lines', name: '< 100',
+      line: { color: '#e45c3a', width: 1.5 },
+      fillcolor: 'rgba(228,92,58,0.25)',
+      hovertemplate: 'Pr( ITC > %{x:.2f} ) = %{customdata:.2f}%<extra></extra>',
+    },
+    {
+      x: d.xR, y: d.yR, customdata: d.sfR,
+      fill: 'tozeroy', mode: 'lines', name: '> 100',
+      line: { color: '#1e46a0', width: 1.5 },
+      fillcolor: 'rgba(30,70,160,0.2)',
+      hovertemplate: 'Pr( ITC > %{x:.2f} ) = %{customdata:.2f}%<extra></extra>',
+    },
+    {
+      x: [d.mean], y: [0], mode: 'markers', name: 'avg',
+      marker: { color: '#1e46a0', size: 7, symbol: 'circle', line: { color: 'white', width: 1.5 } },
+      hovertemplate: 'Avg ITC: %{x:.3f}<extra></extra>',
+    },
+  ], {
+    margin: { t: 2, b: 16, l: 2, r: 2 },
+    paper_bgcolor: 'rgba(0,0,0,0)',
+    plot_bgcolor:  'rgba(0,0,0,0)',
+    xaxis: { title: { text: 'Index-to-Control', font: { size: 10 } }, showticklabels: false, showgrid: false, zeroline: false, fixedrange: true },
+    yaxis: { visible: false, fixedrange: true },
+    showlegend: false,
+    shapes: [{ type: 'line', x0: 100, x1: 100, y0: 0, y1: 1, yref: 'paper', line: { color: '#555', width: 1, dash: 'dot' } }],
+    hoverlabel: { bgcolor: '#111', font: { color: '#fff', size: 11 } },
+  }, { displayModeBar: false, responsive: true });
+})();
 </script>
 
 <script>
@@ -457,6 +491,23 @@ itc_centers = [float((itc_edges[i] + itc_edges[i+1]) / 2) for i in range(len(itc
 itc_hist = {"x": itc_centers, "y": itc_counts.tolist()}
 itc_max_count = int(itc_counts.max())
 
+# ── KDE density + survival function for ITC mini-chart ───────────
+from scipy.stats import gaussian_kde as _kde, norm as _norm
+_kde_fn   = _kde(itc_values)
+_x_dense  = np.linspace(float(itc_values.min()), float(itc_values.max()), 400)
+_y_dense  = _kde_fn(_x_dense)
+_itc_mean = float(itc_values.mean())
+_itc_std  = float(itc_values.std())
+_sf       = [round(float(_norm.sf(x, _itc_mean, _itc_std)) * 100, 2) for x in _x_dense]
+_split    = _x_dense <= 100
+itc_density = {
+    "xL": _x_dense[_split].tolist(),  "yL": _y_dense[_split].tolist(),
+    "sfL": [_sf[i] for i in range(len(_x_dense)) if _split[i]],
+    "xR": _x_dense[~_split].tolist(), "yR": _y_dense[~_split].tolist(),
+    "sfR": [_sf[i] for i in range(len(_x_dense)) if not _split[i]],
+    "mean": _itc_mean,
+}
+
 itc_max_dev = max(abs(float(itc_values.max()) - 100), abs(100 - float(itc_values.min())))
 itc_range = [100 - itc_max_dev * 1.1, 100 + itc_max_dev * 1.1]
 
@@ -579,7 +630,7 @@ t_fig
 
 ```{python}
 #| output: asis
-print(f'<script>window.__treatSimData = {json.dumps(treat_sim_data)}; window.__treatItcPerSim = {json.dumps(treat_itc_per_sim)};</script>')
+print(f'<script>window.__treatSimData = {json.dumps(treat_sim_data)}; window.__treatItcPerSim = {json.dumps(treat_itc_per_sim)}; window.__itcDensity = {json.dumps(itc_density)};</script>')
 ```
 
 ```{=html}
@@ -680,7 +731,7 @@ document.addEventListener('DOMContentLoaded', function() {
               style="font-size:0.9rem; font-weight:600; color:#1e46a0; background:transparent; min-height:0; height:44px; width:100%; display:flex; align-items:center; padding-top:0; padding-bottom:0;"
               type="button" data-bs-toggle="collapse"
               data-bs-target="#pvalue-collapse">
-        <span style="flex:1; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">Show Random Walks of P-Values</span>
+        <span style="flex:1; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">Show Random Walks of Probabilities</span>
         <span class="accordion-chevron" style="flex-shrink:0; margin-left:0.75rem; font-size:1.8rem; line-height:1; transition:transform 0.2s;">&#8964;</span>
       </button>
     </div>
@@ -697,33 +748,25 @@ pv_fig = go.Figure()
 
 pv_fig.add_trace(go.Scatter(
     x=s1_pv_df["day"].to_list(),
-    y=[round(1 - v, 6) for v in s1_pv_df["condition_1_pr_positive_diff"].to_list()],
+    y=[round(v, 6) for v in s1_pv_df["condition_1_pr_positive_diff"].to_list()],
     mode="lines",
     name="Treatment",
     line=dict(color="#e45c3a", width=2),
-    hovertemplate="p = %{y:.3f}<extra></extra>",
+    hovertemplate="Pr(Best) = %{y:.3f}<extra></extra>",
     hoverlabel=dict(bgcolor="#c03a1e", font_color="white", bordercolor="#c03a1e", font_size=14),
 ))
 pv_fig.add_trace(go.Scatter(
     x=s1_pv_df["day"].to_list(),
-    y=[round(1 - v, 6) for v in s1_pv_df["condition_0_pr_highest_diff"].to_list()],
+    y=[round(v, 6) for v in s1_pv_df["condition_0_pr_highest_diff"].to_list()],
     mode="lines",
     name="Control",
     line=dict(color="#1e46a0", width=2),
-    hovertemplate="p = %{y:.3f}<extra></extra>",
+    hovertemplate="Pr(Best) = %{y:.3f}<extra></extra>",
     hoverlabel=dict(font_size=14),
 ))
-pv_fig.add_hline(
-    y=0.05,
-    line_dash="dash",
-    line_color="gray",
-    opacity=0.6,
-    annotation_text="p = 0.05",
-    annotation_position="right",
-)
 pv_fig.update_layout(
     height=320,
-    yaxis=dict(range=[0, 1.05], title="P-Value", tickformat=".3f"),
+    yaxis=dict(range=[0, 1.05], title="Pr(Best)", tickformat=".2f"),
     xaxis=dict(title="Day"),
     legend=dict(orientation="h", yanchor="bottom", y=1.01, xanchor="left", x=0),
     margin=dict(t=40, b=40, l=60, r=80),
@@ -744,8 +787,8 @@ for sim in range(1, N_SIMS + 1):
     sim_df = df.filter(pl.col("simulation") == sim).sort("day")
     pval_sim_data[str(sim)] = {
         "x":       sim_df["day"].to_list(),
-        "treat":   [round(1 - v, 6) for v in sim_df["condition_1_pr_positive_diff"].to_list()],
-        "control": [round(1 - v, 6) for v in sim_df["condition_0_pr_highest_diff"].to_list()],
+        "treat":   [round(v, 6) for v in sim_df["condition_1_pr_positive_diff"].to_list()],
+        "control": [round(v, 6) for v in sim_df["condition_0_pr_highest_diff"].to_list()],
     }
 
 print(f'<script>window.__pvalSimData = {json.dumps(pval_sim_data)};</script>')
@@ -807,8 +850,8 @@ print(f'<script>window.__pvalSimData = {json.dumps(pval_sim_data)};</script>')
     pc2.addEventListener('shown.bs.collapse', attachPval);
     const ph = document.getElementById('pvalue-accordion-header');
     const pb2 = document.getElementById('pvalue-accordion-btn');
-    pc2.addEventListener('show.bs.collapse', () => { ph.style.borderBottom = 'none'; ph.style.borderRadius = '6px 6px 0 0'; pb2.querySelector('span:first-child').textContent = 'Hide Random Walks of P-Values'; });
-    pc2.addEventListener('hide.bs.collapse', () => { ph.style.borderBottom = '1.5px dashed #90b8e0'; ph.style.borderRadius = '6px'; pb2.querySelector('span:first-child').textContent = 'Show Random Walks of P-Values'; });
+    pc2.addEventListener('show.bs.collapse', () => { ph.style.borderBottom = 'none'; ph.style.borderRadius = '6px 6px 0 0'; pb2.querySelector('span:first-child').textContent = 'Hide Random Walks of Probabilities'; });
+    pc2.addEventListener('hide.bs.collapse', () => { ph.style.borderBottom = '1.5px dashed #90b8e0'; ph.style.borderRadius = '6px'; pb2.querySelector('span:first-child').textContent = 'Show Random Walks of Probabilities'; });
   } else {
     attachPval();
   }
@@ -826,6 +869,12 @@ print(f'<script>window.__pvalSimData = {json.dumps(pval_sim_data)};</script>')
 </div>
 ```
 
-# Determine Optimal Stopping Rule
+# Optimal Stopping Algorithm
 
-With a strategy.
+For each of 10,000 simulated experiments and each significance level α ∈ [0.01, 0.50]:
+
+1. **Burn-in:** Collect data for a mandatory 7 days — no stopping decisions made
+2. **Daily check (day 7+):** Stop when either condition's Pr(Best) exceeds `1 - α`
+3. **Fallback:** If neither breaches by the final day, roll out the condition that is currently ahead
+4. **Rollout:** Deploy the winner to remaining test users and post-test traffic — naively, regardless of true effect
+5. **Evaluate:** Average the long-term outcome across all simulations to get the expected return under each α; the optimal stopping rule is the α that maximizes this
