@@ -21,7 +21,7 @@ Instead, we need to ask: what stopping rule maximizes our long-term outcomes?
 
 # What Drives Stopping Criteria?
 
-In order to determine optimal stopping rules, we're going to simulate 10,000 experiments like the one below:
+In order to determine optimal stopping rules, we're going to simulate 100,000 experiments like the one below:
 
 ```{=html}
 <div class="stopping-factors-ui mt-3 mb-4">
@@ -35,7 +35,7 @@ In order to determine optimal stopping rules, we're going to simulate 10,000 exp
       </button>
       <div class="factor-inputs">
         <label class="param-label" style="text-align:center; display:block;">Conversion</label>
-        <input type="text" class="form-control" value="65%" disabled>
+        <input type="text" class="form-control" value="30%" disabled>
       </div>
     </div>
 
@@ -76,6 +76,7 @@ In order to determine optimal stopping rules, we're going to simulate 10,000 exp
         Expected Effects
       </button>
       <div class="factor-inputs">
+        <div id="itc-density-label" style="font-size:0.72rem; color:#555; text-align:center; line-height:1.2; margin-bottom:1px;"></div>
         <div id="itc-density-chart" style="height:62px; width:100%; margin-top:2px;"></div>
       </div>
     </div>
@@ -93,8 +94,7 @@ In order to determine optimal stopping rules, we're going to simulate 10,000 exp
       More traffic means faster evidence. Uneven splits trade speed for risk protection.
     </div>
     <div class="factor-panel d-none" id="panel-posttest">
-      How long the winning variant runs after the decision. A longer deployment
-      horizon means more value at stake — justifying a more aggressive stopping rule.
+      The population exposed to the winner after the decision is made. More post-test traffic means more value at stake — justifying a more aggressive stopping rule.
     </div>
     <div class="factor-panel d-none" id="panel-effects">
       The realistic lift you expect comes from a <em>distribution</em> of possible effects — not a single number. Experiments have an equal chance of being good or bad.
@@ -124,6 +124,8 @@ document.addEventListener('DOMContentLoaded', function() {
   if (!el) return;
   if (typeof Plotly === 'undefined' || !window.__itcDensity) { setTimeout(renderItcDensity, 200); return; }
   const d = window.__itcDensity;
+  const lbl = document.getElementById('itc-density-label');
+  if (lbl) lbl.innerHTML = `N(μ = ${Math.round(d.mean)}, σ = ${d.std.toFixed(1)})`;
   Plotly.newPlot(el, [
     {
       x: d.xL, y: d.yL, customdata: d.sfL,
@@ -177,16 +179,16 @@ document.querySelectorAll('.factor-btn').forEach(btn => {
 import simulationengine as se
 
 # ── Experiment Assumptions ─────────────────────────────────────────
-CONTROL_MEAN       = 0.65      # pre-experiment conversion rate
+CONTROL_MEAN       = 0.30      # pre-experiment conversion rate
 MAX_TEST_N         = 100_000   # total users in the experiment
 SPLIT              = 0.50      # treatment allocation (50/50)
+MIN_TEST_DAYS      = 7         # mandatory burn-in before stopping decisions
 NUMBER_TEST_DAYS   = 20        # maximum experiment duration
-POST_TEST_N        = 500_000   # users exposed after decision is made
-NUMBER_SIMULATIONS = 10_000    # simulations to run
+POST_TEST_N        = 500_000   # users exposed to winner once MAX_TEST_N is reached
+NUMBER_SIMULATIONS = 100_000   # simulations to run
 SEED               = 42
-ITC_MEAN           = 100       # income-to-control mean
-ITC_SE_TYPICAL     = 0.25      # income-to-control standard error (typical)
-ITC_SE_TRANSFORMATIVE = 1      # income-to-control standard error (transformative)
+ITC_MEAN           = 100       # index-to-control mean
+ITC_SE             = 1         # index-to-control standard error
 
 df = se.create_simulation_df(
     number_test_days=NUMBER_TEST_DAYS,
@@ -201,8 +203,8 @@ df = se.create_simulation_df(
 )
 
 random_effect_parameters_0 = {
-    "itc_mean": 100,
-    "itc_se": ITC_SE_TRANSFORMATIVE,
+    "itc_mean": ITC_MEAN,
+    "itc_se": ITC_SE,
     "trials": int(MAX_TEST_N * SPLIT),
 }
 
@@ -211,6 +213,9 @@ df = se.add_cumulative_columns(df)
 df = se.compute_cumulative_std_rates(df)
 df = se.compute_delta_stats(df)
 df = se.compute_test_stats(df)
+df = se.calculate_remaining_test_potential(df)
+df = se.calculate_launch_potential(df, post_test_n=POST_TEST_N)
+df = se.calculate_total_potential(df)
 
 ```
 
@@ -506,6 +511,7 @@ itc_density = {
     "xR": _x_dense[~_split].tolist(), "yR": _y_dense[~_split].tolist(),
     "sfR": [_sf[i] for i in range(len(_x_dense)) if not _split[i]],
     "mean": _itc_mean,
+    "std": _itc_std,
 }
 
 itc_max_dev = max(abs(float(itc_values.max()) - 100), abs(100 - float(itc_values.min())))
@@ -871,10 +877,526 @@ print(f'<script>window.__pvalSimData = {json.dumps(pval_sim_data)};</script>')
 
 # Optimal Stopping Algorithm
 
-For each of 10,000 simulated experiments and each significance level α ∈ [0.01, 0.50]:
+For each of 100,000 simulated experiments and each significance level α ∈ [0.01, 0.50]:
 
-1. **Burn-in:** Collect data for a mandatory 7 days — no stopping decisions made
-2. **Daily check (day 7+):** Stop when either condition's Pr(Best) exceeds `1 - α`
-3. **Fallback:** If neither breaches by the final day, roll out the condition that is currently ahead
-4. **Rollout:** Deploy the winner to remaining test users and post-test traffic — naively, regardless of true effect
-5. **Evaluate:** Average the long-term outcome across all simulations to get the expected return under each α; the optimal stopping rule is the α that maximizes this
+1. **Burn-in:** No stopping decisions before `min_test_days = 7`
+2. **Daily check:** Stop when either condition's Pr(Best) exceeds `1 - α`
+3. **Fallback:** If neither condition breaches by the final day:
+   - _Select Best_: roll out whichever condition is currently ahead
+   - _Retain Control_: keep control regardless
+4. **Rollout:** Deploy the winner to remaining test users and post-test traffic
+5. **Evaluate:** Pick the α with the highest average long-term outcome
+
+As a baseline, we also simulate a **Fixed Sample** test — no early stopping, decision made only at `max_test_days = 20` — using the _Retain Control_ fallback.
+
+# Simulation Results
+
+```{python}
+#| echo: false
+
+import time
+import plotly.express as px
+from plotly.subplots import make_subplots
+from simulationengine import prepare_stopping_decision_columns
+
+p_thresholds = np.arange(0.5, 1.00, 0.01)  # probabilities, not p-values
+normalizer   = df["total_trials_cumsum"].max() + POST_TEST_N
+
+df_prepped = prepare_stopping_decision_columns(
+    df.filter(pl.col("day") >= MIN_TEST_DAYS),
+    metric_direction_improvement="increase",
+)
+df_prepped = df_prepped.sort(["simulation", "day"])
+
+df_prepped_fixed = prepare_stopping_decision_columns(
+    df.filter(pl.col("day") >= NUMBER_TEST_DAYS),
+    metric_direction_improvement="increase",
+)
+df_prepped_fixed = df_prepped_fixed.sort(["simulation", "day"])
+
+def run_loop(select_best_at_end, prepped_df=None):
+    if prepped_df is None:
+        prepped_df = df_prepped
+    outcomes, trials, med_trials, rate, avg_days = [], [], [], [], []
+    for p in p_thresholds:
+        s = se.analyze_by_probability_threshold(
+            prepped_df,
+            threshold=p,
+            metric_direction_improvement="increase",
+            pre_sorted=True,
+            select_best_at_end=select_best_at_end,
+        )
+        med_trials.append(s["total_trials_cumsum"].median())
+        outcomes.append(s["winning_probability_condition_total_potential_value"].mean())
+        trials.append(s["total_trials_cumsum"].mean())
+        rate.append((s["max_probability_condition"] == s["true_best_condition"]).mean())
+        avg_days.append(s["day"].mean())
+    return outcomes, trials, med_trials, rate, avg_days
+
+_t0 = time.time()
+all_potential_outcomes, total_trials, median_trials, match_rate, all_avg_days = run_loop(True)
+ctrl_potential_outcomes, ctrl_trials, ctrl_med_trials, ctrl_match_rate, ctrl_avg_days = run_loop(False)
+fixed_potential_outcomes, fixed_trials, fixed_med_trials, fixed_match_rate, fixed_avg_days = run_loop(False, df_prepped_fixed)
+_runtime = time.time() - _t0
+
+def make_curve_fig(outcomes, trials, med_trials, rate, title, y_fmt=".3%"):
+    y = np.array(outcomes) / normalizer
+    x = 1 - p_thresholds
+    peak = int(np.argmax(np.round(y * 100, 4)))
+    cd = np.column_stack([np.array(trials).astype(int), np.array(rate), np.array(med_trials)])
+    f = px.line(x=x, y=y)
+    f.add_scatter(
+        x=[x[peak]], y=[y[peak]], mode="markers",
+        marker=dict(symbol="square", size=14, color="#3a6fd8"),
+        customdata=[[int(trials[peak]), rate[peak], int(med_trials[peak])]],
+        hovertemplate=(
+            f"P-value Threshold: %{{x:.2f}}<br>"
+            f"Projected Mean: %{{y:{y_fmt}}}<br>"
+            "Avg Trials: %{customdata[0]:,}<br>"
+            "Median Trials: %{customdata[2]:,}<br>"
+            "Selected Best Condition: %{customdata[1]:.2%}<br>"
+            "<extra></extra>"
+        ),
+        showlegend=False,
+    )
+    f.update_traces(
+        selector=dict(mode="lines"),
+        customdata=cd,
+        hovertemplate=(
+            f"P-value Threshold: %{{x:.2f}}<br>"
+            f"Projected Mean: %{{y:{y_fmt}}}<br>"
+            "Avg Trials: %{customdata[0]:,}<br>"
+            "Median Trials: %{customdata[2]:,}<br>"
+            "Selected Best Condition: %{customdata[1]:.2%}<br>"
+            "<extra></extra>"
+        ),
+    )
+    f.update_layout(title_text=title)
+    f.update_xaxes(title_text="P-value Threshold", tickformat=".2f")
+    f.update_yaxes(title_text="Projected Mean @ Year-End", tickformat=y_fmt)
+    return f
+
+fig1 = make_curve_fig(all_potential_outcomes, total_trials, median_trials, match_rate,
+                      "Fallback: Select Best")
+fig2 = make_curve_fig(ctrl_potential_outcomes, ctrl_trials, ctrl_med_trials, ctrl_match_rate,
+                      "Fallback: Retain Control")
+fig3 = make_curve_fig(fixed_potential_outcomes, fixed_trials, fixed_med_trials, fixed_match_rate,
+                      "Fixed Sample (Retain Control)")
+
+row1 = make_subplots(rows=1, cols=2,
+                     subplot_titles=["<b>Fallback:</b> Select Best",
+                                     "<b>Fallback:</b> Retain Control"])
+for trace in fig1.data:
+    row1.add_trace(trace, row=1, col=1)
+for trace in fig2.data:
+    row1.add_trace(trace, row=1, col=2)
+row1.update_xaxes(title_text="P-value Threshold", tickformat=".2f")
+row1.update_yaxes(title_text="Projected Mean @ Year-End", tickformat=".3%", col=1)
+row1.update_yaxes(tickformat=".3%", col=2)
+row1.update_layout(showlegend=False, height=300)
+
+row2 = make_subplots(rows=1, cols=2,
+                     subplot_titles=["<b>Fixed Sample:</b> Retain Control", ""])
+for trace in fig3.data:
+    row2.add_trace(trace, row=1, col=1)
+row2.update_xaxes(title_text="P-value Threshold", tickformat=".2f", range=[0.0, 0.52], col=1)
+row2.update_yaxes(title_text="Projected Mean @ Year-End", tickformat=".3%", col=1)
+row2.update_layout(showlegend=False, height=300)
+
+from IPython.display import display, HTML
+
+def peak_stats(outcomes, avg_days_list):
+    y    = np.array(outcomes) / normalizer
+    x    = 1 - p_thresholds
+    peak = int(np.argmax(np.round(y * 100, 4)))
+    opt_alpha       = x[peak]
+    marginal_events = (y[peak] - CONTROL_MEAN) * (POST_TEST_N + MAX_TEST_N)
+    avg_d           = avg_days_list[peak]
+    return f"""<div style="text-align:center; font-size:0.9rem; color:#333; margin-top:0.25rem;">
+      Optimal α: <strong>{opt_alpha:.2f}</strong> &nbsp;|&nbsp;
+      Marginal Events: <strong>{marginal_events:,.0f}</strong> &nbsp;|&nbsp;
+      Avg(Days): <strong>{avg_d:.1f}</strong>
+    </div>"""
+
+import plotly.io as pio
+
+_stats_base = dict(
+    left1  = peak_stats(all_potential_outcomes,   all_avg_days),
+    right1 = peak_stats(ctrl_potential_outcomes,  ctrl_avg_days),
+    left2  = peak_stats(fixed_potential_outcomes, fixed_avg_days),
+)
+
+display(HTML(f"""
+<script>
+window.__wif_scenarios = window.__wif_scenarios || {{}};
+window.__wif_scenarios['500k_s1'] = {{
+  row1:   {pio.to_json(row1)},
+  row2:   {pio.to_json(row2)},
+  left1:  {json.dumps(_stats_base['left1'])},
+  right1: {json.dumps(_stats_base['right1'])},
+  left2:  {json.dumps(_stats_base['left2'])}
+}};
+</script>
+
+<div style="display:flex; gap:1.5rem; align-items:center; margin-bottom:1.25rem; flex-wrap:wrap;">
+  <div style="display:flex; align-items:center; gap:0.5rem;">
+    <label style="font-size:0.85rem; color:#555; font-weight:600;">Post-Test N</label>
+    <select id="wif-ptn" class="form-select form-select-sm" style="width:auto; font-size:0.85rem;">
+      <option value="500k" selected>500,000</option>
+      <option value="1m">1,000,000</option>
+    </select>
+  </div>
+  <div style="display:flex; align-items:center; gap:0.5rem;">
+    <label style="font-size:0.85rem; color:#555; font-weight:600;">Effect σ</label>
+    <select id="wif-sigma" class="form-select form-select-sm" style="width:auto; font-size:0.85rem;">
+      <option value="s1" selected>1</option>
+      <option value="s2">2</option>
+    </select>
+  </div>
+</div>
+
+<div id="wif-row1" style="min-height:300px;"></div>
+<div id="wif-stats1" style="margin-top:0.25rem; margin-bottom:1rem;"></div>
+<div id="wif-row2" style="min-height:300px;"></div>
+<div id="wif-stats2" style="margin-top:0.25rem;"></div>
+
+<script>
+(function initWif() {{
+  if (typeof Plotly === 'undefined') {{ setTimeout(initWif, 200); return; }}
+
+  function renderScenario(key) {{
+    var s = window.__wif_scenarios && window.__wif_scenarios[key];
+    if (!s) {{ setTimeout(function() {{ renderScenario(key); }}, 200); return; }}
+    var r1 = s.row1; r1.layout.height = 300;
+    var r2 = s.row2; r2.layout.height = 300;
+    Plotly.react('wif-row1', r1.data, r1.layout);
+    Plotly.react('wif-row2', r2.data, r2.layout);
+    document.getElementById('wif-stats1').innerHTML =
+      '<div style="display:grid;grid-template-columns:1fr 1fr;gap:0.5rem;">' +
+      '<div>' + s.left1 + '</div><div>' + s.right1 + '</div></div>';
+    document.getElementById('wif-stats2').innerHTML =
+      '<div style="display:grid;grid-template-columns:1fr 1fr;gap:0.5rem;">' +
+      '<div>' + s.left2 + '</div><div></div></div>';
+  }}
+
+  function getKey() {{
+    return document.getElementById('wif-ptn').value + '_' +
+           document.getElementById('wif-sigma').value;
+  }}
+
+  renderScenario('500k_s1');
+  document.getElementById('wif-ptn').addEventListener('change',   function() {{ renderScenario(getKey()); }});
+  document.getElementById('wif-sigma').addEventListener('change', function() {{ renderScenario(getKey()); }});
+}})();
+</script>
+<div style="display:none;">{_runtime:.1f}s</div>
+"""))
+```
+
+::: {.callout-note}
+**P-Hacking is Good for Business** — Stopping early when you see a signal is optimal when the goal is value, not academic rigor. The optimal threshold here is α = 0.12 — stricter just means defaulting to control unnecessarily.
+
+**Your Optimal Stopping Rule Is Unique to You** — The right threshold shifts with your fallback policy, post-test traffic, and baseline rate. Simulate your context, find your curve, pick the peak.
+
+**Inconclusive Tests Have a Winner Too** — When neither condition clears the bar, picking the current leader over retaining control adds 35 events per experiment. Multiply that across a year of testing.
+:::
+
+```{python}
+#| echo: false
+# Scenario 1: N=1M, σ=1
+
+_ptn_2x = POST_TEST_N * 2
+df_2x = se.calculate_launch_potential(df, post_test_n=_ptn_2x)
+df_2x = se.calculate_total_potential(df_2x)
+
+_norm_2x = df_2x["total_trials_cumsum"].max() + _ptn_2x
+
+df_prepped_2x = prepare_stopping_decision_columns(
+    df_2x.filter(pl.col("day") >= MIN_TEST_DAYS),
+    metric_direction_improvement="increase",
+).sort(["simulation", "day"])
+
+df_fixed_2x = prepare_stopping_decision_columns(
+    df_2x.filter(pl.col("day") >= NUMBER_TEST_DAYS),
+    metric_direction_improvement="increase",
+).sort(["simulation", "day"])
+
+def run_loop_df(df_p, select_best_at_end):
+    outcomes, trials, med_trials, rate, avg_days = [], [], [], [], []
+    for p in p_thresholds:
+        s = se.analyze_by_probability_threshold(
+            df_p, threshold=p,
+            metric_direction_improvement="increase",
+            pre_sorted=True,
+            select_best_at_end=select_best_at_end,
+        )
+        med_trials.append(s["total_trials_cumsum"].median())
+        outcomes.append(s["winning_probability_condition_total_potential_value"].mean())
+        trials.append(s["total_trials_cumsum"].mean())
+        rate.append((s["max_probability_condition"] == s["true_best_condition"]).mean())
+        avg_days.append(s["day"].mean())
+    return outcomes, trials, med_trials, rate, avg_days
+
+_o1, _t1, _m1, _r1, _d1 = run_loop_df(df_prepped_2x, True)
+_o2, _t2, _m2, _r2, _d2 = run_loop_df(df_prepped_2x, False)
+_o3, _t3, _m3, _r3, _d3 = run_loop_df(df_fixed_2x, False)
+
+def make_curve_fig_n(outcomes, trials, med_trials, rate, title, norm, y_fmt=".3%"):
+    y = np.array(outcomes) / norm
+    x = 1 - p_thresholds
+    peak = int(np.argmax(np.round(y * 100, 4)))
+    cd = np.column_stack([np.array(trials).astype(int), np.array(rate), np.array(med_trials)])
+    f = px.line(x=x, y=y)
+    f.add_scatter(
+        x=[x[peak]], y=[y[peak]], mode="markers",
+        marker=dict(symbol="square", size=14, color="#3a6fd8"),
+        customdata=[[int(trials[peak]), rate[peak], int(med_trials[peak])]],
+        hovertemplate=(
+            f"P-value Threshold: %{{x:.2f}}<br>"
+            f"Projected Mean: %{{y:{y_fmt}}}<br>"
+            "Avg Trials: %{customdata[0]:,}<br>"
+            "Median Trials: %{customdata[2]:,}<br>"
+            "Selected Best Condition: %{customdata[1]:.2%}<br>"
+            "<extra></extra>"
+        ),
+        showlegend=False,
+    )
+    f.update_traces(
+        selector=dict(mode="lines"), customdata=cd,
+        hovertemplate=(
+            f"P-value Threshold: %{{x:.2f}}<br>"
+            f"Projected Mean: %{{y:{y_fmt}}}<br>"
+            "Avg Trials: %{customdata[0]:,}<br>"
+            "Median Trials: %{customdata[2]:,}<br>"
+            "Selected Best Condition: %{customdata[1]:.2%}<br>"
+            "<extra></extra>"
+        ),
+    )
+    f.update_layout(title_text=title)
+    f.update_xaxes(title_text="P-value Threshold", tickformat=".2f")
+    f.update_yaxes(title_text="Projected Mean @ Year-End", tickformat=y_fmt)
+    return f
+
+_f1 = make_curve_fig_n(_o1, _t1, _m1, _r1, "<b>Fallback:</b> Select Best", _norm_2x)
+_f2 = make_curve_fig_n(_o2, _t2, _m2, _r2, "<b>Fallback:</b> Retain Control", _norm_2x)
+_f3 = make_curve_fig_n(_o3, _t3, _m3, _r3, "<b>Fixed Sample:</b> Retain Control", _norm_2x)
+
+_row1_2x = make_subplots(rows=1, cols=2,
+                         subplot_titles=["<b>Fallback:</b> Select Best",
+                                         "<b>Fallback:</b> Retain Control"])
+for _tr in _f1.data: _row1_2x.add_trace(_tr, row=1, col=1)
+for _tr in _f2.data: _row1_2x.add_trace(_tr, row=1, col=2)
+_row1_2x.update_xaxes(title_text="P-value Threshold", tickformat=".2f")
+_row1_2x.update_yaxes(title_text="Projected Mean @ Year-End", tickformat=".3%", col=1)
+_row1_2x.update_yaxes(tickformat=".3%", col=2)
+_row1_2x.update_layout(showlegend=False, height=300)
+
+_row2_2x = make_subplots(rows=1, cols=2,
+                         subplot_titles=["<b>Fixed Sample:</b> Retain Control", ""])
+for _tr in _f3.data: _row2_2x.add_trace(_tr, row=1, col=1)
+_row2_2x.update_xaxes(title_text="P-value Threshold", tickformat=".2f", range=[0.0, 0.52], col=1)
+_row2_2x.update_yaxes(title_text="Projected Mean @ Year-End", tickformat=".3%", col=1)
+_row2_2x.update_layout(showlegend=False, height=300)
+
+def peak_stats_n(outcomes, avg_days_list, norm):
+    y    = np.array(outcomes) / norm
+    x    = 1 - p_thresholds
+    peak = int(np.argmax(np.round(y * 100, 4)))
+    opt_alpha       = x[peak]
+    marginal_events = (y[peak] - CONTROL_MEAN) * (_ptn_2x + MAX_TEST_N)
+    avg_d           = avg_days_list[peak]
+    return f"""<div style="text-align:center; font-size:0.9rem; color:#333; margin-top:0.25rem;">
+      Optimal α: <strong>{opt_alpha:.2f}</strong> &nbsp;|&nbsp;
+      Marginal Events: <strong>{marginal_events:,.0f}</strong> &nbsp;|&nbsp;
+      Avg(Days): <strong>{avg_d:.1f}</strong>
+    </div>"""
+
+display(HTML(f"""<script>
+window.__wif_scenarios = window.__wif_scenarios || {{}};
+window.__wif_scenarios['1m_s1'] = {{
+  row1:   {pio.to_json(_row1_2x)},
+  row2:   {pio.to_json(_row2_2x)},
+  left1:  {json.dumps(peak_stats_n(_o1, _d1, _norm_2x))},
+  right1: {json.dumps(peak_stats_n(_o2, _d2, _norm_2x))},
+  left2:  {json.dumps(peak_stats_n(_o3, _d3, _norm_2x))}
+}};
+</script>"""))
+```
+
+```{python}
+#| echo: false
+# Scenario 2: N=500k, σ=2
+
+_itc_se_wide = 2
+_ptn_wide    = POST_TEST_N   # 500k — effects only
+_ref_params_wide = {
+    "itc_mean": ITC_MEAN,
+    "itc_se": _itc_se_wide,
+    "trials": int(MAX_TEST_N * SPLIT),
+}
+
+_df_base = se.create_simulation_df(
+    number_test_days=NUMBER_TEST_DAYS,
+    number_simulations=NUMBER_SIMULATIONS,
+    seed=SEED,
+    condition_parameters=[{"mean": CONTROL_MEAN, "trials": int(MAX_TEST_N * SPLIT)}],
+)
+_df_wide = se.add_random_effect_condition(_df_base, _ref_params_wide)
+_df_wide = se.add_cumulative_columns(_df_wide)
+_df_wide = se.compute_cumulative_std_rates(_df_wide)
+_df_wide = se.compute_delta_stats(_df_wide)
+_df_wide = se.compute_test_stats(_df_wide)
+_df_wide = se.calculate_remaining_test_potential(_df_wide)
+_df_wide = se.calculate_launch_potential(_df_wide, post_test_n=_ptn_wide)
+_df_wide = se.calculate_total_potential(_df_wide)
+
+_norm_wide = _df_wide["total_trials_cumsum"].max() + _ptn_wide
+
+_df_prepped_wide = prepare_stopping_decision_columns(
+    _df_wide.filter(pl.col("day") >= MIN_TEST_DAYS),
+    metric_direction_improvement="increase",
+).sort(["simulation", "day"])
+
+_df_fixed_wide = prepare_stopping_decision_columns(
+    _df_wide.filter(pl.col("day") >= NUMBER_TEST_DAYS),
+    metric_direction_improvement="increase",
+).sort(["simulation", "day"])
+
+_ow1, _tw1, _mw1, _rw1, _dw1 = run_loop_df(_df_prepped_wide, True)
+_ow2, _tw2, _mw2, _rw2, _dw2 = run_loop_df(_df_prepped_wide, False)
+_ow3, _tw3, _mw3, _rw3, _dw3 = run_loop_df(_df_fixed_wide, False)
+
+_fw1 = make_curve_fig_n(_ow1, _tw1, _mw1, _rw1, "<b>Fallback:</b> Select Best", _norm_wide)
+_fw2 = make_curve_fig_n(_ow2, _tw2, _mw2, _rw2, "<b>Fallback:</b> Retain Control", _norm_wide)
+_fw3 = make_curve_fig_n(_ow3, _tw3, _mw3, _rw3, "<b>Fixed Sample:</b> Retain Control", _norm_wide)
+
+_row1_wide = make_subplots(rows=1, cols=2,
+                           subplot_titles=["<b>Fallback:</b> Select Best",
+                                           "<b>Fallback:</b> Retain Control"])
+for _tr in _fw1.data: _row1_wide.add_trace(_tr, row=1, col=1)
+for _tr in _fw2.data: _row1_wide.add_trace(_tr, row=1, col=2)
+_row1_wide.update_xaxes(title_text="P-value Threshold", tickformat=".2f")
+_row1_wide.update_yaxes(title_text="Projected Mean @ Year-End", tickformat=".3%", col=1)
+_row1_wide.update_yaxes(tickformat=".3%", col=2)
+_row1_wide.update_layout(showlegend=False, height=300)
+
+_row2_wide = make_subplots(rows=1, cols=2,
+                           subplot_titles=["<b>Fixed Sample:</b> Retain Control", ""])
+for _tr in _fw3.data: _row2_wide.add_trace(_tr, row=1, col=1)
+_row2_wide.update_xaxes(title_text="P-value Threshold", tickformat=".2f", range=[0.0, 0.52], col=1)
+_row2_wide.update_yaxes(title_text="Projected Mean @ Year-End", tickformat=".3%", col=1)
+_row2_wide.update_layout(showlegend=False, height=300)
+
+def peak_stats_wide(outcomes, avg_days_list, norm):
+    y    = np.array(outcomes) / norm
+    x    = 1 - p_thresholds
+    peak = int(np.argmax(np.round(y * 100, 4)))
+    opt_alpha       = x[peak]
+    marginal_events = (y[peak] - CONTROL_MEAN) * (_ptn_wide + MAX_TEST_N)
+    avg_d           = avg_days_list[peak]
+    return f"""<div style="text-align:center; font-size:0.9rem; color:#333; margin-top:0.25rem;">
+      Optimal α: <strong>{opt_alpha:.2f}</strong> &nbsp;|&nbsp;
+      Marginal Events: <strong>{marginal_events:,.0f}</strong> &nbsp;|&nbsp;
+      Avg(Days): <strong>{avg_d:.1f}</strong>
+    </div>"""
+
+display(HTML(f"""<script>
+window.__wif_scenarios = window.__wif_scenarios || {{}};
+window.__wif_scenarios['500k_s2'] = {{
+  row1:   {pio.to_json(_row1_wide)},
+  row2:   {pio.to_json(_row2_wide)},
+  left1:  {json.dumps(peak_stats_wide(_ow1, _dw1, _norm_wide))},
+  right1: {json.dumps(peak_stats_wide(_ow2, _dw2, _norm_wide))},
+  left2:  {json.dumps(peak_stats_wide(_ow3, _dw3, _norm_wide))}
+}};
+</script>"""))
+```
+
+```{python}
+#| echo: false
+# Scenario 3: N=1M, σ=2
+
+_ptn_both    = POST_TEST_N * 2
+_itc_se_both = 2
+_ref_params_both = {
+    "itc_mean": ITC_MEAN,
+    "itc_se": _itc_se_both,
+    "trials": int(MAX_TEST_N * SPLIT),
+}
+
+_df_base_b = se.create_simulation_df(
+    number_test_days=NUMBER_TEST_DAYS,
+    number_simulations=NUMBER_SIMULATIONS,
+    seed=SEED,
+    condition_parameters=[{"mean": CONTROL_MEAN, "trials": int(MAX_TEST_N * SPLIT)}],
+)
+_df_both = se.add_random_effect_condition(_df_base_b, _ref_params_both)
+_df_both = se.add_cumulative_columns(_df_both)
+_df_both = se.compute_cumulative_std_rates(_df_both)
+_df_both = se.compute_delta_stats(_df_both)
+_df_both = se.compute_test_stats(_df_both)
+_df_both = se.calculate_remaining_test_potential(_df_both)
+_df_both = se.calculate_launch_potential(_df_both, post_test_n=_ptn_both)
+_df_both = se.calculate_total_potential(_df_both)
+
+_norm_both = _df_both["total_trials_cumsum"].max() + _ptn_both
+
+_df_prepped_both = prepare_stopping_decision_columns(
+    _df_both.filter(pl.col("day") >= MIN_TEST_DAYS),
+    metric_direction_improvement="increase",
+).sort(["simulation", "day"])
+
+_df_fixed_both = prepare_stopping_decision_columns(
+    _df_both.filter(pl.col("day") >= NUMBER_TEST_DAYS),
+    metric_direction_improvement="increase",
+).sort(["simulation", "day"])
+
+_ob1, _tb1, _mb1, _rb1, _db1 = run_loop_df(_df_prepped_both, True)
+_ob2, _tb2, _mb2, _rb2, _db2 = run_loop_df(_df_prepped_both, False)
+_ob3, _tb3, _mb3, _rb3, _db3 = run_loop_df(_df_fixed_both, False)
+
+_fb1 = make_curve_fig_n(_ob1, _tb1, _mb1, _rb1, "<b>Fallback:</b> Select Best", _norm_both)
+_fb2 = make_curve_fig_n(_ob2, _tb2, _mb2, _rb2, "<b>Fallback:</b> Retain Control", _norm_both)
+_fb3 = make_curve_fig_n(_ob3, _tb3, _mb3, _rb3, "<b>Fixed Sample:</b> Retain Control", _norm_both)
+
+_row1_both = make_subplots(rows=1, cols=2,
+                           subplot_titles=["<b>Fallback:</b> Select Best",
+                                           "<b>Fallback:</b> Retain Control"])
+for _tr in _fb1.data: _row1_both.add_trace(_tr, row=1, col=1)
+for _tr in _fb2.data: _row1_both.add_trace(_tr, row=1, col=2)
+_row1_both.update_xaxes(title_text="P-value Threshold", tickformat=".2f")
+_row1_both.update_yaxes(title_text="Projected Mean @ Year-End", tickformat=".3%", col=1)
+_row1_both.update_yaxes(tickformat=".3%", col=2)
+_row1_both.update_layout(showlegend=False, height=300)
+
+_row2_both = make_subplots(rows=1, cols=2,
+                           subplot_titles=["<b>Fixed Sample:</b> Retain Control", ""])
+for _tr in _fb3.data: _row2_both.add_trace(_tr, row=1, col=1)
+_row2_both.update_xaxes(title_text="P-value Threshold", tickformat=".2f", range=[0.0, 0.52], col=1)
+_row2_both.update_yaxes(title_text="Projected Mean @ Year-End", tickformat=".3%", col=1)
+_row2_both.update_layout(showlegend=False, height=300)
+
+def peak_stats_both(outcomes, avg_days_list, norm):
+    y    = np.array(outcomes) / norm
+    x    = 1 - p_thresholds
+    peak = int(np.argmax(np.round(y * 100, 4)))
+    opt_alpha       = x[peak]
+    marginal_events = (y[peak] - CONTROL_MEAN) * (_ptn_both + MAX_TEST_N)
+    avg_d           = avg_days_list[peak]
+    return f"""<div style="text-align:center; font-size:0.9rem; color:#333; margin-top:0.25rem;">
+      Optimal α: <strong>{opt_alpha:.2f}</strong> &nbsp;|&nbsp;
+      Marginal Events: <strong>{marginal_events:,.0f}</strong> &nbsp;|&nbsp;
+      Avg(Days): <strong>{avg_d:.1f}</strong>
+    </div>"""
+
+display(HTML(f"""<script>
+window.__wif_scenarios = window.__wif_scenarios || {{}};
+window.__wif_scenarios['1m_s2'] = {{
+  row1:   {pio.to_json(_row1_both)},
+  row2:   {pio.to_json(_row2_both)},
+  left1:  {json.dumps(peak_stats_both(_ob1, _db1, _norm_both))},
+  right1: {json.dumps(peak_stats_both(_ob2, _db2, _norm_both))},
+  left2:  {json.dumps(peak_stats_both(_ob3, _db3, _norm_both))}
+}};
+</script>"""))
+```
