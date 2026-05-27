@@ -48,6 +48,37 @@ main.content,
   max-width: 260px;
 }
 
+/* Factor buttons — pill-shaped, filled, clearly interactive */
+.btn.factor-btn {
+  border-radius: 50px;
+  font-size: 0.82rem;
+  font-weight: 700;
+  letter-spacing: 0.02em;
+  padding: 0.45rem 1rem;
+  border-width: 2px;
+  box-shadow: 0 1px 4px rgba(0,0,0,0.10);
+  transition: background-color 0.15s, color 0.15s, box-shadow 0.15s;
+  white-space: nowrap;
+}
+
+.btn.factor-btn:not(.active) {
+  background-color: #fff;
+  color: #1e46a0;
+  border-color: #1e46a0;
+}
+
+.btn.factor-btn:not(.active):hover {
+  background-color: #e8edf8;
+  box-shadow: 0 2px 8px rgba(30,70,160,0.18);
+}
+
+.btn.factor-btn.active {
+  background-color: #1e46a0;
+  color: #fff;
+  border-color: #1e46a0;
+  box-shadow: 0 2px 8px rgba(30,70,160,0.28);
+}
+
 .param-label {
   font-size: 0.7rem;
   font-weight: 600;
