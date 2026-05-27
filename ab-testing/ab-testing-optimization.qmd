@@ -195,7 +195,7 @@ SPLIT              = 0.50      # treatment allocation (50/50)
 MIN_TEST_DAYS      = 7         # mandatory burn-in before stopping decisions
 NUMBER_TEST_DAYS   = 20        # maximum experiment duration
 POST_TEST_N        = 500_000   # users exposed to winner once MAX_TEST_N is reached
-NUMBER_SIMULATIONS = 100_000   # simulations to run
+NUMBER_SIMULATIONS = 10_000   # simulations to run
 SEED               = 42
 ITC_MEAN           = 100       # index-to-control mean
 ITC_SE             = 1         # index-to-control standard error
@@ -1510,7 +1510,7 @@ _ref_params_s05 = {
 
 _df_base_s05 = se.create_simulation_df(
     number_test_days=NUMBER_TEST_DAYS,
-    number_simulations=1_000_000,
+    number_simulations=10_000,
     seed=SEED,
     condition_parameters=[{"mean": CONTROL_MEAN, "trials": int(MAX_TEST_N * SPLIT)}],
 )
@@ -1796,3 +1796,138 @@ window.__wif_scenarios['{_key}'] = {{
 **Bigger swings mean more value.** Large effects are easier to detect, so the stopping rule fires sooner and picks the right winner more often. Even though harmful tests are equally likely regardless of effect size, they don't wash out the gains — losses are cut short, winners are deployed faster and to more users. Wider effect distributions consistently produce better outcomes.
 
 # Code
+
+```{python}
+#| echo: true
+#| eval: false
+#| code-fold: true
+#| code-summary: "Full simulation pipeline"
+
+import simulationengine as se
+import numpy as np
+
+# ── Parameters ────────────────────────────────────────────────────────────────
+CONTROL_MEAN       = 0.10      # baseline conversion rate
+MAX_TEST_N         = 500_000   # total test users (both arms combined)
+SPLIT              = 0.5       # 50/50 split
+MIN_TEST_DAYS      = 7         # burn-in: no stopping decisions before this day
+NUMBER_TEST_DAYS   = 20        # max experiment duration
+POST_TEST_N        = 500_000   # post-test population exposed to the winner
+NUMBER_SIMULATIONS = 100_000
+SEED               = 42
+ITC_MEAN           = 100       # index-to-control: 100 = no average lift
+ITC_SE             = 1         # spread of effects across experiments
+
+# ── Step 1: Simulate the control arm ─────────────────────────────────────────
+# Each simulation is an independent binomial process with the same true rate.
+# Noise comes from random sampling, not from the true rate itself.
+df = se.create_simulation_df(
+    number_test_days=NUMBER_TEST_DAYS,
+    number_simulations=NUMBER_SIMULATIONS,
+    seed=SEED,
+    condition_parameters=[{
+        "mean":   CONTROL_MEAN,
+        "trials": int(MAX_TEST_N * SPLIT),
+    }],
+)
+
+# ── Step 2: Add a treatment arm with a random true effect ─────────────────────
+# itc ~ N(ITC_MEAN, ITC_SE); treatment_mean = (itc / 100) × control_mean
+# One effect draw per simulation — unknown and fixed for that experiment's life.
+effect_distribution = {
+    "itc_mean": ITC_MEAN,
+    "itc_se":   ITC_SE,
+    "trials":   int(MAX_TEST_N * SPLIT),
+}
+df = se.add_random_effect_condition(df, effect_distribution)
+
+# ── Step 3: Compute running stats and stopping-rule inputs ───────────────────
+df = se.add_cumulative_columns(df)
+df = se.compute_cumulative_std_rates(df)
+df = se.compute_delta_stats(df)
+df = se.compute_test_stats(df)
+
+# ── Step 4: Compute value potential for every stopping decision ───────────────
+df = se.calculate_remaining_test_potential(df)
+df = se.calculate_launch_potential(df, post_test_n=POST_TEST_N)
+df = se.calculate_total_potential(df)
+```
+
+## Simulating the Control
+
+`create_simulation_df` generates a DataFrame of daily binomial draws for one or more fixed-rate conditions. Each simulation is an independent realization of the same baseline — the noise comes from the binomial process, not the true rate. Each row is one day of one simulation.
+
+```{python}
+#| echo: true
+#| eval: false
+#| code-fold: true
+#| code-summary: "create_simulation_df — source"
+
+def create_simulation_df(number_test_days, number_simulations, condition_parameters, seed=None):
+    if seed is not None:
+        np.random.seed(seed)
+
+    # trials_per_day is the same for every day in the experiment
+    n = np.array([c["trials"] // number_test_days for c in condition_parameters])[:, None]
+    p = np.array([c["mean"] for c in condition_parameters])[:, None]
+
+    rep   = number_test_days * number_simulations
+    n_mat = np.repeat(n, rep, axis=1)
+    p_mat = np.repeat(p, rep, axis=1)
+
+    # One binomial draw per (condition, day, simulation)
+    samples = np.random.binomial(n=n_mat, p=p_mat)
+
+    return pl.DataFrame({
+        "simulation": np.arange(rep) // number_test_days + 1,
+        "day":        np.arange(rep) %  number_test_days + 1,
+        **{f"condition_{i}_value":     samples[i]                           for i in range(len(condition_parameters))},
+        **{f"condition_{i}_trials":    n_mat[i]                             for i in range(len(condition_parameters))},
+        **{f"condition_{i}_true_mean": np.full(rep, condition_parameters[i]["mean"]) for i in range(len(condition_parameters))},
+    })
+```
+
+## Simulating the Treatment
+
+`add_random_effect_condition` appends a treatment arm where the **true effect varies across simulations** but is fixed within one. The effect is drawn from an ITC (Index-to-Control) distribution: ITC = 100 → no lift; ITC ~ N(100, 1) → effects centered at parity with modest spread. Some experiments are genuinely good, some harmful, most marginal — and crucially, the true effect is never observed.
+
+```{python}
+#| echo: true
+#| eval: false
+#| code-fold: true
+#| code-summary: "add_random_effect_condition — source"
+
+def add_random_effect_condition(df, random_effect_parameters, seed=None):
+    if seed is not None:
+        np.random.seed(seed)
+
+    n_simulations = int(df["simulation"].max())
+    n_days        = int(df["day"].max())
+
+    # One ITC draw per simulation — the unknown true effect for that experiment
+    itc_samples = np.random.normal(
+        random_effect_parameters["itc_mean"],
+        random_effect_parameters["itc_se"],
+        n_simulations,
+    ) / 100
+
+    # treatment_mean = (itc / 100) × control_mean
+    control_mean    = float(df["condition_0_true_mean"][0])
+    treatment_means = itc_samples * control_mean
+
+    # Daily binomial draws; treatment_mean is constant across days within a simulation
+    trials_per_day = random_effect_parameters["trials"] // n_days
+    events = np.random.binomial(
+        n=trials_per_day,
+        p=treatment_means[:, None],
+        size=(n_simulations, n_days),
+    )
+
+    # Reshape to tall format to match the existing DataFrame
+    next_condition = max(int(c.split("_")[1]) for c in df.columns if c.startswith("condition_") and c.split("_")[1].isdigit()) + 1
+    return df.with_columns([
+        pl.Series(f"condition_{next_condition}_value",     events.flatten()),
+        pl.Series(f"condition_{next_condition}_trials",    np.full(n_simulations * n_days, trials_per_day)),
+        pl.Series(f"condition_{next_condition}_true_mean", np.repeat(treatment_means, n_days)),
+    ])
+```
