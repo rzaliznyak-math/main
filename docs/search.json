@@ -396,13 +396,13 @@
     "href": "ab-testing/ab-testing-optimization.html#optimal-stopping-algorithm",
     "title": "AB Testing is an Optimization Problem",
     "section": "Optimal Stopping Algorithm",
-    "text": "Optimal Stopping Algorithm\nFor each of 100,000 simulated experiments and each significance level α ∈ [0.01, 0.50]:\n\nBurn-in: No stopping decisions before min_test_days = 7\nDaily check: Stop when either condition’s Pr(Best) exceeds 1 - α\nStrategy: If neither condition breaches by the final day:\n\n\nSelect Best: roll out whichever condition is currently ahead\n\n\nRetain Control: keep control\n\n\nRollout: Deploy the winner to remaining test users and post-test traffic\nEvaluate: Pick the α with the highest average long-term outcome"
+    "text": "Optimal Stopping Algorithm\nTo find the stopping rule that maximizes long-term value, we simulate three strategies and measure their average outcome across the same 100,000 experiments.\n\n\n\n\n\n\n\n\n\n\nPeeking\nPeeking + Best\nFixed Sample\n\n\n\n\nStop early on signal\n✓\n✓\n✗\n\n\nNo-breach fallback\nRetain Control\nBest Performer\nRetain Control\n\n\n\nFor each of 100,000 simulated experiments and each significance level α ∈ [0.01, 0.50]:\n\nBurn-in: No stopping decisions before min_test_days = 7\nDaily check: Stop when either condition’s Pr(Best) exceeds 1 - α\nRollout: Deploy the winner to remaining test users and post-test traffic\nEvaluate: Pick the α with the highest average long-term outcome"
   },
   {
     "objectID": "ab-testing/ab-testing-optimization.html#results",
     "href": "ab-testing/ab-testing-optimization.html#results",
     "title": "AB Testing is an Optimization Problem",
     "section": "Results",
-    "text": "Results\nEach chart plots the projected mean outcome against the stopping threshold α. The peak of the curve is the optimal rule for that scenario. Use the dropdowns below to vary the baseline conversion rate, post-test population, and effect distribution — and watch how the optimal threshold shifts.\n\n\n\n\n\n\n  \n    Baseline Conversion\n    \n      10%\n      30%\n      65%\n    \n  \n  \n    Post-Test N\n    \n      500,000\n      1,000,000\n    \n  \n  \n    Expected Effects\n    \n      ITC ~ N(100, 1)\n      ITC ~ N(100, 2)\n    \n  \n\n\n\n\n\n\n\n\n4.3s"
+    "text": "Results\nEach chart plots the projected mean outcome against the stopping threshold α. The peak of the curve is the optimal rule for that testing strategy. Use the dropdowns below to vary the baseline conversion rate, post-test population, and effect distribution — and watch how the optimal threshold shifts.\n\n\n\n\n\n\n  \n    Baseline Conversion\n    \n      10%\n      30%\n      65%\n    \n  \n  \n    Post-Test N\n    \n      500,000\n      1,000,000\n    \n  \n  \n    Expected Effects\n    \n      ITC ~ N(100, 0.5)\n      ITC ~ N(100, 1)\n      ITC ~ N(100, 2)\n    \n  \n\n\n\n\n\n\n\n\n4.3s"
   }
 ]

@@ -23,9 +23,9 @@ Our goal is to maximize value and successful customer outcomes — so why anchor
 
 # A Simulation Framework
 
-Traditional power analysis works forward: specify α, β, and an MDE, and it returns a required sample size.
+Traditional power analysis works forward: specify α, β, and an MDE (minimum detectable effect — the smallest lift you care about), and it returns a required sample size.
 
-First, it assumes a single, known effect size — but in practice, test effects follow a distribution; some experiments move the needle, most don't, some backfire. Second, it outputs a sample size with no regard for what happens after the test ends or how many users will be exposed to the winner.
+First, the MDE forces you to commit to a single, known effect size — but in practice, test effects follow a distribution; some experiments move the needle, most don't, some backfire. Second, it outputs a sample size with no regard for what happens after the test ends or how many users will be exposed to the winner.
 
 This framework inverts that. Specify the test population, the post-test audience, and the distribution of effects you realistically expect — and it returns the stopping rule that maximizes long-term outcomes given that context.
 
@@ -884,19 +884,23 @@ print(f'<script>window.__pvalSimData = {json.dumps(pval_sim_data)};</script>')
 
 ## Optimal Stopping Algorithm
 
+To find the stopping rule that maximizes long-term value, we simulate three strategies and measure their average outcome across the same 100,000 experiments.
+
+| | **Peeking** | **Peeking + Best** | **Fixed Sample** |
+|---|:---:|:---:|:---:|
+| Stop early on signal | ✓ | ✓ | ✗ |
+| No-breach fallback | Retain Control | Best Performer | Retain Control |
+
 For each of 100,000 simulated experiments and each significance level α ∈ [0.01, 0.50]:
 
 1. **Burn-in:** No stopping decisions before `min_test_days = 7`
 2. **Daily check:** Stop when either condition's Pr(Best) exceeds `1 - α`
-3. **Strategy:** If neither condition breaches by the final day:
-   - A) _Select Best_: roll out whichever condition is currently ahead
-   - B) _Retain Control_: keep control
-4. **Rollout:** Deploy the winner to remaining test users and post-test traffic
-5. **Evaluate:** Pick the α with the highest average long-term outcome
+3. **Rollout:** Deploy the winner to remaining test users and post-test traffic
+4. **Evaluate:** Pick the α with the highest average long-term outcome
 
 ## Results
 
-Each chart plots the projected mean outcome against the stopping threshold α. The peak of the curve is the optimal rule for that scenario. Use the dropdowns below to vary the baseline conversion rate, post-test population, and effect distribution — and watch how the optimal threshold shifts.
+Each chart plots the projected mean outcome against the stopping threshold α. The peak of the curve is the optimal rule for that testing strategy. Use the dropdowns below to vary the baseline conversion rate, post-test population, and effect distribution — and watch how the optimal threshold shifts.
 
 ```{python}
 #| echo: false
@@ -946,38 +950,30 @@ ctrl_potential_outcomes, ctrl_trials, ctrl_med_trials, ctrl_match_rate, ctrl_avg
 fixed_potential_outcomes, fixed_trials, fixed_med_trials, fixed_match_rate, fixed_avg_days = run_loop(False, df_prepped_fixed)
 _runtime = time.time() - _t0
 
-def make_curve_fig(outcomes, trials, med_trials, rate, title, y_fmt=".3%"):
+def make_curve_fig(outcomes, trials, med_trials, rate, title, y_fmt=".3%", round_peak=False):
     y = np.array(outcomes) / normalizer
     x = 1 - p_thresholds
-    peak = int(np.argmax(np.round(y * 100, 4)))
-    cd = np.column_stack([np.array(trials).astype(int), np.array(rate), np.array(med_trials)])
+    peak = int(np.argmax(np.round(y * 100, 4)) if round_peak else np.argmax(y))
+    marginal = (y - CONTROL_MEAN) * (POST_TEST_N + MAX_TEST_N)
+    cd = np.column_stack([np.array(trials).astype(int), np.array(rate), np.array(med_trials), marginal])
+    hover_tmpl = (
+        f"P-value Threshold: %{{x:.2f}}<br>"
+        f"Projected Mean: %{{y:{y_fmt}}}<br>"
+        "Marginal Events: %{customdata[3]:,.0f}<br>"
+        "Avg Trials: %{customdata[0]:,}<br>"
+        "Median Trials: %{customdata[2]:,}<br>"
+        "Selected Best Condition: %{customdata[1]:.2%}<br>"
+        "<extra></extra>"
+    )
     f = px.line(x=x, y=y)
     f.add_scatter(
         x=[x[peak]], y=[y[peak]], mode="markers",
         marker=dict(symbol="square", size=14, color="#3a6fd8"),
-        customdata=[[int(trials[peak]), rate[peak], int(med_trials[peak])]],
-        hovertemplate=(
-            f"P-value Threshold: %{{x:.2f}}<br>"
-            f"Projected Mean: %{{y:{y_fmt}}}<br>"
-            "Avg Trials: %{customdata[0]:,}<br>"
-            "Median Trials: %{customdata[2]:,}<br>"
-            "Selected Best Condition: %{customdata[1]:.2%}<br>"
-            "<extra></extra>"
-        ),
+        customdata=[[int(trials[peak]), rate[peak], int(med_trials[peak]), marginal[peak]]],
+        hovertemplate=hover_tmpl,
         showlegend=False,
     )
-    f.update_traces(
-        selector=dict(mode="lines"),
-        customdata=cd,
-        hovertemplate=(
-            f"P-value Threshold: %{{x:.2f}}<br>"
-            f"Projected Mean: %{{y:{y_fmt}}}<br>"
-            "Avg Trials: %{customdata[0]:,}<br>"
-            "Median Trials: %{customdata[2]:,}<br>"
-            "Selected Best Condition: %{customdata[1]:.2%}<br>"
-            "<extra></extra>"
-        ),
-    )
+    f.update_traces(selector=dict(mode="lines"), customdata=cd, hovertemplate=hover_tmpl)
     f.update_layout(title_text=title)
     f.update_xaxes(title_text="P-value Threshold", tickformat=".2f")
     f.update_yaxes(title_text="Projected Mean @ Year-End", tickformat=y_fmt)
@@ -986,7 +982,7 @@ def make_curve_fig(outcomes, trials, med_trials, rate, title, y_fmt=".3%"):
 def make_overlay_fig_n(o1, t1, o2, t2, o3, t3, norm):
     """All 3 strategies on one chart: x = avg total trials, y = projected mean."""
     _pal    = ['#1f77b4', '#ff7f0e', '#2ca02c']
-    _labels = ['Select Best', 'Retain Control', 'Fixed Sample']
+    _labels = ['Peeking + Best', 'Peeking', 'Fixed Sample']
     _x_pvals = 1 - p_thresholds
     fig = go.Figure()
     for _outcomes, _trials, _col, _lbl in zip(
@@ -1019,15 +1015,15 @@ def make_overlay_fig_n(o1, t1, o2, t2, o3, t3, norm):
     return fig
 
 fig1 = make_curve_fig(all_potential_outcomes, total_trials, median_trials, match_rate,
-                      "Strategy: Select Best")
+                      "Peeking + Best")
 fig2 = make_curve_fig(ctrl_potential_outcomes, ctrl_trials, ctrl_med_trials, ctrl_match_rate,
-                      "Strategy: Retain Control")
+                      "Peeking")
 fig3 = make_curve_fig(fixed_potential_outcomes, fixed_trials, fixed_med_trials, fixed_match_rate,
-                      "Fixed Sample (Retain Control)")
+                      "Fixed Sample", round_peak=True)
 
 row1 = make_subplots(rows=1, cols=2,
-                     subplot_titles=["<b>Strategy:</b> Select Best",
-                                     "<b>Strategy:</b> Retain Control"])
+                     subplot_titles=["<b>Peeking + Best</b>",
+                                     "<b>Peeking</b>"])
 for trace in fig1.data:
     row1.add_trace(trace, row=1, col=1)
 for trace in fig2.data:
@@ -1038,8 +1034,8 @@ row1.update_yaxes(tickformat=".3%", col=2)
 row1.update_layout(showlegend=False, height=300)
 
 row2 = make_subplots(rows=1, cols=2,
-                     subplot_titles=["<b>Fixed Sample:</b> Retain Control",
-                                     "<b>All Strategies:</b> Projected Mean vs # of Trials"])
+                     subplot_titles=["<b>Fixed Sample</b>",
+                                     "<b>All Strategies:</b> Projected Mean vs Trials"])
 for trace in fig3.data:
     trace.showlegend = False
     row2.add_trace(trace, row=1, col=1)
@@ -1064,16 +1060,16 @@ row2.update_layout(
 
 from IPython.display import display, HTML
 
-def peak_stats(outcomes, avg_days_list):
+def peak_stats(outcomes, avg_days_list, round_peak=False):
     y    = np.array(outcomes) / normalizer
     x    = 1 - p_thresholds
-    peak = int(np.argmax(np.round(y * 100, 4)))
+    peak = int(np.argmax(np.round(y * 100, 4)) if round_peak else np.argmax(y))
     opt_alpha       = x[peak]
     marginal_events = (y[peak] - CONTROL_MEAN) * (POST_TEST_N + MAX_TEST_N)
     avg_d           = avg_days_list[peak]
     return f"""<div style="text-align:center; font-size:0.9rem; color:#333; margin-top:0.25rem;">
-      Optimal α: <strong>{opt_alpha:.2f}</strong> &nbsp;|&nbsp;
-      Marginal Events: <strong>{marginal_events:,.0f}</strong> &nbsp;|&nbsp;
+      α: <strong>{opt_alpha:.2f}</strong> &nbsp;|&nbsp;
+      Marginal Events vs No Test: <strong>{marginal_events:,.0f}</strong> &nbsp;|&nbsp;
       Avg(Days): <strong>{avg_d:.1f}</strong>
     </div>"""
 
@@ -1082,7 +1078,7 @@ import plotly.io as pio
 _stats_base = dict(
     left1  = peak_stats(all_potential_outcomes,   all_avg_days),
     right1 = peak_stats(ctrl_potential_outcomes,  ctrl_avg_days),
-    left2  = peak_stats(fixed_potential_outcomes, fixed_avg_days),
+    left2  = peak_stats(fixed_potential_outcomes, fixed_avg_days, round_peak=True),
 )
 
 display(HTML(f"""
@@ -1116,6 +1112,7 @@ window.__wif_scenarios['500k_s1_cr10'] = {{
   <div style="display:flex; flex-direction:column; gap:0.25rem;">
     <label style="font-size:0.85rem; color:#555; font-weight:600;">Expected Effects</label>
     <select id="wif-sigma" class="form-select form-select-sm" style="width:auto; font-size:0.85rem;">
+      <option value="s05">ITC ~ N(100, 0.5)</option>
       <option value="s1" selected>ITC ~ N(100, 1)</option>
       <option value="s2">ITC ~ N(100, 2)</option>
     </select>
@@ -1202,49 +1199,43 @@ _o1, _t1, _m1, _r1, _d1 = run_loop_df(df_prepped_2x, True)
 _o2, _t2, _m2, _r2, _d2 = run_loop_df(df_prepped_2x, False)
 _o3, _t3, _m3, _r3, _d3 = run_loop_df(df_fixed_2x, False)
 
-def make_curve_fig_n(outcomes, trials, med_trials, rate, title, norm, y_fmt=".3%"):
+def make_curve_fig_n(outcomes, trials, med_trials, rate, title, norm, y_fmt=".3%", baseline=None, total_n=None, round_peak=False):
     y = np.array(outcomes) / norm
     x = 1 - p_thresholds
-    peak = int(np.argmax(np.round(y * 100, 4)))
-    cd = np.column_stack([np.array(trials).astype(int), np.array(rate), np.array(med_trials)])
+    peak = int(np.argmax(np.round(y * 100, 4)) if round_peak else np.argmax(y))
+    marginal = (y - baseline) * total_n if (baseline is not None and total_n is not None) else np.zeros(len(y))
+    cd = np.column_stack([np.array(trials).astype(int), np.array(rate), np.array(med_trials), marginal])
+    marginal_hover = "Marginal Events: %{customdata[3]:,.0f}<br>" if (baseline is not None and total_n is not None) else ""
+    hover_tmpl = (
+        f"P-value Threshold: %{{x:.2f}}<br>"
+        f"Projected Mean: %{{y:{y_fmt}}}<br>"
+        f"{marginal_hover}"
+        "Avg Trials: %{customdata[0]:,}<br>"
+        "Median Trials: %{customdata[2]:,}<br>"
+        "Selected Best Condition: %{customdata[1]:.2%}<br>"
+        "<extra></extra>"
+    )
     f = px.line(x=x, y=y)
     f.add_scatter(
         x=[x[peak]], y=[y[peak]], mode="markers",
         marker=dict(symbol="square", size=14, color="#3a6fd8"),
-        customdata=[[int(trials[peak]), rate[peak], int(med_trials[peak])]],
-        hovertemplate=(
-            f"P-value Threshold: %{{x:.2f}}<br>"
-            f"Projected Mean: %{{y:{y_fmt}}}<br>"
-            "Avg Trials: %{customdata[0]:,}<br>"
-            "Median Trials: %{customdata[2]:,}<br>"
-            "Selected Best Condition: %{customdata[1]:.2%}<br>"
-            "<extra></extra>"
-        ),
+        customdata=[[int(trials[peak]), rate[peak], int(med_trials[peak]), marginal[peak]]],
+        hovertemplate=hover_tmpl,
         showlegend=False,
     )
-    f.update_traces(
-        selector=dict(mode="lines"), customdata=cd,
-        hovertemplate=(
-            f"P-value Threshold: %{{x:.2f}}<br>"
-            f"Projected Mean: %{{y:{y_fmt}}}<br>"
-            "Avg Trials: %{customdata[0]:,}<br>"
-            "Median Trials: %{customdata[2]:,}<br>"
-            "Selected Best Condition: %{customdata[1]:.2%}<br>"
-            "<extra></extra>"
-        ),
-    )
+    f.update_traces(selector=dict(mode="lines"), customdata=cd, hovertemplate=hover_tmpl)
     f.update_layout(title_text=title)
     f.update_xaxes(title_text="P-value Threshold", tickformat=".2f")
     f.update_yaxes(title_text="Projected Mean @ Year-End", tickformat=y_fmt)
     return f
 
-_f1 = make_curve_fig_n(_o1, _t1, _m1, _r1, "<b>Strategy:</b> Select Best", _norm_2x)
-_f2 = make_curve_fig_n(_o2, _t2, _m2, _r2, "<b>Strategy:</b> Retain Control", _norm_2x)
-_f3 = make_curve_fig_n(_o3, _t3, _m3, _r3, "<b>Fixed Sample:</b> Retain Control", _norm_2x)
+_f1 = make_curve_fig_n(_o1, _t1, _m1, _r1, "<b>Peeking + Best</b>", _norm_2x, baseline=CONTROL_MEAN, total_n=_ptn_2x + MAX_TEST_N)
+_f2 = make_curve_fig_n(_o2, _t2, _m2, _r2, "<b>Peeking</b>",        _norm_2x, baseline=CONTROL_MEAN, total_n=_ptn_2x + MAX_TEST_N)
+_f3 = make_curve_fig_n(_o3, _t3, _m3, _r3, "<b>Fixed Sample</b>",   _norm_2x, baseline=CONTROL_MEAN, total_n=_ptn_2x + MAX_TEST_N, round_peak=True)
 
 _row1_2x = make_subplots(rows=1, cols=2,
-                         subplot_titles=["<b>Strategy:</b> Select Best",
-                                         "<b>Strategy:</b> Retain Control"])
+                         subplot_titles=["<b>Peeking + Best</b>",
+                                         "<b>Peeking</b>"])
 for _tr in _f1.data: _row1_2x.add_trace(_tr, row=1, col=1)
 for _tr in _f2.data: _row1_2x.add_trace(_tr, row=1, col=2)
 _row1_2x.update_xaxes(title_text="P-value Threshold", tickformat=".2f")
@@ -1253,8 +1244,8 @@ _row1_2x.update_yaxes(tickformat=".3%", col=2)
 _row1_2x.update_layout(showlegend=False, height=300)
 
 _row2_2x = make_subplots(rows=1, cols=2,
-                         subplot_titles=["<b>Fixed Sample:</b> Retain Control",
-                                         "<b>All Strategies:</b> Projected Mean vs # of Trials"])
+                         subplot_titles=["<b>Fixed Sample</b>",
+                                         "<b>All Strategies:</b> Projected Mean vs Trials"])
 for _tr in _f3.data:
     _tr.showlegend = False
     _row2_2x.add_trace(_tr, row=1, col=1)
@@ -1272,16 +1263,16 @@ _row2_2x.update_layout(
     height=300,
 )
 
-def peak_stats_n(outcomes, avg_days_list, norm):
+def peak_stats_n(outcomes, avg_days_list, norm, round_peak=False):
     y    = np.array(outcomes) / norm
     x    = 1 - p_thresholds
-    peak = int(np.argmax(np.round(y * 100, 4)))
+    peak = int(np.argmax(np.round(y * 100, 4)) if round_peak else np.argmax(y))
     opt_alpha       = x[peak]
     marginal_events = (y[peak] - CONTROL_MEAN) * (_ptn_2x + MAX_TEST_N)
     avg_d           = avg_days_list[peak]
     return f"""<div style="text-align:center; font-size:0.9rem; color:#333; margin-top:0.25rem;">
-      Optimal α: <strong>{opt_alpha:.2f}</strong> &nbsp;|&nbsp;
-      Marginal Events: <strong>{marginal_events:,.0f}</strong> &nbsp;|&nbsp;
+      α: <strong>{opt_alpha:.2f}</strong> &nbsp;|&nbsp;
+      Marginal Events vs No Test: <strong>{marginal_events:,.0f}</strong> &nbsp;|&nbsp;
       Avg(Days): <strong>{avg_d:.1f}</strong>
     </div>"""
 
@@ -1292,7 +1283,7 @@ window.__wif_scenarios['1m_s1_cr10'] = {{
   row2:   {pio.to_json(_row2_2x)},
   left1:  {json.dumps(peak_stats_n(_o1, _d1, _norm_2x))},
   right1: {json.dumps(peak_stats_n(_o2, _d2, _norm_2x))},
-  left2:  {json.dumps(peak_stats_n(_o3, _d3, _norm_2x))}
+  left2:  {json.dumps(peak_stats_n(_o3, _d3, _norm_2x, round_peak=True))}
 }};
 </script>"""))
 ```
@@ -1340,13 +1331,13 @@ _ow1, _tw1, _mw1, _rw1, _dw1 = run_loop_df(_df_prepped_wide, True)
 _ow2, _tw2, _mw2, _rw2, _dw2 = run_loop_df(_df_prepped_wide, False)
 _ow3, _tw3, _mw3, _rw3, _dw3 = run_loop_df(_df_fixed_wide, False)
 
-_fw1 = make_curve_fig_n(_ow1, _tw1, _mw1, _rw1, "<b>Strategy:</b> Select Best", _norm_wide)
-_fw2 = make_curve_fig_n(_ow2, _tw2, _mw2, _rw2, "<b>Strategy:</b> Retain Control", _norm_wide)
-_fw3 = make_curve_fig_n(_ow3, _tw3, _mw3, _rw3, "<b>Fixed Sample:</b> Retain Control", _norm_wide)
+_fw1 = make_curve_fig_n(_ow1, _tw1, _mw1, _rw1, "<b>Peeking + Best</b>", _norm_wide, baseline=CONTROL_MEAN, total_n=_ptn_wide + MAX_TEST_N)
+_fw2 = make_curve_fig_n(_ow2, _tw2, _mw2, _rw2, "<b>Peeking</b>",        _norm_wide, baseline=CONTROL_MEAN, total_n=_ptn_wide + MAX_TEST_N)
+_fw3 = make_curve_fig_n(_ow3, _tw3, _mw3, _rw3, "<b>Fixed Sample</b>",   _norm_wide, baseline=CONTROL_MEAN, total_n=_ptn_wide + MAX_TEST_N, round_peak=True)
 
 _row1_wide = make_subplots(rows=1, cols=2,
-                           subplot_titles=["<b>Strategy:</b> Select Best",
-                                           "<b>Strategy:</b> Retain Control"])
+                           subplot_titles=["<b>Peeking + Best</b>",
+                                           "<b>Peeking</b>"])
 for _tr in _fw1.data: _row1_wide.add_trace(_tr, row=1, col=1)
 for _tr in _fw2.data: _row1_wide.add_trace(_tr, row=1, col=2)
 _row1_wide.update_xaxes(title_text="P-value Threshold", tickformat=".2f")
@@ -1355,8 +1346,8 @@ _row1_wide.update_yaxes(tickformat=".3%", col=2)
 _row1_wide.update_layout(showlegend=False, height=300)
 
 _row2_wide = make_subplots(rows=1, cols=2,
-                           subplot_titles=["<b>Fixed Sample:</b> Retain Control",
-                                           "<b>All Strategies:</b> Projected Mean vs # of Trials"])
+                           subplot_titles=["<b>Fixed Sample</b>",
+                                           "<b>All Strategies:</b> Projected Mean vs Trials"])
 for _tr in _fw3.data:
     _tr.showlegend = False
     _row2_wide.add_trace(_tr, row=1, col=1)
@@ -1374,16 +1365,16 @@ _row2_wide.update_layout(
     height=300,
 )
 
-def peak_stats_wide(outcomes, avg_days_list, norm):
+def peak_stats_wide(outcomes, avg_days_list, norm, round_peak=False):
     y    = np.array(outcomes) / norm
     x    = 1 - p_thresholds
-    peak = int(np.argmax(np.round(y * 100, 4)))
+    peak = int(np.argmax(np.round(y * 100, 4)) if round_peak else np.argmax(y))
     opt_alpha       = x[peak]
     marginal_events = (y[peak] - CONTROL_MEAN) * (_ptn_wide + MAX_TEST_N)
     avg_d           = avg_days_list[peak]
     return f"""<div style="text-align:center; font-size:0.9rem; color:#333; margin-top:0.25rem;">
-      Optimal α: <strong>{opt_alpha:.2f}</strong> &nbsp;|&nbsp;
-      Marginal Events: <strong>{marginal_events:,.0f}</strong> &nbsp;|&nbsp;
+      α: <strong>{opt_alpha:.2f}</strong> &nbsp;|&nbsp;
+      Marginal Events vs No Test: <strong>{marginal_events:,.0f}</strong> &nbsp;|&nbsp;
       Avg(Days): <strong>{avg_d:.1f}</strong>
     </div>"""
 
@@ -1394,7 +1385,7 @@ window.__wif_scenarios['500k_s2_cr10'] = {{
   row2:   {pio.to_json(_row2_wide)},
   left1:  {json.dumps(peak_stats_wide(_ow1, _dw1, _norm_wide))},
   right1: {json.dumps(peak_stats_wide(_ow2, _dw2, _norm_wide))},
-  left2:  {json.dumps(peak_stats_wide(_ow3, _dw3, _norm_wide))}
+  left2:  {json.dumps(peak_stats_wide(_ow3, _dw3, _norm_wide, round_peak=True))}
 }};
 </script>"""))
 ```
@@ -1442,13 +1433,13 @@ _ob1, _tb1, _mb1, _rb1, _db1 = run_loop_df(_df_prepped_both, True)
 _ob2, _tb2, _mb2, _rb2, _db2 = run_loop_df(_df_prepped_both, False)
 _ob3, _tb3, _mb3, _rb3, _db3 = run_loop_df(_df_fixed_both, False)
 
-_fb1 = make_curve_fig_n(_ob1, _tb1, _mb1, _rb1, "<b>Strategy:</b> Select Best", _norm_both)
-_fb2 = make_curve_fig_n(_ob2, _tb2, _mb2, _rb2, "<b>Strategy:</b> Retain Control", _norm_both)
-_fb3 = make_curve_fig_n(_ob3, _tb3, _mb3, _rb3, "<b>Fixed Sample:</b> Retain Control", _norm_both)
+_fb1 = make_curve_fig_n(_ob1, _tb1, _mb1, _rb1, "<b>Peeking + Best</b>", _norm_both, baseline=CONTROL_MEAN, total_n=_ptn_both + MAX_TEST_N)
+_fb2 = make_curve_fig_n(_ob2, _tb2, _mb2, _rb2, "<b>Peeking</b>",        _norm_both, baseline=CONTROL_MEAN, total_n=_ptn_both + MAX_TEST_N)
+_fb3 = make_curve_fig_n(_ob3, _tb3, _mb3, _rb3, "<b>Fixed Sample</b>",   _norm_both, baseline=CONTROL_MEAN, total_n=_ptn_both + MAX_TEST_N, round_peak=True)
 
 _row1_both = make_subplots(rows=1, cols=2,
-                           subplot_titles=["<b>Strategy:</b> Select Best",
-                                           "<b>Strategy:</b> Retain Control"])
+                           subplot_titles=["<b>Peeking + Best</b>",
+                                           "<b>Peeking</b>"])
 for _tr in _fb1.data: _row1_both.add_trace(_tr, row=1, col=1)
 for _tr in _fb2.data: _row1_both.add_trace(_tr, row=1, col=2)
 _row1_both.update_xaxes(title_text="P-value Threshold", tickformat=".2f")
@@ -1457,8 +1448,8 @@ _row1_both.update_yaxes(tickformat=".3%", col=2)
 _row1_both.update_layout(showlegend=False, height=300)
 
 _row2_both = make_subplots(rows=1, cols=2,
-                           subplot_titles=["<b>Fixed Sample:</b> Retain Control",
-                                           "<b>All Strategies:</b> Projected Mean vs # of Trials"])
+                           subplot_titles=["<b>Fixed Sample</b>",
+                                           "<b>All Strategies:</b> Projected Mean vs Trials"])
 for _tr in _fb3.data:
     _tr.showlegend = False
     _row2_both.add_trace(_tr, row=1, col=1)
@@ -1476,16 +1467,16 @@ _row2_both.update_layout(
     height=300,
 )
 
-def peak_stats_both(outcomes, avg_days_list, norm):
+def peak_stats_both(outcomes, avg_days_list, norm, round_peak=False):
     y    = np.array(outcomes) / norm
     x    = 1 - p_thresholds
-    peak = int(np.argmax(np.round(y * 100, 4)))
+    peak = int(np.argmax(np.round(y * 100, 4)) if round_peak else np.argmax(y))
     opt_alpha       = x[peak]
     marginal_events = (y[peak] - CONTROL_MEAN) * (_ptn_both + MAX_TEST_N)
     avg_d           = avg_days_list[peak]
     return f"""<div style="text-align:center; font-size:0.9rem; color:#333; margin-top:0.25rem;">
-      Optimal α: <strong>{opt_alpha:.2f}</strong> &nbsp;|&nbsp;
-      Marginal Events: <strong>{marginal_events:,.0f}</strong> &nbsp;|&nbsp;
+      α: <strong>{opt_alpha:.2f}</strong> &nbsp;|&nbsp;
+      Marginal Events vs No Test: <strong>{marginal_events:,.0f}</strong> &nbsp;|&nbsp;
       Avg(Days): <strong>{avg_d:.1f}</strong>
     </div>"""
 
@@ -1496,7 +1487,192 @@ window.__wif_scenarios['1m_s2_cr10'] = {{
   row2:   {pio.to_json(_row2_both)},
   left1:  {json.dumps(peak_stats_both(_ob1, _db1, _norm_both))},
   right1: {json.dumps(peak_stats_both(_ob2, _db2, _norm_both))},
-  left2:  {json.dumps(peak_stats_both(_ob3, _db3, _norm_both))}
+  left2:  {json.dumps(peak_stats_both(_ob3, _db3, _norm_both, round_peak=True))}
+}};
+</script>"""))
+```
+
+```{python}
+#| echo: false
+# Scenario 4: N=500k, σ=0.5
+
+_itc_se_s05 = 0.5
+_ptn_s05    = POST_TEST_N
+_ref_params_s05 = {
+    "itc_mean": ITC_MEAN,
+    "itc_se": _itc_se_s05,
+    "trials": int(MAX_TEST_N * SPLIT),
+}
+
+_df_base_s05 = se.create_simulation_df(
+    number_test_days=NUMBER_TEST_DAYS,
+    number_simulations=1_000_000,
+    seed=SEED,
+    condition_parameters=[{"mean": CONTROL_MEAN, "trials": int(MAX_TEST_N * SPLIT)}],
+)
+_df_s05 = se.add_random_effect_condition(_df_base_s05, _ref_params_s05)
+_df_s05 = se.add_cumulative_columns(_df_s05)
+_df_s05 = se.compute_cumulative_std_rates(_df_s05)
+_df_s05 = se.compute_delta_stats(_df_s05)
+_df_s05 = se.compute_test_stats(_df_s05)
+_df_s05 = se.calculate_remaining_test_potential(_df_s05)
+_df_s05 = se.calculate_launch_potential(_df_s05, post_test_n=_ptn_s05)
+_df_s05 = se.calculate_total_potential(_df_s05)
+
+_norm_s05 = _df_s05["total_trials_cumsum"].max() + _ptn_s05
+
+_df_prepped_s05 = prepare_stopping_decision_columns(
+    _df_s05.filter(pl.col("day") >= MIN_TEST_DAYS),
+    metric_direction_improvement="increase",
+).sort(["simulation", "day"])
+
+_df_fixed_s05 = prepare_stopping_decision_columns(
+    _df_s05.filter(pl.col("day") >= NUMBER_TEST_DAYS),
+    metric_direction_improvement="increase",
+).sort(["simulation", "day"])
+
+_os051, _ts051, _ms051, _rs051, _ds051 = run_loop_df(_df_prepped_s05, True)
+_os052, _ts052, _ms052, _rs052, _ds052 = run_loop_df(_df_prepped_s05, False)
+_os053, _ts053, _ms053, _rs053, _ds053 = run_loop_df(_df_fixed_s05, False)
+
+_fs051 = make_curve_fig_n(_os051, _ts051, _ms051, _rs051, "<b>Peeking + Best</b>", _norm_s05, baseline=CONTROL_MEAN, total_n=_ptn_s05 + MAX_TEST_N)
+_fs052 = make_curve_fig_n(_os052, _ts052, _ms052, _rs052, "<b>Peeking</b>",       _norm_s05, baseline=CONTROL_MEAN, total_n=_ptn_s05 + MAX_TEST_N)
+_fs053 = make_curve_fig_n(_os053, _ts053, _ms053, _rs053, "<b>Fixed Sample</b>",  _norm_s05, baseline=CONTROL_MEAN, total_n=_ptn_s05 + MAX_TEST_N, round_peak=True)
+
+_row1_s05 = make_subplots(rows=1, cols=2,
+                           subplot_titles=["<b>Peeking + Best</b>",
+                                           "<b>Peeking</b>"])
+for _tr in _fs051.data: _row1_s05.add_trace(_tr, row=1, col=1)
+for _tr in _fs052.data: _row1_s05.add_trace(_tr, row=1, col=2)
+_row1_s05.update_xaxes(title_text="P-value Threshold", tickformat=".2f")
+_row1_s05.update_yaxes(title_text="Projected Mean @ Year-End", tickformat=".3%", col=1)
+_row1_s05.update_yaxes(tickformat=".3%", col=2)
+_row1_s05.update_layout(showlegend=False, height=300)
+
+_row2_s05 = make_subplots(rows=1, cols=2,
+                           subplot_titles=["<b>Fixed Sample</b>",
+                                           "<b>All Strategies:</b> Projected Mean vs Trials"])
+for _tr in _fs053.data:
+    _tr.showlegend = False
+    _row2_s05.add_trace(_tr, row=1, col=1)
+_overlay_s05 = make_overlay_fig_n(_os051, _ts051, _os052, _ts052, _os053, _ts053, _norm_s05)
+for _tr in _overlay_s05.data:
+    _row2_s05.add_trace(_tr, row=1, col=2)
+_row2_s05.update_xaxes(title_text="P-value Threshold", tickformat=".2f", range=[0.0, 0.52], col=1)
+_row2_s05.update_yaxes(title_text="Projected Mean @ Year-End", tickformat=".3%", col=1)
+_row2_s05.update_xaxes(title_text="Avg Total Trials", tickformat=",", col=2)
+_row2_s05.update_yaxes(tickformat=".3%", col=2)
+_row2_s05.update_layout(
+    showlegend=True,
+    legend=dict(orientation="h", yanchor="top", y=-0.2,
+                xanchor="center", x=0.75, font=dict(size=10)),
+    height=300,
+)
+
+def peak_stats_s05(outcomes, avg_days_list, norm, round_peak=False):
+    y    = np.array(outcomes) / norm
+    x    = 1 - p_thresholds
+    peak = int(np.argmax(np.round(y * 100, 4)) if round_peak else np.argmax(y))
+    opt_alpha       = x[peak]
+    marginal_events = (y[peak] - CONTROL_MEAN) * (_ptn_s05 + MAX_TEST_N)
+    avg_d           = avg_days_list[peak]
+    return f"""<div style="text-align:center; font-size:0.9rem; color:#333; margin-top:0.25rem;">
+      α: <strong>{opt_alpha:.2f}</strong> &nbsp;|&nbsp;
+      Marginal Events vs No Test: <strong>{marginal_events:,.0f}</strong> &nbsp;|&nbsp;
+      Avg(Days): <strong>{avg_d:.1f}</strong>
+    </div>"""
+
+display(HTML(f"""<script>
+window.__wif_scenarios = window.__wif_scenarios || {{}};
+window.__wif_scenarios['500k_s05_cr10'] = {{
+  row1:   {pio.to_json(_row1_s05)},
+  row2:   {pio.to_json(_row2_s05)},
+  left1:  {json.dumps(peak_stats_s05(_os051, _ds051, _norm_s05))},
+  right1: {json.dumps(peak_stats_s05(_os052, _ds052, _norm_s05))},
+  left2:  {json.dumps(peak_stats_s05(_os053, _ds053, _norm_s05, round_peak=True))}
+}};
+</script>"""))
+```
+
+```{python}
+#| echo: false
+# Scenario 5: N=1M, σ=0.5
+
+_ptn_s05_2x = POST_TEST_N * 2
+
+_df_s05_2x = se.calculate_launch_potential(_df_s05, post_test_n=_ptn_s05_2x)
+_df_s05_2x = se.calculate_total_potential(_df_s05_2x)
+_norm_s05_2x = _df_s05_2x["total_trials_cumsum"].max() + _ptn_s05_2x
+
+_df_prepped_s05_2x = prepare_stopping_decision_columns(
+    _df_s05_2x.filter(pl.col("day") >= MIN_TEST_DAYS),
+    metric_direction_improvement="increase",
+).sort(["simulation", "day"])
+
+_df_fixed_s05_2x = prepare_stopping_decision_columns(
+    _df_s05_2x.filter(pl.col("day") >= NUMBER_TEST_DAYS),
+    metric_direction_improvement="increase",
+).sort(["simulation", "day"])
+
+_os05_2x1, _ts05_2x1, _ms05_2x1, _rs05_2x1, _ds05_2x1 = run_loop_df(_df_prepped_s05_2x, True)
+_os05_2x2, _ts05_2x2, _ms05_2x2, _rs05_2x2, _ds05_2x2 = run_loop_df(_df_prepped_s05_2x, False)
+_os05_2x3, _ts05_2x3, _ms05_2x3, _rs05_2x3, _ds05_2x3 = run_loop_df(_df_fixed_s05_2x, False)
+
+_f2x1 = make_curve_fig_n(_os05_2x1, _ts05_2x1, _ms05_2x1, _rs05_2x1, "<b>Peeking + Best</b>", _norm_s05_2x, baseline=CONTROL_MEAN, total_n=_ptn_s05_2x + MAX_TEST_N)
+_f2x2 = make_curve_fig_n(_os05_2x2, _ts05_2x2, _ms05_2x2, _rs05_2x2, "<b>Peeking</b>",       _norm_s05_2x, baseline=CONTROL_MEAN, total_n=_ptn_s05_2x + MAX_TEST_N)
+_f2x3 = make_curve_fig_n(_os05_2x3, _ts05_2x3, _ms05_2x3, _rs05_2x3, "<b>Fixed Sample</b>",  _norm_s05_2x, baseline=CONTROL_MEAN, total_n=_ptn_s05_2x + MAX_TEST_N, round_peak=True)
+
+_row1_s05_2x = make_subplots(rows=1, cols=2,
+                              subplot_titles=["<b>Peeking + Best</b>",
+                                             "<b>Peeking</b>"])
+for _tr in _f2x1.data: _row1_s05_2x.add_trace(_tr, row=1, col=1)
+for _tr in _f2x2.data: _row1_s05_2x.add_trace(_tr, row=1, col=2)
+_row1_s05_2x.update_xaxes(title_text="P-value Threshold", tickformat=".2f")
+_row1_s05_2x.update_yaxes(title_text="Projected Mean @ Year-End", tickformat=".3%", col=1)
+_row1_s05_2x.update_yaxes(tickformat=".3%", col=2)
+_row1_s05_2x.update_layout(showlegend=False, height=300)
+
+_row2_s05_2x = make_subplots(rows=1, cols=2,
+                              subplot_titles=["<b>Fixed Sample</b>",
+                                             "<b>All Strategies:</b> Projected Mean vs Trials"])
+for _tr in _f2x3.data:
+    _tr.showlegend = False
+    _row2_s05_2x.add_trace(_tr, row=1, col=1)
+_overlay_s05_2x = make_overlay_fig_n(_os05_2x1, _ts05_2x1, _os05_2x2, _ts05_2x2, _os05_2x3, _ts05_2x3, _norm_s05_2x)
+for _tr in _overlay_s05_2x.data:
+    _row2_s05_2x.add_trace(_tr, row=1, col=2)
+_row2_s05_2x.update_xaxes(title_text="P-value Threshold", tickformat=".2f", range=[0.0, 0.52], col=1)
+_row2_s05_2x.update_yaxes(title_text="Projected Mean @ Year-End", tickformat=".3%", col=1)
+_row2_s05_2x.update_xaxes(title_text="Avg Total Trials", tickformat=",", col=2)
+_row2_s05_2x.update_yaxes(tickformat=".3%", col=2)
+_row2_s05_2x.update_layout(
+    showlegend=True,
+    legend=dict(orientation="h", yanchor="top", y=-0.2,
+                xanchor="center", x=0.75, font=dict(size=10)),
+    height=300,
+)
+
+def peak_stats_s05_2x(outcomes, avg_days_list, norm, round_peak=False):
+    y    = np.array(outcomes) / norm
+    x    = 1 - p_thresholds
+    peak = int(np.argmax(np.round(y * 100, 4)) if round_peak else np.argmax(y))
+    opt_alpha       = x[peak]
+    marginal_events = (y[peak] - CONTROL_MEAN) * (_ptn_s05_2x + MAX_TEST_N)
+    avg_d           = avg_days_list[peak]
+    return f"""<div style="text-align:center; font-size:0.9rem; color:#333; margin-top:0.25rem;">
+      α: <strong>{opt_alpha:.2f}</strong> &nbsp;|&nbsp;
+      Marginal Events vs No Test: <strong>{marginal_events:,.0f}</strong> &nbsp;|&nbsp;
+      Avg(Days): <strong>{avg_d:.1f}</strong>
+    </div>"""
+
+display(HTML(f"""<script>
+window.__wif_scenarios = window.__wif_scenarios || {{}};
+window.__wif_scenarios['1m_s05_cr10'] = {{
+  row1:   {pio.to_json(_row1_s05_2x)},
+  row2:   {pio.to_json(_row2_s05_2x)},
+  left1:  {json.dumps(peak_stats_s05_2x(_os05_2x1, _ds05_2x1, _norm_s05_2x))},
+  right1: {json.dumps(peak_stats_s05_2x(_os05_2x2, _ds05_2x2, _norm_s05_2x))},
+  left2:  {json.dumps(peak_stats_s05_2x(_os05_2x3, _ds05_2x3, _norm_s05_2x, round_peak=True))}
 }};
 </script>"""))
 ```
@@ -1505,21 +1681,21 @@ window.__wif_scenarios['1m_s2_cr10'] = {{
 #| echo: false
 # Additional baseline conversion rates: 30% and 65%
 
-def _peak_stats_cr(outcomes, avg_days_list, norm, cr_val, ptn_val):
+def _peak_stats_cr(outcomes, avg_days_list, norm, cr_val, ptn_val, round_peak=False):
     y    = np.array(outcomes) / norm
     x    = 1 - p_thresholds
-    peak = int(np.argmax(np.round(y * 100, 4)))
+    peak = int(np.argmax(np.round(y * 100, 4)) if round_peak else np.argmax(y))
     opt_alpha       = x[peak]
     marginal_events = (y[peak] - cr_val) * (ptn_val + MAX_TEST_N)
     avg_d           = avg_days_list[peak]
     return f"""<div style="text-align:center; font-size:0.9rem; color:#333; margin-top:0.25rem;">
       Optimal \u03b1: <strong>{opt_alpha:.2f}</strong> &nbsp;|&nbsp;
-      Marginal Events: <strong>{marginal_events:,.0f}</strong> &nbsp;|&nbsp;
+      Marginal Events vs No Test: <strong>{marginal_events:,.0f}</strong> &nbsp;|&nbsp;
       Avg(Days): <strong>{avg_d:.1f}</strong>
     </div>"""
 
 _cr_combos    = [(0.30, 'cr30'), (0.65, 'cr65')]
-_sigma_combos = [(ITC_SE, 's1'), (2, 's2')]
+_sigma_combos = [(ITC_SE, 's1'), (2, 's2'), (0.5, 's05')]
 _ptn_combos   = [(POST_TEST_N, '500k'), (POST_TEST_N * 2, '1m')]
 
 for _cr_val, _cr_key in _cr_combos:
@@ -1557,13 +1733,13 @@ for _cr_val, _cr_key in _cr_combos:
             _o2, _t2, _m2, _r2, _d2 = run_loop_df(_df_prepped_cr, False)
             _o3, _t3, _m3, _r3, _d3 = run_loop_df(_df_fixed_cr, False)
 
-            _fc1 = make_curve_fig_n(_o1, _t1, _m1, _r1, "<b>Strategy:</b> Select Best",        _norm)
-            _fc2 = make_curve_fig_n(_o2, _t2, _m2, _r2, "<b>Strategy:</b> Retain Control",     _norm)
-            _fc3 = make_curve_fig_n(_o3, _t3, _m3, _r3, "<b>Fixed Sample:</b> Retain Control", _norm)
+            _fc1 = make_curve_fig_n(_o1, _t1, _m1, _r1, "<b>Peeking + Best</b>", _norm, baseline=_cr_val, total_n=_ptn_val + MAX_TEST_N)
+            _fc2 = make_curve_fig_n(_o2, _t2, _m2, _r2, "<b>Peeking</b>",       _norm, baseline=_cr_val, total_n=_ptn_val + MAX_TEST_N)
+            _fc3 = make_curve_fig_n(_o3, _t3, _m3, _r3, "<b>Fixed Sample</b>",  _norm, baseline=_cr_val, total_n=_ptn_val + MAX_TEST_N, round_peak=True)
 
             _row1_cr = make_subplots(rows=1, cols=2,
-                                     subplot_titles=["<b>Strategy:</b> Select Best",
-                                                     "<b>Strategy:</b> Retain Control"])
+                                     subplot_titles=["<b>Peeking + Best</b>",
+                                                     "<b>Peeking</b>"])
             for _tr in _fc1.data: _row1_cr.add_trace(_tr, row=1, col=1)
             for _tr in _fc2.data: _row1_cr.add_trace(_tr, row=1, col=2)
             _row1_cr.update_xaxes(title_text="P-value Threshold", tickformat=".2f")
@@ -1572,8 +1748,8 @@ for _cr_val, _cr_key in _cr_combos:
             _row1_cr.update_layout(showlegend=False, height=300)
 
             _row2_cr = make_subplots(rows=1, cols=2,
-                                     subplot_titles=["<b>Fixed Sample:</b> Retain Control",
-                                                     "<b>All Strategies:</b> Projected Mean vs # of Trials"])
+                                     subplot_titles=["<b>Fixed Sample</b>",
+                                                     "<b>All Strategies:</b> Projected Mean vs Trials"])
             for _tr in _fc3.data:
                 _tr.showlegend = False
                 _row2_cr.add_trace(_tr, row=1, col=1)
@@ -1600,11 +1776,11 @@ window.__wif_scenarios['{_key}'] = {{
   row2:   {pio.to_json(_row2_cr)},
   left1:  {json.dumps(_peak_stats_cr(_o1, _d1, _norm, _cr_val, _ptn_val))},
   right1: {json.dumps(_peak_stats_cr(_o2, _d2, _norm, _cr_val, _ptn_val))},
-  left2:  {json.dumps(_peak_stats_cr(_o3, _d3, _norm, _cr_val, _ptn_val))}
+  left2:  {json.dumps(_peak_stats_cr(_o3, _d3, _norm, _cr_val, _ptn_val, round_peak=True))}
 }};
 </script>"""))
 ```
 
 # Insights
 
-**P-hacking is good for business.** The optimal stopping threshold is well below the conventional α = 0.05 — stopping early on a signal, rather than waiting for statistical certainty, consistently produces better long-term outcomes in simulation.
+**P-hacking is good for business.** The optimal stopping threshold is well above the conventional α = 0.05 — stopping early on a signal, rather than waiting for statistical certainty, consistently produces better long-term outcomes in simulation.
