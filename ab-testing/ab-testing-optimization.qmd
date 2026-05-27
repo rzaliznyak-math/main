@@ -1110,7 +1110,9 @@ window.__wif_scenarios['500k_s1_cr10'] = {{
     </select>
   </div>
   <div style="display:flex; flex-direction:column; gap:0.25rem;">
-    <label style="font-size:0.85rem; color:#555; font-weight:600;">Expected Effects</label>
+    <label style="font-size:0.85rem; color:#555; font-weight:600;">Expected Effects
+      <span id="sigma-info-icon" data-bs-toggle="tooltip" data-bs-placement="top" data-bs-title="Bigger swings result in faster, more accurate experiments — large effects are easier to detect, so the stopping rule fires sooner and picks the right winner more often." style="cursor:help; display:inline-flex; align-items:center; justify-content:center; width:14px; height:14px; border-radius:50%; border:1px solid #888; color:#888; font-size:0.65rem; font-weight:700; vertical-align:middle; margin-left:3px;">i</span>
+    </label>
     <select id="wif-sigma" class="form-select form-select-sm" style="width:auto; font-size:0.85rem;">
       <option value="s05">ITC ~ N(100, 0.5)</option>
       <option value="s1" selected>ITC ~ N(100, 1)</option>
@@ -1153,6 +1155,8 @@ window.__wif_scenarios['500k_s1_cr10'] = {{
   document.getElementById('wif-ptn').addEventListener('change',   function() {{ renderScenario(getKey()); }});
   document.getElementById('wif-sigma').addEventListener('change', function() {{ renderScenario(getKey()); }});
   document.getElementById('wif-cr').addEventListener('change',    function() {{ renderScenario(getKey()); }});
+  var _tip = document.getElementById('sigma-info-icon');
+  if (_tip && typeof bootstrap !== 'undefined') {{ new bootstrap.Tooltip(_tip); }}
 }})();
 </script>
 <div style="display:none;">{_runtime:.1f}s</div>
@@ -1689,7 +1693,7 @@ def _peak_stats_cr(outcomes, avg_days_list, norm, cr_val, ptn_val, round_peak=Fa
     marginal_events = (y[peak] - cr_val) * (ptn_val + MAX_TEST_N)
     avg_d           = avg_days_list[peak]
     return f"""<div style="text-align:center; font-size:0.9rem; color:#333; margin-top:0.25rem;">
-      Optimal \u03b1: <strong>{opt_alpha:.2f}</strong> &nbsp;|&nbsp;
+      α: <strong>{opt_alpha:.2f}</strong> &nbsp;|&nbsp;
       Marginal Events vs No Test: <strong>{marginal_events:,.0f}</strong> &nbsp;|&nbsp;
       Avg(Days): <strong>{avg_d:.1f}</strong>
     </div>"""
@@ -1783,4 +1787,12 @@ window.__wif_scenarios['{_key}'] = {{
 
 # Insights
 
-**P-hacking is good for business.** The optimal stopping threshold is well above the conventional α = 0.05 — stopping early on a signal, rather than waiting for statistical certainty, consistently produces better long-term outcomes in simulation.
+**P-hacking is good for business.** Traditional p-values control false positive rates — a rule designed for science, where the same experiment can be run again. In industry, nobody reruns your test. Peeking and picking the leader breaks that rule, but simulation shows it consistently outperforms waiting for certainty. The "hack" is just optimizing the right objective.
+
+**The optimal significance threshold for a fixed sample test is 0.50.** At α = 0.50, the Pr(Best) threshold is 0.50 — meaning you deploy whoever is leading on the final day, every time. No significance required. Traditional thresholds like 0.05 don't just leave value on the table — they actively cause you to default to control when the data already points elsewhere.
+
+**Peeking + Best is the most profitable strategy.** Stopping early when you have a signal and deploying the leader when you don't beats every alternative — it captures upside faster and never wastes an inconclusive experiment by defaulting to control. The cost of being wrong is built into the simulation; it still wins.
+
+**Bigger swings mean more value.** Large effects are easier to detect, so the stopping rule fires sooner and picks the right winner more often. Even though harmful tests are equally likely regardless of effect size, they don't wash out the gains — losses are cut short, winners are deployed faster and to more users. Wider effect distributions consistently produce better outcomes.
+
+# Code
