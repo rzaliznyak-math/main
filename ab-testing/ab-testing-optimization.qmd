@@ -1,8 +1,8 @@
 ---
 title: "AB Testing is an Optimization Problem"
-subtitle: "Why Traditional Stopping Rules Are Arbitrary"
+subtitle: "Why P-Hacking Is Good for Business"
 author: "Russ Zaliznyak"
-date: "2026-05-22"
+date: "2026-05-28"
 categories: [AB Testing, Bayesian, Decision Theory, Optimization]
 page-layout: full
 jupyter: py311
@@ -17,17 +17,22 @@ css: wider.css
 
 # TL;DR
 
-Traditional significance testing uses p-values and statistical power to control error rates — typically you'll see a False Positive rate of 5% and a False Negative rate of 20%, implying false positives are four times costlier. In industry, that assumption rarely holds.
+Most A/B tests end with the same stopping rule: look for p < 0.05. That threshold wasn't chosen because it maximizes business outcomes — it was borrowed from academic science and never questioned.
 
-Our goal is to maximize value and successful customer outcomes — so why anchor decisions to arbitrary error thresholds borrowed from academic research? This paper sets aside those tools entirely and asks a different question: what stopping rule actually maximizes long-term outcomes?
+This paper reframes the problem:
+
+- **Traditional testing** anchors decisions to error rates — false positives, false negatives, minimum detectable effects
+- **This framework** treats the stopping rule itself as a decision variable and searches for the one that maximizes long-term value
 
 # A Simulation Framework
 
-Traditional power analysis works forward: specify α, β, and an MDE (minimum detectable effect — the smallest lift you care about), and it returns a required sample size.
+Traditional power analysis starts from assumptions: fix α = 0.05 and β = 0.20, specify a minimum detectable effect, and it hands you a sample size. That workflow has two problems.
 
-First, the MDE forces you to commit to a single, known effect size — but in practice, test effects follow a distribution; some experiments move the needle, most don't, some backfire. Second, it outputs a sample size with no regard for what happens after the test ends or how many users will be exposed to the winner.
+**The MDE is a fiction.** Power analysis requires you to commit to a single assumed effect — but effects follow a distribution. Some tests move the needle, most barely register, a few backfire.
 
-This framework inverts that. Specify the test population, the post-test audience, and the distribution of effects you realistically expect — and it returns the stopping rule that maximizes long-term outcomes given that context.
+**It isn't forward-looking.** Power analysis tells you when to stop — not what the decision is worth once you ship to the full audience.
+
+This framework addresses both. It simulates experiments across the full distribution of realistic effects and scores each stopping rule by the long-term value it produces — not the error rates it controls.
 
 ## Simulation Parameters
 
@@ -195,7 +200,7 @@ SPLIT              = 0.50      # treatment allocation (50/50)
 MIN_TEST_DAYS      = 7         # mandatory burn-in before stopping decisions
 NUMBER_TEST_DAYS   = 20        # maximum experiment duration
 POST_TEST_N        = 500_000   # users exposed to winner once MAX_TEST_N is reached
-NUMBER_SIMULATIONS = 10_000   # simulations to run
+NUMBER_SIMULATIONS = 100_000   # simulations to run
 SEED               = 42
 ITC_MEAN           = 100       # index-to-control mean
 ITC_SE             = 1         # index-to-control standard error
@@ -751,7 +756,7 @@ document.addEventListener('DOMContentLoaded', function() {
               data-bs-target="#pvalue-collapse">
         <span style="flex:1;">Show Random Walks of Probabilities</span>
         <span class="accordion-chevron" style="flex-shrink:0; margin-left:0.75rem; font-size:1.8rem; line-height:1; transition:transform 0.2s;">&#8964;</span>
-        <span style="width:100%; font-size:0.85rem; font-weight:400; font-style:italic; color:#555; margin-top:0.2rem;">Pr(Best) for each condition over time — the signal the stopping rule acts on.</span>
+        <span style="width:100%; font-size:0.85rem; font-weight:400; font-style:italic; color:#555; margin-top:0.2rem;">See how Pr(Best) evolves for each condition over time — the signal the stopping rule acts on.</span>
       </button>
     </div>
   </div>
@@ -884,14 +889,14 @@ print(f'<script>window.__pvalSimData = {json.dumps(pval_sim_data)};</script>')
 
 ## Optimal Stopping Algorithm
 
-To find the stopping rule that maximizes long-term value, we simulate three strategies and measure their average outcome across the same 100,000 experiments.
+To find the stopping rule that maximizes long-term value, we naively apply three analysis strategies and measure their average outcome across the same 100,000 simulated experiments.
 
 | | **Peeking** | **Peeking + Best** | **Fixed Sample** |
 |---|:---:|:---:|:---:|
 | Stop early on signal | ✓ | ✓ | ✗ |
 | No-breach fallback | Retain Control | Best Performer | Retain Control |
 
-For each of 100,000 simulated experiments and each significance level α ∈ [0.01, 0.50]:
+For each of 100,000 simulated experiments and each threshold α ∈ [0.01, 0.50]:
 
 1. **Burn-in:** No stopping decisions before `min_test_days = 7`
 2. **Daily check:** Stop when either condition's Pr(Best) exceeds `1 - α`
@@ -900,7 +905,7 @@ For each of 100,000 simulated experiments and each significance level α ∈ [0.
 
 ## Results
 
-Each chart plots the projected mean outcome against the stopping threshold α. The peak of the curve is the optimal rule for that testing strategy. Use the dropdowns below to vary the baseline conversion rate, post-test population, and effect distribution — and watch how the optimal threshold shifts.
+Each chart plots the projected mean outcome against the stopping threshold α. The peak of the curve is the optimal rule for that testing strategy. Use the dropdowns below to vary the baseline conversion rate, post-test population, and effect distribution — and see if the optimal threshold shifts.
 
 ```{python}
 #| echo: false
@@ -957,7 +962,7 @@ def make_curve_fig(outcomes, trials, med_trials, rate, title, y_fmt=".3%", round
     marginal = (y - CONTROL_MEAN) * (POST_TEST_N + MAX_TEST_N)
     cd = np.column_stack([np.array(trials).astype(int), np.array(rate), np.array(med_trials), marginal])
     hover_tmpl = (
-        f"P-value Threshold: %{{x:.2f}}<br>"
+        f"\u03b1: %{{x:.2f}}<br>"
         f"Projected Mean: %{{y:{y_fmt}}}<br>"
         "Marginal Events: %{customdata[3]:,.0f}<br>"
         "Avg Trials: %{customdata[0]:,}<br>"
@@ -975,7 +980,7 @@ def make_curve_fig(outcomes, trials, med_trials, rate, title, y_fmt=".3%", round
     )
     f.update_traces(selector=dict(mode="lines"), customdata=cd, hovertemplate=hover_tmpl)
     f.update_layout(title_text=title)
-    f.update_xaxes(title_text="P-value Threshold", tickformat=".2f")
+    f.update_xaxes(title_text="\u03b1", tickformat=".2f")
     f.update_yaxes(title_text="Projected Mean @ Year-End", tickformat=y_fmt)
     return f
 
@@ -1000,7 +1005,7 @@ def make_overlay_fig_n(o1, t1, o2, t2, o3, t3, norm):
             hovertemplate=(
                 "Avg Trials: %{x:,}<br>"
                 "Projected Mean: %{y:.3%}<br>"
-                "P-value Threshold: %{customdata[0]:.2f}<br>"
+                "\u03b1: %{customdata[0]:.2f}<br>"
                 "<extra></extra>"
             ),
         ))
@@ -1014,82 +1019,125 @@ def make_overlay_fig_n(o1, t1, o2, t2, o3, t3, norm):
     )
     return fig
 
-fig1 = make_curve_fig(all_potential_outcomes, total_trials, median_trials, match_rate,
-                      "Peeking + Best")
-fig2 = make_curve_fig(ctrl_potential_outcomes, ctrl_trials, ctrl_med_trials, ctrl_match_rate,
-                      "Peeking")
-fig3 = make_curve_fig(fixed_potential_outcomes, fixed_trials, fixed_med_trials, fixed_match_rate,
-                      "Fixed Sample", round_peak=True)
+def make_triple_curve_fig(o1, t1, m1, r1, o2, t2, m2, r2, o3, t3, m3, r3, norm,
+                          baseline=None, total_n=None, y_fmt=".3%"):
+    """All 3 strategies overlaid: x = p-value threshold, y = projected mean."""
+    _pal    = ['#1f77b4', '#ff7f0e', '#2ca02c']
+    _labels = ['Peeking + Best', 'Peeking', 'Fixed Sample']
+    _rp     = [False, False, True]
+    x       = 1 - p_thresholds
+    marginal_hover = "Marginal Events: %{customdata[3]:,.0f}<br>" if (baseline is not None and total_n is not None) else ""
+    fig = go.Figure()
+    for _o, _t, _m, _r, _col, _lbl, _round in zip(
+        [o1, o2, o3], [t1, t2, t3], [m1, m2, m3], [r1, r2, r3], _pal, _labels, _rp
+    ):
+        y = np.array(_o) / norm
+        peak = int(np.argmax(np.round(y * 100, 4)) if _round else np.argmax(y))
+        marginal = (y - baseline) * total_n if (baseline is not None and total_n is not None) else np.zeros(len(y))
+        cd = np.column_stack([np.array(_t).astype(int), np.array(_r), np.array(_m), marginal])
+        hover_tmpl = (
+            f"\u03b1: %{{x:.2f}}<br>"
+            f"Projected Mean: %{{y:{y_fmt}}}<br>"
+            f"{marginal_hover}"
+            "Avg Trials: %{customdata[0]:,}<br>"
+            "Selected Best Condition: %{customdata[1]:.2%}<br>"
+            "<extra></extra>"
+        )
+        fig.add_trace(go.Scatter(
+            x=x, y=y, mode='lines', name=_lbl,
+            line=dict(color=_col, width=2),
+            customdata=cd, hovertemplate=hover_tmpl,
+        ))
+        fig.add_trace(go.Scatter(
+            x=[x[peak]], y=[y[peak]], mode='markers', showlegend=False,
+            marker=dict(symbol='square', size=10, color=_col),
+            customdata=[[int(_t[peak]), _r[peak], int(_m[peak]), marginal[peak]]],
+            hovertemplate=hover_tmpl,
+        ))
+    fig.update_xaxes(title_text="\u03b1", tickformat=".2f")
+    fig.update_yaxes(title_text="Projected Mean @ Year-End", tickformat=y_fmt)
+    fig.update_layout(
+        showlegend=True,
+        legend=dict(orientation="h", yanchor="top", y=-0.18, xanchor="center", x=0.5, font=dict(size=10)),
+        height=350,
+    )
+    return fig
 
-row1 = make_subplots(rows=1, cols=2,
-                     subplot_titles=["<b>Peeking + Best</b>",
-                                     "<b>Peeking</b>"])
-for trace in fig1.data:
-    row1.add_trace(trace, row=1, col=1)
-for trace in fig2.data:
-    row1.add_trace(trace, row=1, col=2)
-row1.update_xaxes(title_text="P-value Threshold", tickformat=".2f")
-row1.update_yaxes(title_text="Projected Mean @ Year-End", tickformat=".3%", col=1)
-row1.update_yaxes(tickformat=".3%", col=2)
-row1.update_layout(showlegend=False, height=300)
+def make_scenario_row(o1, t1, m1, r1, o2, t2, m2, r2, o3, t3, m3, r3, norm, baseline, total_n):
+    triple  = make_triple_curve_fig(o1, t1, m1, r1, o2, t2, m2, r2, o3, t3, m3, r3, norm, baseline, total_n)
+    overlay = make_overlay_fig_n(o1, t1, o2, t2, o3, t3, norm)
+    row = make_subplots(rows=1, cols=2,
+                        subplot_titles=["Projected Mean vs α", "Projected Mean vs Avg Trials"],
+                        column_widths=[0.5, 0.5],
+                        shared_yaxes=True)
+    for _tr in triple.data:  row.add_trace(_tr, row=1, col=1)
+    for _tr in overlay.data:
+        _tr.showlegend = False
+        row.add_trace(_tr, row=1, col=2)
+    row.update_xaxes(title_text="\u03b1", tickformat=".2f", col=1)
+    row.update_yaxes(title_text="Projected Mean @ Year-End", tickformat=".3%", col=1)
+    row.update_xaxes(title_text="Avg Total Trials", tickformat=",", col=2)
+    row.update_layout(
+        showlegend=True,
+        legend=dict(orientation="h", yanchor="top", y=-0.18, xanchor="center", x=0.5, font=dict(size=10)),
+        height=380,
+    )
+    return row
 
-row2 = make_subplots(rows=1, cols=2,
-                     subplot_titles=["<b>Fixed Sample</b>",
-                                     "<b>All Strategies:</b> Projected Mean vs Trials"])
-for trace in fig3.data:
-    trace.showlegend = False
-    row2.add_trace(trace, row=1, col=1)
-overlay = make_overlay_fig_n(
-    all_potential_outcomes, total_trials,
-    ctrl_potential_outcomes, ctrl_trials,
-    fixed_potential_outcomes, fixed_trials,
-    normalizer,
-)
-for trace in overlay.data:
-    row2.add_trace(trace, row=1, col=2)
-row2.update_xaxes(title_text="P-value Threshold", tickformat=".2f", range=[0.0, 0.52], col=1)
-row2.update_yaxes(title_text="Projected Mean @ Year-End", tickformat=".3%", col=1)
-row2.update_xaxes(title_text="Avg Total Trials", tickformat=",", col=2)
-row2.update_yaxes(tickformat=".3%", col=2)
-row2.update_layout(
-    showlegend=True,
-    legend=dict(orientation="h", yanchor="top", y=-0.2,
-                xanchor="center", x=0.75, font=dict(size=10)),
-    height=300,
+def make_scenario_stats(o1, d1, t1, r1, o2, d2, t2, r2, o3, d3, t3, r3, norm, baseline, total_n):
+    """Returns a list of plain dicts (no HTML) — table is built in JS to avoid Quarto postprocessing."""
+    def _peak(outcomes, avg_days, trials, rate, round_peak=False):
+        y    = np.array(outcomes) / norm
+        x    = 1 - p_thresholds
+        peak = int(np.argmax(np.round(y * 100, 4)) if round_peak else np.argmax(y))
+        return float(x[peak]), float((y[peak] - baseline) * total_n), float(avg_days[peak]), float(y[peak]), float(np.array(rate)[peak]), float(np.array(trials)[peak])
+    _pal  = ['#1f77b4', '#ff7f0e', '#2ca02c']
+    _lbls = ['Peeking + Best', 'Peeking', 'Fixed Sample']
+    _data = [_peak(o1, d1, t1, r1), _peak(o2, d2, t2, r2), _peak(o3, d3, t3, r3, round_peak=True)]
+    rows  = [
+        {"label": lbl, "color": c, "alpha": a, "marginal": m, "avg_days": d,
+         "proj_mean": pm, "best_rate": br, "avg_trials": at, "is_ref": False}
+        for (a, m, d, pm, br, at), c, lbl in zip(_data, _pal, _lbls)
+    ]
+    # Reference row: Fixed Sample at the conventional α = 0.05
+    idx_05 = int(np.argmin(np.abs((1 - p_thresholds) - 0.05)))
+    y3 = np.array(o3) / norm
+    rows.append({
+        "label": "Fixed Sample",
+        "color": "#2ca02c",
+        "alpha": float((1 - p_thresholds)[idx_05]),
+        "marginal": float((y3[idx_05] - baseline) * total_n),
+        "avg_days": float(np.array(d3)[idx_05]),
+        "proj_mean": float(y3[idx_05]),
+        "best_rate": float(np.array(r3)[idx_05]),
+        "avg_trials": float(np.array(t3)[idx_05]),
+        "is_ref": True,
+    })
+    return rows
+
+row1 = make_scenario_row(
+    all_potential_outcomes,   total_trials,    median_trials,    match_rate,
+    ctrl_potential_outcomes,  ctrl_trials,     ctrl_med_trials,  ctrl_match_rate,
+    fixed_potential_outcomes, fixed_trials,    fixed_med_trials, fixed_match_rate,
+    normalizer, CONTROL_MEAN, POST_TEST_N + MAX_TEST_N,
 )
 
 from IPython.display import display, HTML
-
-def peak_stats(outcomes, avg_days_list, round_peak=False):
-    y    = np.array(outcomes) / normalizer
-    x    = 1 - p_thresholds
-    peak = int(np.argmax(np.round(y * 100, 4)) if round_peak else np.argmax(y))
-    opt_alpha       = x[peak]
-    marginal_events = (y[peak] - CONTROL_MEAN) * (POST_TEST_N + MAX_TEST_N)
-    avg_d           = avg_days_list[peak]
-    return f"""<div style="text-align:center; font-size:0.9rem; color:#333; margin-top:0.25rem;">
-      α: <strong>{opt_alpha:.2f}</strong> &nbsp;|&nbsp;
-      Marginal Events vs No Test: <strong>{marginal_events:,.0f}</strong> &nbsp;|&nbsp;
-      Avg(Days): <strong>{avg_d:.1f}</strong>
-    </div>"""
-
 import plotly.io as pio
 
-_stats_base = dict(
-    left1  = peak_stats(all_potential_outcomes,   all_avg_days),
-    right1 = peak_stats(ctrl_potential_outcomes,  ctrl_avg_days),
-    left2  = peak_stats(fixed_potential_outcomes, fixed_avg_days, round_peak=True),
+_stats_base = make_scenario_stats(
+    all_potential_outcomes,   all_avg_days,   total_trials,    match_rate,
+    ctrl_potential_outcomes,  ctrl_avg_days,  ctrl_trials,     ctrl_match_rate,
+    fixed_potential_outcomes, fixed_avg_days, fixed_trials,    fixed_match_rate,
+    normalizer, CONTROL_MEAN, POST_TEST_N + MAX_TEST_N,
 )
 
 display(HTML(f"""
 <script>
 window.__wif_scenarios = window.__wif_scenarios || {{}};
 window.__wif_scenarios['500k_s1_cr10'] = {{
-  row1:   {pio.to_json(row1)},
-  row2:   {pio.to_json(row2)},
-  left1:  {json.dumps(_stats_base['left1'])},
-  right1: {json.dumps(_stats_base['right1'])},
-  left2:  {json.dumps(_stats_base['left2'])}
+  row1:  {pio.to_json(row1)},
+  stats: {json.dumps(_stats_base)}
 }};
 </script>
 
@@ -1121,10 +1169,8 @@ window.__wif_scenarios['500k_s1_cr10'] = {{
   </div>
 </div>
 
-<div id="wif-row1" style="min-height:300px;"></div>
-<div id="wif-stats1" style="margin-top:0.25rem; margin-bottom:1rem;"></div>
-<div id="wif-row2" style="min-height:300px;"></div>
-<div id="wif-stats2" style="margin-top:0.25rem;"></div>
+<div id="wif-row1" style="min-height:380px;"></div>
+<div id="wif-stats1" style="margin-top:0.25rem;"></div>
 
 <script>
 (function initWif() {{
@@ -1133,16 +1179,31 @@ window.__wif_scenarios['500k_s1_cr10'] = {{
   function renderScenario(key) {{
     var s = window.__wif_scenarios && window.__wif_scenarios[key];
     if (!s) {{ setTimeout(function() {{ renderScenario(key); }}, 200); return; }}
-    var r1 = s.row1; r1.layout.height = 300;
-    var r2 = s.row2; r2.layout.height = 300;
+    var r1 = s.row1; r1.layout.height = 380;
     Plotly.react('wif-row1', r1.data, r1.layout);
-    Plotly.react('wif-row2', r2.data, r2.layout);
+    var rows = s.stats.map(function(d) {{
+      return '<tr data-label="' + d.label + '" data-is-ref="' + d.is_ref + '">' +
+        '<td style="padding:5px 12px;font-weight:600;color:' + d.color + ';">' + d.label + '</td>' +
+        '<td style="padding:5px 12px;text-align:center;"><strong>' + d.alpha.toFixed(2) + '</strong></td>' +
+        '<td style="padding:5px 12px;text-align:center;"><strong>' + (d.proj_mean * 100).toFixed(3) + '%</strong></td>' +
+        '<td style="padding:5px 12px;text-align:center;"><strong>' + Math.round(d.marginal).toLocaleString() + '</strong></td>' +
+        '<td style="padding:5px 12px;text-align:center;"><strong>' + (d.best_rate * 100).toFixed(1) + '%</strong></td>' +
+        '<td style="padding:5px 12px;text-align:center;"><strong>' + Math.round(d.avg_trials).toLocaleString() + '</strong></td>' +
+        '<td style="padding:5px 12px;text-align:center;"><strong>' + d.avg_days.toFixed(1) + '</strong></td>' +
+        '</tr>';
+    }}).join('');
+    var _th = 'style="padding:5px 12px;color:#666;font-weight:600;border-bottom:1px solid #ddd;text-align:center;"';
     document.getElementById('wif-stats1').innerHTML =
-      '<div style="display:grid;grid-template-columns:1fr 1fr;gap:0.5rem;">' +
-      '<div>' + s.left1 + '</div><div>' + s.right1 + '</div></div>';
-    document.getElementById('wif-stats2').innerHTML =
-      '<div style="display:grid;grid-template-columns:1fr 1fr;gap:0.5rem;">' +
-      '<div>' + s.left2 + '</div><div>' + (s.right2 || '') + '</div></div>';
+      '<' + 'table style="width:100%;font-size:0.85rem;border-collapse:collapse;margin-top:0.4rem;">' +
+      '<thead><tr>' +
+      '<th style="padding:5px 12px;color:#666;font-weight:600;border-bottom:1px solid #ddd;text-align:left;">Strategy</th>' +
+      '<th ' + _th + '>\u03b1</th>' +
+      '<th ' + _th + '>Projected Mean</th>' +
+      '<th ' + _th + '>Marginal Events vs No Test</th>' +
+      '<th ' + _th + '>Selected Best Condition</th>' +
+      '<th ' + _th + '>Avg Trials</th>' +
+      '<th ' + _th + '>Avg(Days)</th>' +
+      '</tr></thead><tbody>' + rows + '</tbody></' + 'table>';
   }}
 
   function getKey() {{
@@ -1211,7 +1272,7 @@ def make_curve_fig_n(outcomes, trials, med_trials, rate, title, norm, y_fmt=".3%
     cd = np.column_stack([np.array(trials).astype(int), np.array(rate), np.array(med_trials), marginal])
     marginal_hover = "Marginal Events: %{customdata[3]:,.0f}<br>" if (baseline is not None and total_n is not None) else ""
     hover_tmpl = (
-        f"P-value Threshold: %{{x:.2f}}<br>"
+        f"\u03b1: %{{x:.2f}}<br>"
         f"Projected Mean: %{{y:{y_fmt}}}<br>"
         f"{marginal_hover}"
         "Avg Trials: %{customdata[0]:,}<br>"
@@ -1229,65 +1290,26 @@ def make_curve_fig_n(outcomes, trials, med_trials, rate, title, norm, y_fmt=".3%
     )
     f.update_traces(selector=dict(mode="lines"), customdata=cd, hovertemplate=hover_tmpl)
     f.update_layout(title_text=title)
-    f.update_xaxes(title_text="P-value Threshold", tickformat=".2f")
+    f.update_xaxes(title_text="\u03b1", tickformat=".2f")
     f.update_yaxes(title_text="Projected Mean @ Year-End", tickformat=y_fmt)
     return f
 
-_f1 = make_curve_fig_n(_o1, _t1, _m1, _r1, "<b>Peeking + Best</b>", _norm_2x, baseline=CONTROL_MEAN, total_n=_ptn_2x + MAX_TEST_N)
-_f2 = make_curve_fig_n(_o2, _t2, _m2, _r2, "<b>Peeking</b>",        _norm_2x, baseline=CONTROL_MEAN, total_n=_ptn_2x + MAX_TEST_N)
-_f3 = make_curve_fig_n(_o3, _t3, _m3, _r3, "<b>Fixed Sample</b>",   _norm_2x, baseline=CONTROL_MEAN, total_n=_ptn_2x + MAX_TEST_N, round_peak=True)
-
-_row1_2x = make_subplots(rows=1, cols=2,
-                         subplot_titles=["<b>Peeking + Best</b>",
-                                         "<b>Peeking</b>"])
-for _tr in _f1.data: _row1_2x.add_trace(_tr, row=1, col=1)
-for _tr in _f2.data: _row1_2x.add_trace(_tr, row=1, col=2)
-_row1_2x.update_xaxes(title_text="P-value Threshold", tickformat=".2f")
-_row1_2x.update_yaxes(title_text="Projected Mean @ Year-End", tickformat=".3%", col=1)
-_row1_2x.update_yaxes(tickformat=".3%", col=2)
-_row1_2x.update_layout(showlegend=False, height=300)
-
-_row2_2x = make_subplots(rows=1, cols=2,
-                         subplot_titles=["<b>Fixed Sample</b>",
-                                         "<b>All Strategies:</b> Projected Mean vs Trials"])
-for _tr in _f3.data:
-    _tr.showlegend = False
-    _row2_2x.add_trace(_tr, row=1, col=1)
-_overlay_2x = make_overlay_fig_n(_o1, _t1, _o2, _t2, _o3, _t3, _norm_2x)
-for _tr in _overlay_2x.data:
-    _row2_2x.add_trace(_tr, row=1, col=2)
-_row2_2x.update_xaxes(title_text="P-value Threshold", tickformat=".2f", range=[0.0, 0.52], col=1)
-_row2_2x.update_yaxes(title_text="Projected Mean @ Year-End", tickformat=".3%", col=1)
-_row2_2x.update_xaxes(title_text="Avg Total Trials", tickformat=",", col=2)
-_row2_2x.update_yaxes(tickformat=".3%", col=2)
-_row2_2x.update_layout(
-    showlegend=True,
-    legend=dict(orientation="h", yanchor="top", y=-0.2,
-                xanchor="center", x=0.75, font=dict(size=10)),
-    height=300,
+_row_2x   = make_scenario_row(
+    _o1, _t1, _m1, _r1,
+    _o2, _t2, _m2, _r2,
+    _o3, _t3, _m3, _r3,
+    _norm_2x, CONTROL_MEAN, _ptn_2x + MAX_TEST_N,
 )
-
-def peak_stats_n(outcomes, avg_days_list, norm, round_peak=False):
-    y    = np.array(outcomes) / norm
-    x    = 1 - p_thresholds
-    peak = int(np.argmax(np.round(y * 100, 4)) if round_peak else np.argmax(y))
-    opt_alpha       = x[peak]
-    marginal_events = (y[peak] - CONTROL_MEAN) * (_ptn_2x + MAX_TEST_N)
-    avg_d           = avg_days_list[peak]
-    return f"""<div style="text-align:center; font-size:0.9rem; color:#333; margin-top:0.25rem;">
-      α: <strong>{opt_alpha:.2f}</strong> &nbsp;|&nbsp;
-      Marginal Events vs No Test: <strong>{marginal_events:,.0f}</strong> &nbsp;|&nbsp;
-      Avg(Days): <strong>{avg_d:.1f}</strong>
-    </div>"""
+_stats_2x = make_scenario_stats(
+    _o1, _d1, _t1, _r1, _o2, _d2, _t2, _r2, _o3, _d3, _t3, _r3,
+    _norm_2x, CONTROL_MEAN, _ptn_2x + MAX_TEST_N,
+)
 
 display(HTML(f"""<script>
 window.__wif_scenarios = window.__wif_scenarios || {{}};
 window.__wif_scenarios['1m_s1_cr10'] = {{
-  row1:   {pio.to_json(_row1_2x)},
-  row2:   {pio.to_json(_row2_2x)},
-  left1:  {json.dumps(peak_stats_n(_o1, _d1, _norm_2x))},
-  right1: {json.dumps(peak_stats_n(_o2, _d2, _norm_2x))},
-  left2:  {json.dumps(peak_stats_n(_o3, _d3, _norm_2x, round_peak=True))}
+  row1:  {pio.to_json(_row_2x)},
+  stats: {json.dumps(_stats_2x)}
 }};
 </script>"""))
 ```
@@ -1335,61 +1357,22 @@ _ow1, _tw1, _mw1, _rw1, _dw1 = run_loop_df(_df_prepped_wide, True)
 _ow2, _tw2, _mw2, _rw2, _dw2 = run_loop_df(_df_prepped_wide, False)
 _ow3, _tw3, _mw3, _rw3, _dw3 = run_loop_df(_df_fixed_wide, False)
 
-_fw1 = make_curve_fig_n(_ow1, _tw1, _mw1, _rw1, "<b>Peeking + Best</b>", _norm_wide, baseline=CONTROL_MEAN, total_n=_ptn_wide + MAX_TEST_N)
-_fw2 = make_curve_fig_n(_ow2, _tw2, _mw2, _rw2, "<b>Peeking</b>",        _norm_wide, baseline=CONTROL_MEAN, total_n=_ptn_wide + MAX_TEST_N)
-_fw3 = make_curve_fig_n(_ow3, _tw3, _mw3, _rw3, "<b>Fixed Sample</b>",   _norm_wide, baseline=CONTROL_MEAN, total_n=_ptn_wide + MAX_TEST_N, round_peak=True)
-
-_row1_wide = make_subplots(rows=1, cols=2,
-                           subplot_titles=["<b>Peeking + Best</b>",
-                                           "<b>Peeking</b>"])
-for _tr in _fw1.data: _row1_wide.add_trace(_tr, row=1, col=1)
-for _tr in _fw2.data: _row1_wide.add_trace(_tr, row=1, col=2)
-_row1_wide.update_xaxes(title_text="P-value Threshold", tickformat=".2f")
-_row1_wide.update_yaxes(title_text="Projected Mean @ Year-End", tickformat=".3%", col=1)
-_row1_wide.update_yaxes(tickformat=".3%", col=2)
-_row1_wide.update_layout(showlegend=False, height=300)
-
-_row2_wide = make_subplots(rows=1, cols=2,
-                           subplot_titles=["<b>Fixed Sample</b>",
-                                           "<b>All Strategies:</b> Projected Mean vs Trials"])
-for _tr in _fw3.data:
-    _tr.showlegend = False
-    _row2_wide.add_trace(_tr, row=1, col=1)
-_overlay_wide = make_overlay_fig_n(_ow1, _tw1, _ow2, _tw2, _ow3, _tw3, _norm_wide)
-for _tr in _overlay_wide.data:
-    _row2_wide.add_trace(_tr, row=1, col=2)
-_row2_wide.update_xaxes(title_text="P-value Threshold", tickformat=".2f", range=[0.0, 0.52], col=1)
-_row2_wide.update_yaxes(title_text="Projected Mean @ Year-End", tickformat=".3%", col=1)
-_row2_wide.update_xaxes(title_text="Avg Total Trials", tickformat=",", col=2)
-_row2_wide.update_yaxes(tickformat=".3%", col=2)
-_row2_wide.update_layout(
-    showlegend=True,
-    legend=dict(orientation="h", yanchor="top", y=-0.2,
-                xanchor="center", x=0.75, font=dict(size=10)),
-    height=300,
+_row_wide   = make_scenario_row(
+    _ow1, _tw1, _mw1, _rw1,
+    _ow2, _tw2, _mw2, _rw2,
+    _ow3, _tw3, _mw3, _rw3,
+    _norm_wide, CONTROL_MEAN, _ptn_wide + MAX_TEST_N,
 )
-
-def peak_stats_wide(outcomes, avg_days_list, norm, round_peak=False):
-    y    = np.array(outcomes) / norm
-    x    = 1 - p_thresholds
-    peak = int(np.argmax(np.round(y * 100, 4)) if round_peak else np.argmax(y))
-    opt_alpha       = x[peak]
-    marginal_events = (y[peak] - CONTROL_MEAN) * (_ptn_wide + MAX_TEST_N)
-    avg_d           = avg_days_list[peak]
-    return f"""<div style="text-align:center; font-size:0.9rem; color:#333; margin-top:0.25rem;">
-      α: <strong>{opt_alpha:.2f}</strong> &nbsp;|&nbsp;
-      Marginal Events vs No Test: <strong>{marginal_events:,.0f}</strong> &nbsp;|&nbsp;
-      Avg(Days): <strong>{avg_d:.1f}</strong>
-    </div>"""
+_stats_wide = make_scenario_stats(
+    _ow1, _dw1, _tw1, _rw1, _ow2, _dw2, _tw2, _rw2, _ow3, _dw3, _tw3, _rw3,
+    _norm_wide, CONTROL_MEAN, _ptn_wide + MAX_TEST_N,
+)
 
 display(HTML(f"""<script>
 window.__wif_scenarios = window.__wif_scenarios || {{}};
 window.__wif_scenarios['500k_s2_cr10'] = {{
-  row1:   {pio.to_json(_row1_wide)},
-  row2:   {pio.to_json(_row2_wide)},
-  left1:  {json.dumps(peak_stats_wide(_ow1, _dw1, _norm_wide))},
-  right1: {json.dumps(peak_stats_wide(_ow2, _dw2, _norm_wide))},
-  left2:  {json.dumps(peak_stats_wide(_ow3, _dw3, _norm_wide, round_peak=True))}
+  row1:  {pio.to_json(_row_wide)},
+  stats: {json.dumps(_stats_wide)}
 }};
 </script>"""))
 ```
@@ -1437,61 +1420,22 @@ _ob1, _tb1, _mb1, _rb1, _db1 = run_loop_df(_df_prepped_both, True)
 _ob2, _tb2, _mb2, _rb2, _db2 = run_loop_df(_df_prepped_both, False)
 _ob3, _tb3, _mb3, _rb3, _db3 = run_loop_df(_df_fixed_both, False)
 
-_fb1 = make_curve_fig_n(_ob1, _tb1, _mb1, _rb1, "<b>Peeking + Best</b>", _norm_both, baseline=CONTROL_MEAN, total_n=_ptn_both + MAX_TEST_N)
-_fb2 = make_curve_fig_n(_ob2, _tb2, _mb2, _rb2, "<b>Peeking</b>",        _norm_both, baseline=CONTROL_MEAN, total_n=_ptn_both + MAX_TEST_N)
-_fb3 = make_curve_fig_n(_ob3, _tb3, _mb3, _rb3, "<b>Fixed Sample</b>",   _norm_both, baseline=CONTROL_MEAN, total_n=_ptn_both + MAX_TEST_N, round_peak=True)
-
-_row1_both = make_subplots(rows=1, cols=2,
-                           subplot_titles=["<b>Peeking + Best</b>",
-                                           "<b>Peeking</b>"])
-for _tr in _fb1.data: _row1_both.add_trace(_tr, row=1, col=1)
-for _tr in _fb2.data: _row1_both.add_trace(_tr, row=1, col=2)
-_row1_both.update_xaxes(title_text="P-value Threshold", tickformat=".2f")
-_row1_both.update_yaxes(title_text="Projected Mean @ Year-End", tickformat=".3%", col=1)
-_row1_both.update_yaxes(tickformat=".3%", col=2)
-_row1_both.update_layout(showlegend=False, height=300)
-
-_row2_both = make_subplots(rows=1, cols=2,
-                           subplot_titles=["<b>Fixed Sample</b>",
-                                           "<b>All Strategies:</b> Projected Mean vs Trials"])
-for _tr in _fb3.data:
-    _tr.showlegend = False
-    _row2_both.add_trace(_tr, row=1, col=1)
-_overlay_both = make_overlay_fig_n(_ob1, _tb1, _ob2, _tb2, _ob3, _tb3, _norm_both)
-for _tr in _overlay_both.data:
-    _row2_both.add_trace(_tr, row=1, col=2)
-_row2_both.update_xaxes(title_text="P-value Threshold", tickformat=".2f", range=[0.0, 0.52], col=1)
-_row2_both.update_yaxes(title_text="Projected Mean @ Year-End", tickformat=".3%", col=1)
-_row2_both.update_xaxes(title_text="Avg Total Trials", tickformat=",", col=2)
-_row2_both.update_yaxes(tickformat=".3%", col=2)
-_row2_both.update_layout(
-    showlegend=True,
-    legend=dict(orientation="h", yanchor="top", y=-0.2,
-                xanchor="center", x=0.75, font=dict(size=10)),
-    height=300,
+_row_both   = make_scenario_row(
+    _ob1, _tb1, _mb1, _rb1,
+    _ob2, _tb2, _mb2, _rb2,
+    _ob3, _tb3, _mb3, _rb3,
+    _norm_both, CONTROL_MEAN, _ptn_both + MAX_TEST_N,
 )
-
-def peak_stats_both(outcomes, avg_days_list, norm, round_peak=False):
-    y    = np.array(outcomes) / norm
-    x    = 1 - p_thresholds
-    peak = int(np.argmax(np.round(y * 100, 4)) if round_peak else np.argmax(y))
-    opt_alpha       = x[peak]
-    marginal_events = (y[peak] - CONTROL_MEAN) * (_ptn_both + MAX_TEST_N)
-    avg_d           = avg_days_list[peak]
-    return f"""<div style="text-align:center; font-size:0.9rem; color:#333; margin-top:0.25rem;">
-      α: <strong>{opt_alpha:.2f}</strong> &nbsp;|&nbsp;
-      Marginal Events vs No Test: <strong>{marginal_events:,.0f}</strong> &nbsp;|&nbsp;
-      Avg(Days): <strong>{avg_d:.1f}</strong>
-    </div>"""
+_stats_both = make_scenario_stats(
+    _ob1, _db1, _tb1, _rb1, _ob2, _db2, _tb2, _rb2, _ob3, _db3, _tb3, _rb3,
+    _norm_both, CONTROL_MEAN, _ptn_both + MAX_TEST_N,
+)
 
 display(HTML(f"""<script>
 window.__wif_scenarios = window.__wif_scenarios || {{}};
 window.__wif_scenarios['1m_s2_cr10'] = {{
-  row1:   {pio.to_json(_row1_both)},
-  row2:   {pio.to_json(_row2_both)},
-  left1:  {json.dumps(peak_stats_both(_ob1, _db1, _norm_both))},
-  right1: {json.dumps(peak_stats_both(_ob2, _db2, _norm_both))},
-  left2:  {json.dumps(peak_stats_both(_ob3, _db3, _norm_both, round_peak=True))}
+  row1:  {pio.to_json(_row_both)},
+  stats: {json.dumps(_stats_both)}
 }};
 </script>"""))
 ```
@@ -1510,7 +1454,7 @@ _ref_params_s05 = {
 
 _df_base_s05 = se.create_simulation_df(
     number_test_days=NUMBER_TEST_DAYS,
-    number_simulations=10_000,
+    number_simulations=500_000,
     seed=SEED,
     condition_parameters=[{"mean": CONTROL_MEAN, "trials": int(MAX_TEST_N * SPLIT)}],
 )
@@ -1539,61 +1483,22 @@ _os051, _ts051, _ms051, _rs051, _ds051 = run_loop_df(_df_prepped_s05, True)
 _os052, _ts052, _ms052, _rs052, _ds052 = run_loop_df(_df_prepped_s05, False)
 _os053, _ts053, _ms053, _rs053, _ds053 = run_loop_df(_df_fixed_s05, False)
 
-_fs051 = make_curve_fig_n(_os051, _ts051, _ms051, _rs051, "<b>Peeking + Best</b>", _norm_s05, baseline=CONTROL_MEAN, total_n=_ptn_s05 + MAX_TEST_N)
-_fs052 = make_curve_fig_n(_os052, _ts052, _ms052, _rs052, "<b>Peeking</b>",       _norm_s05, baseline=CONTROL_MEAN, total_n=_ptn_s05 + MAX_TEST_N)
-_fs053 = make_curve_fig_n(_os053, _ts053, _ms053, _rs053, "<b>Fixed Sample</b>",  _norm_s05, baseline=CONTROL_MEAN, total_n=_ptn_s05 + MAX_TEST_N, round_peak=True)
-
-_row1_s05 = make_subplots(rows=1, cols=2,
-                           subplot_titles=["<b>Peeking + Best</b>",
-                                           "<b>Peeking</b>"])
-for _tr in _fs051.data: _row1_s05.add_trace(_tr, row=1, col=1)
-for _tr in _fs052.data: _row1_s05.add_trace(_tr, row=1, col=2)
-_row1_s05.update_xaxes(title_text="P-value Threshold", tickformat=".2f")
-_row1_s05.update_yaxes(title_text="Projected Mean @ Year-End", tickformat=".3%", col=1)
-_row1_s05.update_yaxes(tickformat=".3%", col=2)
-_row1_s05.update_layout(showlegend=False, height=300)
-
-_row2_s05 = make_subplots(rows=1, cols=2,
-                           subplot_titles=["<b>Fixed Sample</b>",
-                                           "<b>All Strategies:</b> Projected Mean vs Trials"])
-for _tr in _fs053.data:
-    _tr.showlegend = False
-    _row2_s05.add_trace(_tr, row=1, col=1)
-_overlay_s05 = make_overlay_fig_n(_os051, _ts051, _os052, _ts052, _os053, _ts053, _norm_s05)
-for _tr in _overlay_s05.data:
-    _row2_s05.add_trace(_tr, row=1, col=2)
-_row2_s05.update_xaxes(title_text="P-value Threshold", tickformat=".2f", range=[0.0, 0.52], col=1)
-_row2_s05.update_yaxes(title_text="Projected Mean @ Year-End", tickformat=".3%", col=1)
-_row2_s05.update_xaxes(title_text="Avg Total Trials", tickformat=",", col=2)
-_row2_s05.update_yaxes(tickformat=".3%", col=2)
-_row2_s05.update_layout(
-    showlegend=True,
-    legend=dict(orientation="h", yanchor="top", y=-0.2,
-                xanchor="center", x=0.75, font=dict(size=10)),
-    height=300,
+_row_s05   = make_scenario_row(
+    _os051, _ts051, _ms051, _rs051,
+    _os052, _ts052, _ms052, _rs052,
+    _os053, _ts053, _ms053, _rs053,
+    _norm_s05, CONTROL_MEAN, _ptn_s05 + MAX_TEST_N,
 )
-
-def peak_stats_s05(outcomes, avg_days_list, norm, round_peak=False):
-    y    = np.array(outcomes) / norm
-    x    = 1 - p_thresholds
-    peak = int(np.argmax(np.round(y * 100, 4)) if round_peak else np.argmax(y))
-    opt_alpha       = x[peak]
-    marginal_events = (y[peak] - CONTROL_MEAN) * (_ptn_s05 + MAX_TEST_N)
-    avg_d           = avg_days_list[peak]
-    return f"""<div style="text-align:center; font-size:0.9rem; color:#333; margin-top:0.25rem;">
-      α: <strong>{opt_alpha:.2f}</strong> &nbsp;|&nbsp;
-      Marginal Events vs No Test: <strong>{marginal_events:,.0f}</strong> &nbsp;|&nbsp;
-      Avg(Days): <strong>{avg_d:.1f}</strong>
-    </div>"""
+_stats_s05 = make_scenario_stats(
+    _os051, _ds051, _ts051, _rs051, _os052, _ds052, _ts052, _rs052, _os053, _ds053, _ts053, _rs053,
+    _norm_s05, CONTROL_MEAN, _ptn_s05 + MAX_TEST_N,
+)
 
 display(HTML(f"""<script>
 window.__wif_scenarios = window.__wif_scenarios || {{}};
 window.__wif_scenarios['500k_s05_cr10'] = {{
-  row1:   {pio.to_json(_row1_s05)},
-  row2:   {pio.to_json(_row2_s05)},
-  left1:  {json.dumps(peak_stats_s05(_os051, _ds051, _norm_s05))},
-  right1: {json.dumps(peak_stats_s05(_os052, _ds052, _norm_s05))},
-  left2:  {json.dumps(peak_stats_s05(_os053, _ds053, _norm_s05, round_peak=True))}
+  row1:  {pio.to_json(_row_s05)},
+  stats: {json.dumps(_stats_s05)}
 }};
 </script>"""))
 ```
@@ -1622,61 +1527,22 @@ _os05_2x1, _ts05_2x1, _ms05_2x1, _rs05_2x1, _ds05_2x1 = run_loop_df(_df_prepped_
 _os05_2x2, _ts05_2x2, _ms05_2x2, _rs05_2x2, _ds05_2x2 = run_loop_df(_df_prepped_s05_2x, False)
 _os05_2x3, _ts05_2x3, _ms05_2x3, _rs05_2x3, _ds05_2x3 = run_loop_df(_df_fixed_s05_2x, False)
 
-_f2x1 = make_curve_fig_n(_os05_2x1, _ts05_2x1, _ms05_2x1, _rs05_2x1, "<b>Peeking + Best</b>", _norm_s05_2x, baseline=CONTROL_MEAN, total_n=_ptn_s05_2x + MAX_TEST_N)
-_f2x2 = make_curve_fig_n(_os05_2x2, _ts05_2x2, _ms05_2x2, _rs05_2x2, "<b>Peeking</b>",       _norm_s05_2x, baseline=CONTROL_MEAN, total_n=_ptn_s05_2x + MAX_TEST_N)
-_f2x3 = make_curve_fig_n(_os05_2x3, _ts05_2x3, _ms05_2x3, _rs05_2x3, "<b>Fixed Sample</b>",  _norm_s05_2x, baseline=CONTROL_MEAN, total_n=_ptn_s05_2x + MAX_TEST_N, round_peak=True)
-
-_row1_s05_2x = make_subplots(rows=1, cols=2,
-                              subplot_titles=["<b>Peeking + Best</b>",
-                                             "<b>Peeking</b>"])
-for _tr in _f2x1.data: _row1_s05_2x.add_trace(_tr, row=1, col=1)
-for _tr in _f2x2.data: _row1_s05_2x.add_trace(_tr, row=1, col=2)
-_row1_s05_2x.update_xaxes(title_text="P-value Threshold", tickformat=".2f")
-_row1_s05_2x.update_yaxes(title_text="Projected Mean @ Year-End", tickformat=".3%", col=1)
-_row1_s05_2x.update_yaxes(tickformat=".3%", col=2)
-_row1_s05_2x.update_layout(showlegend=False, height=300)
-
-_row2_s05_2x = make_subplots(rows=1, cols=2,
-                              subplot_titles=["<b>Fixed Sample</b>",
-                                             "<b>All Strategies:</b> Projected Mean vs Trials"])
-for _tr in _f2x3.data:
-    _tr.showlegend = False
-    _row2_s05_2x.add_trace(_tr, row=1, col=1)
-_overlay_s05_2x = make_overlay_fig_n(_os05_2x1, _ts05_2x1, _os05_2x2, _ts05_2x2, _os05_2x3, _ts05_2x3, _norm_s05_2x)
-for _tr in _overlay_s05_2x.data:
-    _row2_s05_2x.add_trace(_tr, row=1, col=2)
-_row2_s05_2x.update_xaxes(title_text="P-value Threshold", tickformat=".2f", range=[0.0, 0.52], col=1)
-_row2_s05_2x.update_yaxes(title_text="Projected Mean @ Year-End", tickformat=".3%", col=1)
-_row2_s05_2x.update_xaxes(title_text="Avg Total Trials", tickformat=",", col=2)
-_row2_s05_2x.update_yaxes(tickformat=".3%", col=2)
-_row2_s05_2x.update_layout(
-    showlegend=True,
-    legend=dict(orientation="h", yanchor="top", y=-0.2,
-                xanchor="center", x=0.75, font=dict(size=10)),
-    height=300,
+_row_s05_2x   = make_scenario_row(
+    _os05_2x1, _ts05_2x1, _ms05_2x1, _rs05_2x1,
+    _os05_2x2, _ts05_2x2, _ms05_2x2, _rs05_2x2,
+    _os05_2x3, _ts05_2x3, _ms05_2x3, _rs05_2x3,
+    _norm_s05_2x, CONTROL_MEAN, _ptn_s05_2x + MAX_TEST_N,
 )
-
-def peak_stats_s05_2x(outcomes, avg_days_list, norm, round_peak=False):
-    y    = np.array(outcomes) / norm
-    x    = 1 - p_thresholds
-    peak = int(np.argmax(np.round(y * 100, 4)) if round_peak else np.argmax(y))
-    opt_alpha       = x[peak]
-    marginal_events = (y[peak] - CONTROL_MEAN) * (_ptn_s05_2x + MAX_TEST_N)
-    avg_d           = avg_days_list[peak]
-    return f"""<div style="text-align:center; font-size:0.9rem; color:#333; margin-top:0.25rem;">
-      α: <strong>{opt_alpha:.2f}</strong> &nbsp;|&nbsp;
-      Marginal Events vs No Test: <strong>{marginal_events:,.0f}</strong> &nbsp;|&nbsp;
-      Avg(Days): <strong>{avg_d:.1f}</strong>
-    </div>"""
+_stats_s05_2x = make_scenario_stats(
+    _os05_2x1, _ds05_2x1, _ts05_2x1, _rs05_2x1, _os05_2x2, _ds05_2x2, _ts05_2x2, _rs05_2x2, _os05_2x3, _ds05_2x3, _ts05_2x3, _rs05_2x3,
+    _norm_s05_2x, CONTROL_MEAN, _ptn_s05_2x + MAX_TEST_N,
+)
 
 display(HTML(f"""<script>
 window.__wif_scenarios = window.__wif_scenarios || {{}};
 window.__wif_scenarios['1m_s05_cr10'] = {{
-  row1:   {pio.to_json(_row1_s05_2x)},
-  row2:   {pio.to_json(_row2_s05_2x)},
-  left1:  {json.dumps(peak_stats_s05_2x(_os05_2x1, _ds05_2x1, _norm_s05_2x))},
-  right1: {json.dumps(peak_stats_s05_2x(_os05_2x2, _ds05_2x2, _norm_s05_2x))},
-  left2:  {json.dumps(peak_stats_s05_2x(_os05_2x3, _ds05_2x3, _norm_s05_2x, round_peak=True))}
+  row1:  {pio.to_json(_row_s05_2x)},
+  stats: {json.dumps(_stats_s05_2x)}
 }};
 </script>"""))
 ```
@@ -1737,111 +1603,161 @@ for _cr_val, _cr_key in _cr_combos:
             _o2, _t2, _m2, _r2, _d2 = run_loop_df(_df_prepped_cr, False)
             _o3, _t3, _m3, _r3, _d3 = run_loop_df(_df_fixed_cr, False)
 
-            _fc1 = make_curve_fig_n(_o1, _t1, _m1, _r1, "<b>Peeking + Best</b>", _norm, baseline=_cr_val, total_n=_ptn_val + MAX_TEST_N)
-            _fc2 = make_curve_fig_n(_o2, _t2, _m2, _r2, "<b>Peeking</b>",       _norm, baseline=_cr_val, total_n=_ptn_val + MAX_TEST_N)
-            _fc3 = make_curve_fig_n(_o3, _t3, _m3, _r3, "<b>Fixed Sample</b>",  _norm, baseline=_cr_val, total_n=_ptn_val + MAX_TEST_N, round_peak=True)
-
-            _row1_cr = make_subplots(rows=1, cols=2,
-                                     subplot_titles=["<b>Peeking + Best</b>",
-                                                     "<b>Peeking</b>"])
-            for _tr in _fc1.data: _row1_cr.add_trace(_tr, row=1, col=1)
-            for _tr in _fc2.data: _row1_cr.add_trace(_tr, row=1, col=2)
-            _row1_cr.update_xaxes(title_text="P-value Threshold", tickformat=".2f")
-            _row1_cr.update_yaxes(title_text="Projected Mean @ Year-End", tickformat=".3%", col=1)
-            _row1_cr.update_yaxes(tickformat=".3%", col=2)
-            _row1_cr.update_layout(showlegend=False, height=300)
-
-            _row2_cr = make_subplots(rows=1, cols=2,
-                                     subplot_titles=["<b>Fixed Sample</b>",
-                                                     "<b>All Strategies:</b> Projected Mean vs Trials"])
-            for _tr in _fc3.data:
-                _tr.showlegend = False
-                _row2_cr.add_trace(_tr, row=1, col=1)
-            _overlay_cr = make_overlay_fig_n(_o1, _t1, _o2, _t2, _o3, _t3, _norm)
-            for _tr in _overlay_cr.data:
-                _row2_cr.add_trace(_tr, row=1, col=2)
-            _row2_cr.update_xaxes(title_text="P-value Threshold", tickformat=".2f",
-                                  range=[0.0, 0.52], col=1)
-            _row2_cr.update_yaxes(title_text="Projected Mean @ Year-End", tickformat=".3%", col=1)
-            _row2_cr.update_xaxes(title_text="Avg Total Trials", tickformat=",", col=2)
-            _row2_cr.update_yaxes(tickformat=".3%", col=2)
-            _row2_cr.update_layout(
-                showlegend=True,
-                legend=dict(orientation="h", yanchor="top", y=-0.2,
-                            xanchor="center", x=0.75, font=dict(size=10)),
-                height=300,
+            _row_cr   = make_scenario_row(
+                _o1, _t1, _m1, _r1,
+                _o2, _t2, _m2, _r2,
+                _o3, _t3, _m3, _r3,
+                _norm, _cr_val, _ptn_val + MAX_TEST_N,
+            )
+            _stats_cr = make_scenario_stats(
+                _o1, _d1, _t1, _r1, _o2, _d2, _t2, _r2, _o3, _d3, _t3, _r3,
+                _norm, _cr_val, _ptn_val + MAX_TEST_N,
             )
 
             _key = f"{_ptn_key}_{_sigma_key}_{_cr_key}"
             display(HTML(f"""<script>
 window.__wif_scenarios = window.__wif_scenarios || {{}};
 window.__wif_scenarios['{_key}'] = {{
-  row1:   {pio.to_json(_row1_cr)},
-  row2:   {pio.to_json(_row2_cr)},
-  left1:  {json.dumps(_peak_stats_cr(_o1, _d1, _norm, _cr_val, _ptn_val))},
-  right1: {json.dumps(_peak_stats_cr(_o2, _d2, _norm, _cr_val, _ptn_val))},
-  left2:  {json.dumps(_peak_stats_cr(_o3, _d3, _norm, _cr_val, _ptn_val, round_peak=True))}
+  row1:  {pio.to_json(_row_cr)},
+  stats: {json.dumps(_stats_cr)}
 }};
 </script>"""))
 ```
 
 # Insights
 
-**P-hacking is good for business.** Traditional p-values control false positive rates — a rule designed for science, where the same experiment can be run again. In industry, nobody reruns your test. Peeking and picking the leader breaks that rule, but simulation shows it consistently outperforms waiting for certainty. The "hack" is just optimizing the right objective.
+```{=html}
+<div style="font-size:1rem; color:#666; margin-top:-0.75rem; margin-bottom:0.75rem;">&#9432;&nbsp; Click a finding to highlight the relevant rows in the results table above.</div>
 
-**The optimal significance threshold for a fixed sample test is 0.50.** At α = 0.50, the Pr(Best) threshold is 0.50 — meaning you deploy whoever is leading on the final day, every time. No significance required. Traditional thresholds like 0.05 don't just leave value on the table — they actively cause you to default to control when the data already points elsewhere.
+<div id="insights-list" style="margin-top:0.5rem; display:flex; flex-direction:column; gap:0.6rem;">
 
-**Peeking + Best is the most profitable strategy.** Stopping early when you have a signal and deploying the leader when you don't beats every alternative — it captures upside faster and never wastes an inconclusive experiment by defaulting to control. The cost of being wrong is built into the simulation; it still wins.
+  <label style="display:flex; align-items:flex-start; gap:0.65rem; cursor:pointer; font-size:0.95rem; line-height:1.5;">
+    <input type="radio" name="insight" value="peeking-best" checked
+           style="margin-top:3px; accent-color:#1e46a0; cursor:pointer; flex-shrink:0;">
+    <span><strong>Peeking + Best is the most profitable strategy.</strong> Stopping early when you have a signal and deploying the leader when you don't beats every alternative — it captures upside faster and never wastes an inconclusive experiment by defaulting to control.</span>
+  </label>
 
-**Bigger swings mean more value.** Large effects are easier to detect, so the stopping rule fires sooner and picks the right winner more often. Even though harmful tests are equally likely regardless of effect size, they don't wash out the gains — losses are cut short, winners are deployed faster and to more users. Wider effect distributions consistently produce better outcomes.
+  <label style="display:flex; align-items:flex-start; gap:0.65rem; cursor:pointer; font-size:0.95rem; line-height:1.5;">
+    <input type="radio" name="insight" value="phacking"
+           style="margin-top:3px; accent-color:#1e46a0; cursor:pointer; flex-shrink:0;">
+    <span><strong>P-Hacking is Good For Business:</strong> Flouting the rules of Fixed Sample <em>Significance Testing</em> — like peeking and retaining Best Performer when result is inconclusive — is good for business.</span>
+  </label>
 
-# Code
+  <label style="display:flex; align-items:flex-start; gap:0.65rem; cursor:pointer; font-size:0.95rem; line-height:1.5;">
+    <input type="radio" name="insight" value="alpha50"
+           style="margin-top:3px; accent-color:#1e46a0; cursor:pointer; flex-shrink:0;">
+    <span><strong>The optimal α for a fixed sample test is 0.50</strong> — deploy whoever is leading on the final day, every time. Conventional thresholds don't just leave value on the table; they actively cause you to default to control when the data already points elsewhere.</span>
+  </label>
 
-```{python}
-#| echo: true
-#| eval: false
-#| code-fold: true
-#| code-summary: "Full simulation pipeline"
+  <label style="display:flex; align-items:flex-start; gap:0.65rem; cursor:pointer; font-size:0.95rem; line-height:1.5;">
+    <input type="radio" name="insight" value="peeking-vs-fixed"
+           style="margin-top:3px; accent-color:#1e46a0; cursor:pointer; flex-shrink:0;">
+    <span><strong>Peeking vs Fixed Sample (α = 0.50) is a toss-up.</strong> Both strategies produce similar outcomes — but Peeking gets there in roughly half the trials, at the cost of lower accuracy in picking the true winner.</span>
+  </label>
 
-import simulationengine as se
-import numpy as np
+</div>
+
+<script>
+(function() {
+  var HIGHLIGHTS = {
+    'peeking-best': function(row) {
+      return row.getAttribute('data-label') === 'Peeking + Best';
+    },
+    'phacking': function(row) {
+      var lbl    = row.getAttribute('data-label')  || '';
+      var is_ref = row.getAttribute('data-is-ref') === 'true';
+      return lbl === 'Peeking + Best' || lbl === 'Peeking' || (lbl === 'Fixed Sample' && is_ref);
+    },
+    'alpha50': function(row) {
+      return row.getAttribute('data-label') === 'Fixed Sample';
+    },
+    'peeking-vs-fixed': function(row) {
+      var lbl    = row.getAttribute('data-label')  || '';
+      var is_ref = row.getAttribute('data-is-ref') === 'true';
+      return lbl === 'Peeking' || (lbl === 'Fixed Sample' && !is_ref);
+    }
+  };
+
+  function applyHighlights() {
+    var active = document.querySelector('input[name="insight"]:checked');
+    var tbody  = document.querySelector('#wif-stats1 tbody');
+    if (!tbody) return;
+    tbody.querySelectorAll('tr').forEach(function(row) {
+      var hit = active && HIGHLIGHTS[active.value] && HIGHLIGHTS[active.value](row);
+      row.style.background   = hit ? '#fffbea' : '';
+      row.style.outline      = hit ? '1.5px solid #f0a500' : '';
+      row.style.outlineOffset = hit ? '-1px' : '';
+    });
+  }
+
+  // Re-apply whenever the table is rebuilt
+  function watchStats() {
+    var el = document.getElementById('wif-stats1');
+    if (!el) { setTimeout(watchStats, 200); return; }
+    new MutationObserver(applyHighlights).observe(el, { childList: true, subtree: true });
+  }
+  watchStats();
+
+  document.addEventListener('change', function(e) {
+    if (e.target && e.target.name === 'insight') applyHighlights();
+  });
+})();
+</script>
+```
+
+# Code Snippets
+
+```{=html}
+<div class="mt-3 mb-2" style="display:none;">
+  <div class="accordion-item" style="border: 1.5px dashed #90b8e0; border-radius: 6px; background: #f0f6fd; margin-bottom: 0.5rem;">
+    <div class="accordion-header" style="margin:0;">
+      <button class="accordion-button collapsed px-3 shadow-none"
+              style="font-size:0.9rem; font-weight:600; color:#1e46a0; background:transparent; height:auto; width:100%; display:flex; align-items:center; padding-top:0.5rem; padding-bottom:0.5rem; flex-wrap:wrap;"
+              type="button" data-bs-toggle="collapse" data-bs-target="#code-pipeline-collapse">
+        <span style="flex:1;">Full Simulation Pipeline</span>
+        <span class="accordion-chevron" style="flex-shrink:0; margin-left:0.75rem; font-size:1.8rem; line-height:1; transition:transform 0.2s;">&#8964;</span>
+        <span style="width:100%; font-size:0.85rem; font-weight:400; font-style:italic; color:#555; margin-top:0.2rem;">End-to-end: parameters → simulation → cumulative stats → value potential.</span>
+      </button>
+    </div>
+  </div>
+  <div id="code-pipeline-collapse" class="collapse" style="border: 1.5px dashed #90b8e0; border-top: none; border-radius: 0 0 6px 6px; padding: 1rem; background: #fff; margin-bottom: 0.5rem;">
+    <pre style="background:#f8f8f8; border-radius:4px; padding:1rem; font-size:0.8rem; overflow-x:auto;"><code>import simulationengine as se
 
 # ── Parameters ────────────────────────────────────────────────────────────────
-CONTROL_MEAN       = 0.10      # baseline conversion rate
-MAX_TEST_N         = 500_000   # total test users (both arms combined)
-SPLIT              = 0.5       # 50/50 split
-MIN_TEST_DAYS      = 7         # burn-in: no stopping decisions before this day
-NUMBER_TEST_DAYS   = 20        # max experiment duration
-POST_TEST_N        = 500_000   # post-test population exposed to the winner
+CONTROL_MEAN = 0.10  # baseline conversion rate
+MAX_TEST_N = 500_000  # total test users (both arms combined)
+SPLIT = 0.5  # 50/50 split
+MIN_TEST_DAYS = 7  # burn-in: no stopping decisions before this day
+NUMBER_TEST_DAYS = 20  # max experiment duration
+POST_TEST_N = 500_000  # post-test population exposed to the winner
 NUMBER_SIMULATIONS = 100_000
-SEED               = 42
-ITC_MEAN           = 100       # index-to-control: 100 = no average lift
-ITC_SE             = 1         # spread of effects across experiments
+SEED = 42
+ITC_MEAN = 100  # index-to-control: 100 = no average lift
+ITC_SE = 1  # spread of effects across experiments
 
 # ── Step 1: Simulate the control arm ─────────────────────────────────────────
-# Each simulation is an independent binomial process with the same true rate.
-# Noise comes from random sampling, not from the true rate itself.
 df = se.create_simulation_df(
     number_test_days=NUMBER_TEST_DAYS,
     number_simulations=NUMBER_SIMULATIONS,
     seed=SEED,
-    condition_parameters=[{
-        "mean":   CONTROL_MEAN,
-        "trials": int(MAX_TEST_N * SPLIT),
-    }],
+    condition_parameters=[
+        {
+            "mean": CONTROL_MEAN,
+            "trials": int(MAX_TEST_N * SPLIT),
+        }
+    ],
 )
 
-# ── Step 2: Add a treatment arm with a random true effect ─────────────────────
-# itc ~ N(ITC_MEAN, ITC_SE); treatment_mean = (itc / 100) × control_mean
-# One effect draw per simulation — unknown and fixed for that experiment's life.
+# ── Step 2: Add treatment arm with a random true effect ───────────────────────
+# itc ~ N(ITC_MEAN, ITC_SE);  treatment_mean = (itc / 100) x control_mean
 effect_distribution = {
     "itc_mean": ITC_MEAN,
-    "itc_se":   ITC_SE,
-    "trials":   int(MAX_TEST_N * SPLIT),
+    "itc_se": ITC_SE,
+    "trials": int(MAX_TEST_N * SPLIT),
 }
 df = se.add_random_effect_condition(df, effect_distribution)
 
-# ── Step 3: Compute running stats and stopping-rule inputs ───────────────────
+# ── Step 3: Compute running stats and stopping-rule inputs ────────────────────
 df = se.add_cumulative_columns(df)
 df = se.compute_cumulative_std_rates(df)
 df = se.compute_delta_stats(df)
@@ -1850,69 +1766,112 @@ df = se.compute_test_stats(df)
 # ── Step 4: Compute value potential for every stopping decision ───────────────
 df = se.calculate_remaining_test_potential(df)
 df = se.calculate_launch_potential(df, post_test_n=POST_TEST_N)
-df = se.calculate_total_potential(df)
+df = se.calculate_total_potential(df)</code></pre>
+  </div>
+</div>
 ```
 
-## Simulating the Control
+```{=html}
+<div class="mt-3 mb-2">
+  <div class="accordion-item" style="border: 1.5px dashed #90b8e0; border-radius: 6px; background: #f0f6fd; margin-bottom: 0.5rem;">
+    <div class="accordion-header" style="margin:0;">
+      <button class="accordion-button collapsed px-3 shadow-none"
+              style="font-size:0.9rem; font-weight:600; color:#1e46a0; background:transparent; height:auto; width:100%; display:flex; align-items:center; padding-top:0.5rem; padding-bottom:0.5rem; flex-wrap:wrap;"
+              type="button" data-bs-toggle="collapse" data-bs-target="#code-control-collapse">
+        <span style="flex:1;">Simulating the Control</span>
+        <span class="accordion-chevron" style="flex-shrink:0; margin-left:0.75rem; font-size:1.8rem; line-height:1; transition:transform 0.2s;">&#8964;</span>
+        <span style="width:100%; font-size:0.85rem; font-weight:400; font-style:italic; color:#555; margin-top:0.2rem;">Each simulation is an independent binomial process — same true rate, different noise.</span>
+      </button>
+    </div>
+  </div>
+  <div id="code-control-collapse" class="collapse" style="border: 1.5px dashed #90b8e0; border-top: none; border-radius: 0 0 6px 6px; padding: 1rem; background: #fff; margin-bottom: 0.5rem;">
+    <p style="font-size:0.9rem; margin-bottom:0.75rem;"><code>create_simulation_df</code> generates a DataFrame of daily binomial draws for one or more fixed-rate conditions. Each row is one day of one simulation.</p>
+    <pre style="background:#f8f8f8; border-radius:4px; padding:1rem; font-size:0.8rem; overflow-x:auto;"><code>import numpy as np
+import polars as pl
 
-`create_simulation_df` generates a DataFrame of daily binomial draws for one or more fixed-rate conditions. Each simulation is an independent realization of the same baseline — the noise comes from the binomial process, not the true rate. Each row is one day of one simulation.
 
-```{python}
-#| echo: true
-#| eval: false
-#| code-fold: true
-#| code-summary: "create_simulation_df — source"
-
-def create_simulation_df(number_test_days, number_simulations, condition_parameters, seed=None):
+def create_simulation_df(
+    number_test_days,
+    number_simulations,
+    condition_parameters,
+    seed=None,
+):
     if seed is not None:
         np.random.seed(seed)
 
     # trials_per_day is the same for every day in the experiment
-    n = np.array([c["trials"] // number_test_days for c in condition_parameters])[:, None]
+    n = np.array(
+        [c["trials"] // number_test_days for c in condition_parameters]
+    )[:, None]
     p = np.array([c["mean"] for c in condition_parameters])[:, None]
 
-    rep   = number_test_days * number_simulations
+    rep = number_test_days * number_simulations
     n_mat = np.repeat(n, rep, axis=1)
     p_mat = np.repeat(p, rep, axis=1)
 
     # One binomial draw per (condition, day, simulation)
     samples = np.random.binomial(n=n_mat, p=p_mat)
 
-    return pl.DataFrame({
-        "simulation": np.arange(rep) // number_test_days + 1,
-        "day":        np.arange(rep) %  number_test_days + 1,
-        **{f"condition_{i}_value":     samples[i]                           for i in range(len(condition_parameters))},
-        **{f"condition_{i}_trials":    n_mat[i]                             for i in range(len(condition_parameters))},
-        **{f"condition_{i}_true_mean": np.full(rep, condition_parameters[i]["mean"]) for i in range(len(condition_parameters))},
-    })
-```
+    return pl.DataFrame(
+        {
+            "simulation": np.arange(rep) // number_test_days + 1,
+            "day": np.arange(rep) % number_test_days + 1,
+            **{
+                f"condition_{i}_value": samples[i]
+                for i in range(len(condition_parameters))
+            },
+            **{
+                f"condition_{i}_trials": n_mat[i]
+                for i in range(len(condition_parameters))
+            },
+            **{
+                f"condition_{i}_true_mean": np.full(
+                    rep, condition_parameters[i]["mean"]
+                )
+                for i in range(len(condition_parameters))
+            },
+        }
+    )</code></pre>
+  </div>
+</div>
 
-## Simulating the Treatment
+<div class="mt-3 mb-2">
+  <div class="accordion-item" style="border: 1.5px dashed #90b8e0; border-radius: 6px; background: #f0f6fd; margin-bottom: 0.5rem;">
+    <div class="accordion-header" style="margin:0;">
+      <button class="accordion-button collapsed px-3 shadow-none"
+              style="font-size:0.9rem; font-weight:600; color:#1e46a0; background:transparent; height:auto; width:100%; display:flex; align-items:center; padding-top:0.5rem; padding-bottom:0.5rem; flex-wrap:wrap;"
+              type="button" data-bs-toggle="collapse" data-bs-target="#code-treatment-collapse">
+        <span style="flex:1;">Simulating the Treatment</span>
+        <span class="accordion-chevron" style="flex-shrink:0; margin-left:0.75rem; font-size:1.8rem; line-height:1; transition:transform 0.2s;">&#8964;</span>
+        <span style="width:100%; font-size:0.85rem; font-weight:400; font-style:italic; color:#555; margin-top:0.2rem;">Each experiment has a different true effect — drawn once per simulation, never observed in practice.</span>
+      </button>
+    </div>
+  </div>
+  <div id="code-treatment-collapse" class="collapse" style="border: 1.5px dashed #90b8e0; border-top: none; border-radius: 0 0 6px 6px; padding: 1rem; background: #fff; margin-bottom: 0.5rem;">
+    <p style="font-size:0.9rem; margin-bottom:0.75rem;"><code>add_random_effect_condition</code> appends a treatment arm where the true effect varies across simulations but is fixed within one. The effect is drawn from an ITC (Index-to-Control) distribution: ITC = 100 &#8594; no lift; ITC ~ N(100, 1) &#8594; effects centered at parity with modest spread.</p>
+    <pre style="background:#f8f8f8; border-radius:4px; padding:1rem; font-size:0.8rem; overflow-x:auto;"><code>import numpy as np
+import polars as pl
 
-`add_random_effect_condition` appends a treatment arm where the **true effect varies across simulations** but is fixed within one. The effect is drawn from an ITC (Index-to-Control) distribution: ITC = 100 → no lift; ITC ~ N(100, 1) → effects centered at parity with modest spread. Some experiments are genuinely good, some harmful, most marginal — and crucially, the true effect is never observed.
-
-```{python}
-#| echo: true
-#| eval: false
-#| code-fold: true
-#| code-summary: "add_random_effect_condition — source"
 
 def add_random_effect_condition(df, random_effect_parameters, seed=None):
     if seed is not None:
         np.random.seed(seed)
 
     n_simulations = int(df["simulation"].max())
-    n_days        = int(df["day"].max())
+    n_days = int(df["day"].max())
 
     # One ITC draw per simulation — the unknown true effect for that experiment
-    itc_samples = np.random.normal(
-        random_effect_parameters["itc_mean"],
-        random_effect_parameters["itc_se"],
-        n_simulations,
-    ) / 100
+    itc_samples = (
+        np.random.normal(
+            random_effect_parameters["itc_mean"],
+            random_effect_parameters["itc_se"],
+            n_simulations,
+        )
+        / 100
+    )
 
-    # treatment_mean = (itc / 100) × control_mean
-    control_mean    = float(df["condition_0_true_mean"][0])
+    # treatment_mean = (itc / 100) x control_mean
+    control_mean = float(df["condition_0_true_mean"][0])
     treatment_means = itc_samples * control_mean
 
     # Daily binomial draws; treatment_mean is constant across days within a simulation
@@ -1924,10 +1883,30 @@ def add_random_effect_condition(df, random_effect_parameters, seed=None):
     )
 
     # Reshape to tall format to match the existing DataFrame
-    next_condition = max(int(c.split("_")[1]) for c in df.columns if c.startswith("condition_") and c.split("_")[1].isdigit()) + 1
-    return df.with_columns([
-        pl.Series(f"condition_{next_condition}_value",     events.flatten()),
-        pl.Series(f"condition_{next_condition}_trials",    np.full(n_simulations * n_days, trials_per_day)),
-        pl.Series(f"condition_{next_condition}_true_mean", np.repeat(treatment_means, n_days)),
-    ])
+    next_condition = (
+        max(
+            int(c.split("_")[1])
+            for c in df.columns
+            if c.startswith("condition_") and c.split("_")[1].isdigit()
+        )
+        + 1
+    )
+    return df.with_columns(
+        [
+            pl.Series(
+                f"condition_{next_condition}_value",
+                events.flatten(),
+            ),
+            pl.Series(
+                f"condition_{next_condition}_trials",
+                np.full(n_simulations * n_days, trials_per_day),
+            ),
+            pl.Series(
+                f"condition_{next_condition}_true_mean",
+                np.repeat(treatment_means, n_days),
+            ),
+        ]
+    )</code></pre>
+  </div>
+</div>
 ```
