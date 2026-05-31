@@ -951,7 +951,7 @@ def run_loop(select_best_at_end, prepped_df=None):
     if prepped_df is None:
         prepped_df = df_prepped
     outcomes, trials, med_trials, rate, avg_days = [], [], [], [], []
-    for p in p_thresholds:
+    for p in p_thresholds: 
         s = se.analyze_by_probability_threshold(
             prepped_df,
             threshold=p,
