@@ -2,7 +2,7 @@
 title: "AB Testing is an Optimization Problem"
 subtitle: "Simulations Show P-Hacking Is Good for Business"
 author: "Russ Zaliznyak"
-date: "2026-05-28"
+date: "2026-05-30"
 categories: [AB Testing, Bayesian, Decision Theory, Optimization]
 page-layout: full
 jupyter: py311
@@ -1186,9 +1186,9 @@ window.__wif_scenarios['500k_s1_cr10'] = {{
   <div style="display:flex; flex-direction:column; gap:0.25rem;">
     <label style="font-size:0.85rem; color:#555; font-weight:600;">Post-Test N</label>
     <select id="wif-ptn" class="form-select form-select-sm" style="width:auto; font-size:0.85rem;">
-      <option value="250k">250,000</option>
+      <option value="100k">100,000</option>
       <option value="500k" selected>500,000</option>
-      <option value="1m">1,000,000</option>
+      <option value="2m">2,000,000</option>
     </select>
   </div>
   <div style="display:flex; flex-direction:column; gap:0.25rem;">
@@ -1201,8 +1201,53 @@ window.__wif_scenarios['500k_s1_cr10'] = {{
       <option value="s2">ITC ~ N(100, 2)</option>
     </select>
   </div>
+  <div id="wif-context" style="align-self:center; font-size:0.85rem; color:#555; font-style:italic; flex:1; min-width:160px;"></div>
   </div>
 </div>
+
+<script>
+(function() {{
+  var CR_ORDER    = {{ 'cr10': 0, 'cr30': 1, 'cr65': 2 }};
+  var PTN_ORDER   = {{ '100k': 0, '500k': 1, '2m': 2 }};
+  var SIGMA_ORDER = {{ 's05': 0, 's1': 1, 's2': 2 }};
+  var prevCr    = 'cr10';
+  var prevPtn   = '500k';
+  var prevSigma = 's1';
+
+  var CR_UP     = 'Higher baseline means larger absolute effects at the same ITC — easier to detect.';
+  var CR_DOWN   = 'Lower baseline means smaller absolute effects at the same ITC — harder to detect.';
+  var PTN_UP    = 'Larger post-test audience means a bad decision reaches more people — the optimal stopping rule becomes more conservative.';
+  var PTN_DOWN  = 'Smaller post-test audience limits the downside of a wrong call — the optimal stopping rule becomes more lenient.';
+  var SIGMA_UP   = 'Bigger swings are easier to spot — the experiment ends sooner, accuracy improves, and the value gains are larger.';
+  var SIGMA_DOWN = 'Smaller swings are harder to spot — the experiment runs longer, picks the wrong winner more often, and the value gains are smaller.';
+
+  function updateContext(text) {{
+    var ctx = document.getElementById('wif-context');
+    if (ctx) ctx.textContent = text;
+  }}
+
+  document.getElementById('wif-cr').addEventListener('change', function() {{
+    var cr = document.getElementById('wif-cr').value;
+    if      (CR_ORDER[cr] > CR_ORDER[prevCr]) updateContext(CR_UP);
+    else if (CR_ORDER[cr] < CR_ORDER[prevCr]) updateContext(CR_DOWN);
+    prevCr = cr;
+  }});
+
+  document.getElementById('wif-ptn').addEventListener('change', function() {{
+    var ptn = document.getElementById('wif-ptn').value;
+    if      (PTN_ORDER[ptn] > PTN_ORDER[prevPtn]) updateContext(PTN_UP);
+    else if (PTN_ORDER[ptn] < PTN_ORDER[prevPtn]) updateContext(PTN_DOWN);
+    prevPtn = ptn;
+  }});
+
+  document.getElementById('wif-sigma').addEventListener('change', function() {{
+    var sigma = document.getElementById('wif-sigma').value;
+    if      (SIGMA_ORDER[sigma] > SIGMA_ORDER[prevSigma]) updateContext(SIGMA_UP);
+    else if (SIGMA_ORDER[sigma] < SIGMA_ORDER[prevSigma]) updateContext(SIGMA_DOWN);
+    prevSigma = sigma;
+  }});
+}})();
+</script>
 
 <script>
 (function initWif() {{
@@ -1260,7 +1305,7 @@ window.__wif_scenarios['500k_s1_cr10'] = {{
 #| echo: false
 # Scenario 1: N=1M, σ=1
 
-_ptn_2x = POST_TEST_N * 2
+_ptn_2x = POST_TEST_N * 4
 df_2x = se.calculate_launch_potential(df, post_test_n=_ptn_2x)
 df_2x = se.calculate_total_potential(df_2x)
 
@@ -1339,7 +1384,7 @@ _stats_2x = make_scenario_stats(
 
 display(HTML(f"""<script>
 window.__wif_scenarios = window.__wif_scenarios || {{}};
-window.__wif_scenarios['1m_s1_cr10'] = {{
+window.__wif_scenarios['2m_s1_cr10'] = {{
   row1:  {pio.to_json(_row_2x)},
   stats: {json.dumps(_stats_2x)}
 }};
@@ -1413,7 +1458,7 @@ window.__wif_scenarios['500k_s2_cr10'] = {{
 #| echo: false
 # Scenario 3: N=1M, σ=2
 
-_ptn_both    = POST_TEST_N * 2
+_ptn_both    = POST_TEST_N * 4
 _itc_se_both = 2
 _ref_params_both = {
     "itc_mean": ITC_MEAN,
@@ -1465,7 +1510,7 @@ _stats_both = make_scenario_stats(
 
 display(HTML(f"""<script>
 window.__wif_scenarios = window.__wif_scenarios || {{}};
-window.__wif_scenarios['1m_s2_cr10'] = {{
+window.__wif_scenarios['2m_s2_cr10'] = {{
   row1:  {pio.to_json(_row_both)},
   stats: {json.dumps(_stats_both)}
 }};
@@ -1539,7 +1584,7 @@ window.__wif_scenarios['500k_s05_cr10'] = {{
 #| echo: false
 # Scenario 5: N=1M, σ=0.5
 
-_ptn_s05_2x = POST_TEST_N * 2
+_ptn_s05_2x = POST_TEST_N * 4
 
 _df_s05_2x = se.calculate_launch_potential(_df_s05, post_test_n=_ptn_s05_2x)
 _df_s05_2x = se.calculate_total_potential(_df_s05_2x)
@@ -1572,7 +1617,7 @@ _stats_s05_2x = make_scenario_stats(
 
 display(HTML(f"""<script>
 window.__wif_scenarios = window.__wif_scenarios || {{}};
-window.__wif_scenarios['1m_s05_cr10'] = {{
+window.__wif_scenarios['2m_s05_cr10'] = {{
   row1:  {pio.to_json(_row_s05_2x)},
   stats: {json.dumps(_stats_s05_2x)}
 }};
@@ -1582,7 +1627,7 @@ window.__wif_scenarios['1m_s05_cr10'] = {{
 ```{python}
 #| echo: false
 # Scenario 6: N=250k, σ=1 (reuse base df)
-_ptn_250k = POST_TEST_N // 2
+_ptn_250k = 100_000
 
 _df_250k_s1 = se.calculate_launch_potential(df, post_test_n=_ptn_250k)
 _df_250k_s1 = se.calculate_total_potential(_df_250k_s1)
@@ -1617,7 +1662,7 @@ _stats_250k_s1 = make_scenario_stats(
 
 display(HTML(f"""<script>
 window.__wif_scenarios = window.__wif_scenarios || {{}};
-window.__wif_scenarios['250k_s1_cr10'] = {{
+window.__wif_scenarios['100k_s1_cr10'] = {{
   row1:  {pio.to_json(_row_250k_s1)},
   stats: {json.dumps(_stats_250k_s1)}
 }};
@@ -1660,7 +1705,7 @@ _stats_250k_s2 = make_scenario_stats(
 
 display(HTML(f"""<script>
 window.__wif_scenarios = window.__wif_scenarios || {{}};
-window.__wif_scenarios['250k_s2_cr10'] = {{
+window.__wif_scenarios['100k_s2_cr10'] = {{
   row1:  {pio.to_json(_row_250k_s2)},
   stats: {json.dumps(_stats_250k_s2)}
 }};
@@ -1703,7 +1748,7 @@ _stats_250k_s05 = make_scenario_stats(
 
 display(HTML(f"""<script>
 window.__wif_scenarios = window.__wif_scenarios || {{}};
-window.__wif_scenarios['250k_s05_cr10'] = {{
+window.__wif_scenarios['100k_s05_cr10'] = {{
   row1:  {pio.to_json(_row_250k_s05)},
   stats: {json.dumps(_stats_250k_s05)}
 }};
@@ -1729,7 +1774,7 @@ def _peak_stats_cr(outcomes, avg_days_list, norm, cr_val, ptn_val, round_peak=Fa
 
 _cr_combos    = [(0.30, 'cr30'), (0.65, 'cr65')]
 _sigma_combos = [(ITC_SE, 's1'), (2, 's2'), (0.5, 's05')]
-_ptn_combos   = [(POST_TEST_N // 2, '250k'), (POST_TEST_N, '500k'), (POST_TEST_N * 2, '1m')]
+_ptn_combos   = [(100_000, '100k'), (POST_TEST_N, '500k'), (POST_TEST_N * 4, '2m')]
 
 for _cr_val, _cr_key in _cr_combos:
     for _itc_se_val, _sigma_key in _sigma_combos:
