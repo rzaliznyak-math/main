@@ -14,8 +14,11 @@ main.content,
   padding: 0 2rem;
 }
 
-#title-block-header h1.title {
+#title-block-header h1.title,
+#title-block-header .subtitle {
   text-align: left !important;
+  padding-left: 0 !important;
+  margin-left: 0 !important;
 }
 
 /* Make Plotly charts fill their container */
