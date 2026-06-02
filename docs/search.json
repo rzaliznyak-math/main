@@ -403,7 +403,7 @@
     "href": "ab-testing/ab-testing-optimization.html#results",
     "title": "AB Testing is an Optimization Problem",
     "section": "Results",
-    "text": "Results\nBelow are the optimization curves for each strategy — long-term value as a function of stopping threshold α. The square marker is the peak.\n\nValue vs α: Shows where each strategy is optimized. Compare peak heights to see which strategy produces more value; compare peak positions to see how aggressive the optimal threshold is.\nValue vs Avg Trials: Shows the efficiency trade-off. A strategy that reaches the same value with fewer trials is strictly better — it frees up traffic sooner.\n\n\n\n\n\n\n\n\nThe table summarizes each strategy at its optimal α, with Fixed Sample at the conventional α = 0.05 included as a benchmark.\n\n\n\n  Change the scenario — notice whether the peaks shift or hold.\n  \n  \n    Baseline Conversion\n    \n      10%\n      30%\n      65%\n    \n  \n  \n    Post-Test N\n    \n      100,000\n      500,000\n      2,000,000\n    \n  \n  \n    Expected Effects\n      i\n    \n    \n      ITC ~ N(100, 0.5)\n      ITC ~ N(100, 1)\n      ITC ~ N(100, 2)\n    \n  \n  \n  \n\n\n\n\n\n3.6s"
+    "text": "Results\nBelow are the optimization curves for each strategy — long-term value as a function of stopping threshold α. The square marker is the peak.\n\nValue vs α: Shows where each strategy is optimized. Compare peak heights to see which strategy produces more value; compare peak positions to see how aggressive the optimal threshold is.\nValue vs Avg Trials: Shows the efficiency trade-off. A strategy that reaches the same value with fewer trials is strictly better — it frees up traffic sooner.\n\n\n\n\n\n\n\n\nThe table summarizes each strategy at its optimal α, with Fixed Sample at the conventional α = 0.05 included as a benchmark.\n\n\n\n  Change the scenario — notice whether the peaks shift or hold.\n  \n  \n    Baseline Conversion\n    \n      5%\n      10%\n      30%\n      65%\n    \n  \n  \n    Post-Test N\n    \n      100,000\n      250,000\n      500,000\n      2,000,000\n    \n  \n  \n    Expected Effects\n      i\n    \n    \n      ITC ~ N(100, 0.5)\n      ITC ~ N(100, 1)\n      ITC ~ N(100, 2)\n    \n  \n  \n  \n\n\n\n\n\n1.0s"
   },
   {
     "objectID": "ab-testing/ab-testing-optimization.html#simulating-the-control",
@@ -439,5 +439,12 @@
     "title": "AB Testing is an Optimization Problem",
     "section": "Footnotes",
     "text": "Footnotes\n\n\nPeeking strategies only. Fixed Sample skips the daily check entirely and always runs to the final day.↩︎"
+  },
+  {
+    "objectID": "ab-testing/ab-testing-optimization.html#importance-of-post-test-n",
+    "href": "ab-testing/ab-testing-optimization.html#importance-of-post-test-n",
+    "title": "AB Testing is an Optimization Problem",
+    "section": "Importance of Post-Test N",
+    "text": "Importance of Post-Test N\nThe optimal stopping threshold isn’t fixed — it depends on how many users will see the winner after the test ends. Peeking+Best calibrates to that scale automatically. Fixed Sample can’t; its threshold is blind to post-test consequences entirely.\n\n\n  \n    \n      Baseline Conversion\n      \n        5%\n        10%\n        30%\n        65%\n      \n    \n    \n      Expected Effects\n      \n        ITC ~ N(100, 0.5)\n        ITC ~ N(100, 1)\n        ITC ~ N(100, 2)\n      \n    \n    \n      Metric\n      \n        Optimal α\n        Marginal Events\n        Avg Days\n      \n    \n  \n\n  \n\n  \n    \n      Peeking+Best automatically adjusts its optimal threshold as Post-Test N grows — requiring stronger evidence before stopping when more users are on the line.\n      Fixed Sample optimal α stays near 0.50 regardless of rollout scale. Stopping decisions are made at the end of the experiment, so post-test scale never enters the calculation.\n      Peeking is less sensitive to Post-Test N because its fallback is reverting to control — so the cost of a wrong call is already priced in regardless of rollout size. Peeking+Best's fallback is deploying the leader, which makes the accuracy of that final call matter more as post-test scale grows."
   }
 ]

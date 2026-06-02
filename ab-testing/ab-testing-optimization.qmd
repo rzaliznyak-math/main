@@ -930,10 +930,11 @@ Below are the optimization curves for each strategy — long-term value as a fun
 import time
 import plotly.express as px
 from plotly.subplots import make_subplots
-from simulationengine import prepare_stopping_decision_columns
+from simulationengine import prepare_stopping_decision_columns, evaluate_probability_thresholds
 
 p_thresholds = np.arange(0.5, 1.00, 0.01)  # probabilities, not p-values
 normalizer   = df["total_trials_cumsum"].max() + POST_TEST_N
+DAILY_N      = MAX_TEST_N / NUMBER_TEST_DAYS  # users per day across all conditions
 
 df_prepped = prepare_stopping_decision_columns(
     df.filter(pl.col("day") >= MIN_TEST_DAYS),
@@ -950,20 +951,18 @@ df_prepped_fixed = df_prepped_fixed.sort(["simulation", "day"])
 def run_loop(select_best_at_end, prepped_df=None):
     if prepped_df is None:
         prepped_df = df_prepped
-    outcomes, trials, med_trials, rate, avg_days = [], [], [], [], []
-    for p in p_thresholds: 
-        s = se.analyze_by_probability_threshold(
-            prepped_df,
-            threshold=p,
-            metric_direction_improvement="increase",
-            pre_sorted=True,
-            select_best_at_end=select_best_at_end,
-        )
-        med_trials.append(s["total_trials_cumsum"].median())
-        outcomes.append(s["winning_probability_condition_total_potential_value"].mean())
-        trials.append(s["total_trials_cumsum"].mean())
-        rate.append((s["max_probability_condition"] == s["true_best_condition"]).mean())
-        avg_days.append(s["day"].mean())
+    r = evaluate_probability_thresholds(
+        prepped_df,
+        threshold_values=p_thresholds,
+        metric_direction_improvement="increase",
+        pre_sorted=True,
+        select_best_at_end=select_best_at_end,
+    )
+    outcomes   = r["mean_potential_value"].to_list()
+    trials     = r["mean_trials"].to_list()
+    med_trials = r["median_trials"].to_list()
+    rate       = r["match_rate"].to_list()
+    avg_days   = (r["mean_trials"] / DAILY_N).to_list()
     return outcomes, trials, med_trials, rate, avg_days
 
 _t0 = time.time()
@@ -1178,6 +1177,7 @@ window.__wif_scenarios['500k_s1_cr10'] = {{
   <div style="display:flex; flex-direction:column; gap:0.25rem;">
     <label style="font-size:0.85rem; color:#555; font-weight:600;">Baseline Conversion</label>
     <select id="wif-cr" class="form-select form-select-sm" style="width:auto; font-size:0.85rem;">
+      <option value="cr05">5%</option>
       <option value="cr10" selected>10%</option>
       <option value="cr30">30%</option>
       <option value="cr65">65%</option>
@@ -1187,6 +1187,7 @@ window.__wif_scenarios['500k_s1_cr10'] = {{
     <label style="font-size:0.85rem; color:#555; font-weight:600;">Post-Test N</label>
     <select id="wif-ptn" class="form-select form-select-sm" style="width:auto; font-size:0.85rem;">
       <option value="100k">100,000</option>
+      <option value="250k">250,000</option>
       <option value="500k" selected>500,000</option>
       <option value="2m">2,000,000</option>
     </select>
@@ -1207,8 +1208,8 @@ window.__wif_scenarios['500k_s1_cr10'] = {{
 
 <script>
 (function() {{
-  var CR_ORDER    = {{ 'cr10': 0, 'cr30': 1, 'cr65': 2 }};
-  var PTN_ORDER   = {{ '100k': 0, '500k': 1, '2m': 2 }};
+  var CR_ORDER    = {{ 'cr05': 0, 'cr10': 1, 'cr30': 2, 'cr65': 3 }};
+  var PTN_ORDER   = {{ '100k': 0, '250k': 1, '500k': 2, '2m': 3 }};
   var SIGMA_ORDER = {{ 's05': 0, 's1': 1, 's2': 2 }};
   var prevCr    = 'cr10';
   var prevPtn   = '500k';
@@ -1322,19 +1323,18 @@ df_fixed_2x = prepare_stopping_decision_columns(
 ).sort(["simulation", "day"])
 
 def run_loop_df(df_p, select_best_at_end):
-    outcomes, trials, med_trials, rate, avg_days = [], [], [], [], []
-    for p in p_thresholds:
-        s = se.analyze_by_probability_threshold(
-            df_p, threshold=p,
-            metric_direction_improvement="increase",
-            pre_sorted=True,
-            select_best_at_end=select_best_at_end,
-        )
-        med_trials.append(s["total_trials_cumsum"].median())
-        outcomes.append(s["winning_probability_condition_total_potential_value"].mean())
-        trials.append(s["total_trials_cumsum"].mean())
-        rate.append((s["max_probability_condition"] == s["true_best_condition"]).mean())
-        avg_days.append(s["day"].mean())
+    r = evaluate_probability_thresholds(
+        df_p,
+        threshold_values=p_thresholds,
+        metric_direction_improvement="increase",
+        pre_sorted=True,
+        select_best_at_end=select_best_at_end,
+    )
+    outcomes   = r["mean_potential_value"].to_list()
+    trials     = r["mean_trials"].to_list()
+    med_trials = r["median_trials"].to_list()
+    rate       = r["match_rate"].to_list()
+    avg_days   = (r["mean_trials"] / DAILY_N).to_list()
     return outcomes, trials, med_trials, rate, avg_days
 
 _o1, _t1, _m1, _r1, _d1 = run_loop_df(df_prepped_2x, True)
@@ -1757,7 +1757,135 @@ window.__wif_scenarios['100k_s05_cr10'] = {{
 
 ```{python}
 #| echo: false
-# Additional baseline conversion rates: 30% and 65%
+# Scenario 9: N=250k, σ=1 (reuse base df)
+_ptn_250k_new = 250_000
+
+_df_250k_new_s1 = se.calculate_launch_potential(df, post_test_n=_ptn_250k_new)
+_df_250k_new_s1 = se.calculate_total_potential(_df_250k_new_s1)
+_norm_250kn_s1 = _df_250k_new_s1["total_trials_cumsum"].max() + _ptn_250k_new
+
+_df_prepped_250k_new_s1 = prepare_stopping_decision_columns(
+    _df_250k_new_s1.filter(pl.col("day") >= MIN_TEST_DAYS),
+    metric_direction_improvement="increase",
+).sort(["simulation", "day"])
+_df_fixed_250k_new_s1 = prepare_stopping_decision_columns(
+    _df_250k_new_s1.filter(pl.col("day") >= NUMBER_TEST_DAYS),
+    metric_direction_improvement="increase",
+).sort(["simulation", "day"])
+
+_o250kn_s1_1, _t250kn_s1_1, _m250kn_s1_1, _r250kn_s1_1, _d250kn_s1_1 = run_loop_df(_df_prepped_250k_new_s1, True)
+_o250kn_s1_2, _t250kn_s1_2, _m250kn_s1_2, _r250kn_s1_2, _d250kn_s1_2 = run_loop_df(_df_prepped_250k_new_s1, False)
+_o250kn_s1_3, _t250kn_s1_3, _m250kn_s1_3, _r250kn_s1_3, _d250kn_s1_3 = run_loop_df(_df_fixed_250k_new_s1, False)
+
+_row_250kn_s1   = make_scenario_row(
+    _o250kn_s1_1, _t250kn_s1_1, _m250kn_s1_1, _r250kn_s1_1,
+    _o250kn_s1_2, _t250kn_s1_2, _m250kn_s1_2, _r250kn_s1_2,
+    _o250kn_s1_3, _t250kn_s1_3, _m250kn_s1_3, _r250kn_s1_3,
+    _norm_250kn_s1, CONTROL_MEAN, _ptn_250k_new + MAX_TEST_N,
+)
+_stats_250kn_s1 = make_scenario_stats(
+    _o250kn_s1_1, _d250kn_s1_1, _t250kn_s1_1, _r250kn_s1_1,
+    _o250kn_s1_2, _d250kn_s1_2, _t250kn_s1_2, _r250kn_s1_2,
+    _o250kn_s1_3, _d250kn_s1_3, _t250kn_s1_3, _r250kn_s1_3,
+    _norm_250kn_s1, CONTROL_MEAN, _ptn_250k_new + MAX_TEST_N,
+)
+
+display(HTML(f"""<script>
+window.__wif_scenarios = window.__wif_scenarios || {{}};
+window.__wif_scenarios['250k_s1_cr10'] = {{
+  row1:  {pio.to_json(_row_250kn_s1)},
+  stats: {json.dumps(_stats_250kn_s1)}
+}};
+</script>"""))
+```
+
+```{python}
+#| echo: false
+# Scenario 10: N=250k, σ=2 (reuse _df_wide)
+_df_250k_new_s2 = se.calculate_launch_potential(_df_wide, post_test_n=_ptn_250k_new)
+_df_250k_new_s2 = se.calculate_total_potential(_df_250k_new_s2)
+_norm_250kn_s2 = _df_250k_new_s2["total_trials_cumsum"].max() + _ptn_250k_new
+
+_df_prepped_250k_new_s2 = prepare_stopping_decision_columns(
+    _df_250k_new_s2.filter(pl.col("day") >= MIN_TEST_DAYS),
+    metric_direction_improvement="increase",
+).sort(["simulation", "day"])
+_df_fixed_250k_new_s2 = prepare_stopping_decision_columns(
+    _df_250k_new_s2.filter(pl.col("day") >= NUMBER_TEST_DAYS),
+    metric_direction_improvement="increase",
+).sort(["simulation", "day"])
+
+_o250kn_s2_1, _t250kn_s2_1, _m250kn_s2_1, _r250kn_s2_1, _d250kn_s2_1 = run_loop_df(_df_prepped_250k_new_s2, True)
+_o250kn_s2_2, _t250kn_s2_2, _m250kn_s2_2, _r250kn_s2_2, _d250kn_s2_2 = run_loop_df(_df_prepped_250k_new_s2, False)
+_o250kn_s2_3, _t250kn_s2_3, _m250kn_s2_3, _r250kn_s2_3, _d250kn_s2_3 = run_loop_df(_df_fixed_250k_new_s2, False)
+
+_row_250kn_s2   = make_scenario_row(
+    _o250kn_s2_1, _t250kn_s2_1, _m250kn_s2_1, _r250kn_s2_1,
+    _o250kn_s2_2, _t250kn_s2_2, _m250kn_s2_2, _r250kn_s2_2,
+    _o250kn_s2_3, _t250kn_s2_3, _m250kn_s2_3, _r250kn_s2_3,
+    _norm_250kn_s2, CONTROL_MEAN, _ptn_250k_new + MAX_TEST_N,
+)
+_stats_250kn_s2 = make_scenario_stats(
+    _o250kn_s2_1, _d250kn_s2_1, _t250kn_s2_1, _r250kn_s2_1,
+    _o250kn_s2_2, _d250kn_s2_2, _t250kn_s2_2, _r250kn_s2_2,
+    _o250kn_s2_3, _d250kn_s2_3, _t250kn_s2_3, _r250kn_s2_3,
+    _norm_250kn_s2, CONTROL_MEAN, _ptn_250k_new + MAX_TEST_N,
+)
+
+display(HTML(f"""<script>
+window.__wif_scenarios = window.__wif_scenarios || {{}};
+window.__wif_scenarios['250k_s2_cr10'] = {{
+  row1:  {pio.to_json(_row_250kn_s2)},
+  stats: {json.dumps(_stats_250kn_s2)}
+}};
+</script>"""))
+```
+
+```{python}
+#| echo: false
+# Scenario 11: N=250k, σ=0.5 (reuse _df_s05)
+_df_250k_new_s05 = se.calculate_launch_potential(_df_s05, post_test_n=_ptn_250k_new)
+_df_250k_new_s05 = se.calculate_total_potential(_df_250k_new_s05)
+_norm_250kn_s05 = _df_250k_new_s05["total_trials_cumsum"].max() + _ptn_250k_new
+
+_df_prepped_250k_new_s05 = prepare_stopping_decision_columns(
+    _df_250k_new_s05.filter(pl.col("day") >= MIN_TEST_DAYS),
+    metric_direction_improvement="increase",
+).sort(["simulation", "day"])
+_df_fixed_250k_new_s05 = prepare_stopping_decision_columns(
+    _df_250k_new_s05.filter(pl.col("day") >= NUMBER_TEST_DAYS),
+    metric_direction_improvement="increase",
+).sort(["simulation", "day"])
+
+_o250kn_s05_1, _t250kn_s05_1, _m250kn_s05_1, _r250kn_s05_1, _d250kn_s05_1 = run_loop_df(_df_prepped_250k_new_s05, True)
+_o250kn_s05_2, _t250kn_s05_2, _m250kn_s05_2, _r250kn_s05_2, _d250kn_s05_2 = run_loop_df(_df_prepped_250k_new_s05, False)
+_o250kn_s05_3, _t250kn_s05_3, _m250kn_s05_3, _r250kn_s05_3, _d250kn_s05_3 = run_loop_df(_df_fixed_250k_new_s05, False)
+
+_row_250kn_s05   = make_scenario_row(
+    _o250kn_s05_1, _t250kn_s05_1, _m250kn_s05_1, _r250kn_s05_1,
+    _o250kn_s05_2, _t250kn_s05_2, _m250kn_s05_2, _r250kn_s05_2,
+    _o250kn_s05_3, _t250kn_s05_3, _m250kn_s05_3, _r250kn_s05_3,
+    _norm_250kn_s05, CONTROL_MEAN, _ptn_250k_new + MAX_TEST_N,
+)
+_stats_250kn_s05 = make_scenario_stats(
+    _o250kn_s05_1, _d250kn_s05_1, _t250kn_s05_1, _r250kn_s05_1,
+    _o250kn_s05_2, _d250kn_s05_2, _t250kn_s05_2, _r250kn_s05_2,
+    _o250kn_s05_3, _d250kn_s05_3, _t250kn_s05_3, _r250kn_s05_3,
+    _norm_250kn_s05, CONTROL_MEAN, _ptn_250k_new + MAX_TEST_N,
+)
+
+display(HTML(f"""<script>
+window.__wif_scenarios = window.__wif_scenarios || {{}};
+window.__wif_scenarios['250k_s05_cr10'] = {{
+  row1:  {pio.to_json(_row_250kn_s05)},
+  stats: {json.dumps(_stats_250kn_s05)}
+}};
+</script>"""))
+```
+
+```{python}
+#| echo: false
+# Additional baseline conversion rates: 5%, 30%, and 65%
 
 def _peak_stats_cr(outcomes, avg_days_list, norm, cr_val, ptn_val, round_peak=False):
     y    = np.array(outcomes) / norm
@@ -1772,15 +1900,16 @@ def _peak_stats_cr(outcomes, avg_days_list, norm, cr_val, ptn_val, round_peak=Fa
       Avg(Days): <strong>{avg_d:.1f}</strong>
     </div>"""
 
-_cr_combos    = [(0.30, 'cr30'), (0.65, 'cr65')]
+_cr_combos    = [(0.05, 'cr05'), (0.30, 'cr30'), (0.65, 'cr65')]
 _sigma_combos = [(ITC_SE, 's1'), (2, 's2'), (0.5, 's05')]
-_ptn_combos   = [(100_000, '100k'), (POST_TEST_N, '500k'), (POST_TEST_N * 4, '2m')]
+_ptn_combos   = [(100_000, '100k'), (250_000, '250k'), (POST_TEST_N, '500k'), (POST_TEST_N * 4, '2m')]
 
 for _cr_val, _cr_key in _cr_combos:
     for _itc_se_val, _sigma_key in _sigma_combos:
+        _n_sims_loop = 500_000 if (_cr_val == 0.05 and _itc_se_val == 0.5) else NUMBER_SIMULATIONS
         _df_tmp = se.create_simulation_df(
             number_test_days=NUMBER_TEST_DAYS,
-            number_simulations=NUMBER_SIMULATIONS,
+            number_simulations=_n_sims_loop,
             seed=SEED,
             condition_parameters=[{"mean": _cr_val, "trials": int(MAX_TEST_N * SPLIT)}],
         )
@@ -1928,9 +2057,230 @@ window.__wif_scenarios['{_key}'] = {{
 <p style="margin-top:1.5rem;"><strong>Long story short:</strong> Significance testing protects you from being wrong. It doesn't optimize for being right. That caution has a measurable cost — value lost to experiments that run longer than needed, and value surrendered every time you default to control when the data already points elsewhere.</p>
 ```
 
+## Importance of Post-Test N
+
+The optimal stopping threshold isn't fixed — it depends on how many users will see the winner after the test ends. Peeking+Best calibrates to that scale automatically. Fixed Sample can't; its threshold is blind to post-test consequences entirely.
+
+```{=html}
+<div style="margin-bottom:1.5rem;">
+
+  <div style="display:flex; gap:2rem; align-items:flex-start; flex-wrap:wrap; margin-bottom:0.75rem;">
+    <div style="display:flex; flex-direction:column; gap:0.25rem;">
+      <label style="font-size:0.85rem; color:#555; font-weight:600;">Baseline Conversion</label>
+      <select id="ptn-cr" class="form-select form-select-sm" style="width:auto; font-size:0.85rem;">
+        <option value="cr05">5%</option>
+        <option value="cr10" selected>10%</option>
+        <option value="cr30">30%</option>
+        <option value="cr65">65%</option>
+      </select>
+    </div>
+    <div style="display:flex; flex-direction:column; gap:0.25rem;">
+      <label style="font-size:0.85rem; color:#555; font-weight:600;">Expected Effects</label>
+      <select id="ptn-sigma" class="form-select form-select-sm" style="width:auto; font-size:0.85rem;">
+        <option value="s05">ITC ~ N(100, 0.5)</option>
+        <option value="s1" selected>ITC ~ N(100, 1)</option>
+        <option value="s2">ITC ~ N(100, 2)</option>
+      </select>
+    </div>
+    <div style="display:flex; flex-direction:column; gap:0.25rem;">
+      <label style="font-size:0.85rem; color:#555; font-weight:600;">Metric</label>
+      <select id="ptn-metric" class="form-select form-select-sm" style="width:auto; font-size:0.85rem;">
+        <option value="alpha" selected>Optimal α</option>
+        <option value="marginal">Marginal Events</option>
+        <option value="days">Avg Days</option>
+      </select>
+    </div>
+  </div>
+
+  <div id="ptn-alpha-chart"></div>
+
+  <div style="margin-top:0.75rem; padding:0.65rem 1rem; background:#f8f9fa; border-radius:6px; border-left:3px solid #3a6fd8; font-size:0.9rem; color:#333; line-height:1.75;">
+    <ul id="ptn-takeaways" style="margin:0; padding-left:1.2rem;">
+      <li><strong>Peeking+Best</strong> automatically adjusts its optimal threshold as Post-Test N grows — requiring stronger evidence before stopping when more users are on the line.</li>
+      <li><strong>Fixed Sample</strong> optimal α stays near 0.50 regardless of rollout scale. Stopping decisions are made at the end of the experiment, so post-test scale never enters the calculation.</li>
+      <li><strong>Peeking</strong> is less sensitive to Post-Test N because its fallback is reverting to control — so the cost of a wrong call is already priced in regardless of rollout size. Peeking+Best's fallback is deploying the leader, which makes the accuracy of that final call matter more as post-test scale grows.</li>
+    </ul>
+  </div>
+
+</div>
+
+<script>
+(function () {
+  var PTN_VALS   = [100000, 250000, 500000, 2000000];
+  var PTN_KEYS   = ['100k', '250k', '500k', '2m'];
+  var PTN_LABELS = ['100k', '250k', '500k', '2M'];
+  var PAL        = ['#1f77b4', '#ff7f0e', '#2ca02c'];
+  var STRATS     = ['Peeking + Best', 'Peeking', 'Fixed Sample'];
+
+  function getStat(ptn_key, sigma_key, cr_key, label, isRef) {
+    var key = ptn_key + '_' + sigma_key + '_' + cr_key;
+    var sc  = window.__wif_scenarios && window.__wif_scenarios[key];
+    if (!sc) return null;
+    return sc.stats.find(function (r) { return r.label === label && r.is_ref === isRef; }) || null;
+  }
+
+  function buildChart(cr_key, sigma_key, metric) {
+    var traces = [];
+    var isAlpha = (metric === 'alpha');
+    var isDays  = (metric === 'days');
+
+    STRATS.forEach(function (lbl, i) {
+      var vals = [], ht = [];
+      PTN_KEYS.forEach(function (pk, j) {
+        var s = getStat(pk, sigma_key, cr_key, lbl, false);
+        if (s) {
+          vals.push(isDays ? s.avg_days : (isAlpha ? s.alpha : s.marginal));
+          ht.push(lbl + '<br>Post-Test N: ' + PTN_LABELS[j] +
+            '<br>Optimal α: ' + s.alpha.toFixed(2) +
+            '<br>Avg Days: ' + s.avg_days.toFixed(1) +
+            '<br>Marginal Events: ' + Math.round(s.marginal).toLocaleString() +
+            '<extra></extra>');
+        }
+      });
+      traces.push({
+        x: PTN_VALS, y: vals, mode: 'lines+markers', name: lbl,
+        line: { color: PAL[i], width: 2 },
+        marker: { symbol: 'square', size: 9, color: PAL[i] },
+        hovertemplate: ht
+      });
+    });
+
+    var annotations = [], extraRight = 55;
+
+    if (isAlpha) {
+      traces.push({
+        x: PTN_VALS, y: [0.05, 0.05, 0.05, 0.05], mode: 'lines',
+        name: 'α = 0.05 (conventional)', showlegend: false,
+        line: { color: '#aaa', width: 1.5, dash: 'dot' },
+        hovertemplate: 'Conventional α = 0.05<extra></extra>'
+      });
+      annotations.push({
+        x: Math.log10(2000000), y: 0.05, xref: 'x', yref: 'y',
+        text: 'α = 0.05', showarrow: false,
+        font: { color: '#999', size: 11 },
+        xanchor: 'left', yanchor: 'bottom', xshift: 6
+      });
+    } else if (isDays) {
+      traces.push({
+        x: PTN_VALS, y: [20, 20, 20, 20], mode: 'lines',
+        name: 'Max test days (20)', showlegend: false,
+        line: { color: '#aaa', width: 1.5, dash: 'dot' },
+        hovertemplate: 'Max test days = 20<extra></extra>'
+      });
+      annotations.push({
+        x: Math.log10(2000000), y: 20, xref: 'x', yref: 'y',
+        text: 'Day 20', showarrow: false,
+        font: { color: '#999', size: 11 },
+        xanchor: 'left', yanchor: 'bottom', xshift: 6
+      });
+    } else {
+      // marginal: Fixed@0.05 reference bar
+      var ref_m = [], ref_ht = [];
+      PTN_KEYS.forEach(function (pk, j) {
+        var s = getStat(pk, sigma_key, cr_key, 'Fixed Sample', true);
+        ref_m.push(s ? s.marginal : null);
+        ref_ht.push(s ? 'Fixed @ α=0.05<br>Post-Test N: ' + PTN_LABELS[j] +
+          '<br>Marginal Events: ' + Math.round(s.marginal).toLocaleString() +
+          '<extra></extra>' : '<extra></extra>');
+      });
+      traces.push({
+        x: PTN_LABELS, y: ref_m, type: 'bar',
+        name: 'Fixed @ α=0.05',
+        marker: { color: 'rgba(44,160,44,0.35)', line: { color: '#2ca02c', width: 1.5 } },
+        hovertemplate: ref_ht
+      });
+    }
+
+    var isBar = (metric === 'marginal');
+    // re-cast strategy traces as bars for marginal view
+    if (isBar) {
+      traces = traces.map(function (t) {
+        if (t.type === 'bar') return t;
+        var barName = t.name === 'Fixed Sample' ? 'Fixed Sample @ α = 0.50' : t.name;
+        return Object.assign({}, t, {
+          type: 'bar',
+          x: PTN_LABELS,
+          name: barName,
+          marker: { color: t.line.color }
+        });
+      });
+    }
+
+    Plotly.react('ptn-alpha-chart', traces, {
+      barmode: isBar ? 'group' : undefined,
+      xaxis: isBar ? {
+        title: { text: 'Post-Test N', font: { size: 12 } },
+        showgrid: false
+      } : {
+        type: 'log', tickvals: PTN_VALS, ticktext: PTN_LABELS,
+        title: { text: 'Post-Test N', font: { size: 12 } },
+        showgrid: true, gridcolor: '#eee'
+      },
+      yaxis: {
+        title: { text: isAlpha ? 'Optimal α' : (isDays ? 'Avg Days to Stop' : 'Marginal Events vs No Test'), font: { size: 12 } },
+        tickformat: isAlpha ? '.2f' : (isDays ? '.1f' : ',.0f'),
+        range: isAlpha ? [-0.02, 0.57] : (isDays ? [0, 22] : undefined),
+        showgrid: true, gridcolor: '#eee'
+      },
+      annotations: annotations,
+      legend: { orientation: 'h', x: 0.5, xanchor: 'center', y: -0.18, font: { size: 11 } },
+      margin: { t: 20, b: 80, l: isAlpha ? 55 : (isDays ? 55 : 75), r: (isAlpha || isDays) ? 55 : 15 },
+      height: 340, paper_bgcolor: 'white', plot_bgcolor: 'white'
+    }, { responsive: true, displayModeBar: false });
+  }
+
+  var BULLETS = {
+    alpha: [
+      '<strong>Peeking+Best</strong> automatically adjusts its optimal threshold as Post-Test N grows — requiring stronger evidence before stopping when more users are on the line.',
+      '<strong>Fixed Sample</strong> optimal α stays near 0.50 regardless of rollout scale. Stopping decisions are made at the end of the experiment, so post-test scale never enters the calculation.',
+      '<strong>Peeking</strong> is less sensitive to Post-Test N because its fallback is reverting to control — so the cost of a wrong call is already priced in regardless of rollout size. Peeking+Best\'s fallback is deploying the leader, which makes the accuracy of that final call matter more as post-test scale grows.'
+    ],
+    marginal: [
+      '<strong>Marginal events grow with Post-Test N</strong> for all strategies — more users exposed to the winner means more incremental conversions captured.',
+      'The gap between strategies at their <em>optimal</em> α is modest. The bigger story is the dashed line: Fixed Sample at the conventional α = 0.05 leaves substantial value on the table, and that gap widens as rollout scale increases.',
+      '<strong>Peeking+Best</strong> leads across all Post-Test N levels. At small rollout the difference is minor; at large rollout the advantage compounds — more accurate decisions on more users.'
+    ],
+    days: [
+      '<strong>Avg days to stop is flat across Post-Test N</strong> — stopping decisions are made entirely on test data. How large the rollout is has no effect on when the experiment ends.',
+      '<strong>Peeking+Best</strong> stops later than Peeking on average because it requires a higher Pr(Best) at larger PTN. Deploying the leader at the end raises the stakes of each stopping call.',
+      '<strong>Fixed Sample</strong> always runs to day 20. The flat line at the top is the ceiling — any peeking strategy that stops early is freeing up traffic sooner, regardless of what the rollout looks like.'
+    ]
+  };
+
+  function updateTakeaways(metric) {
+    var ul = document.getElementById('ptn-takeaways');
+    if (!ul) return;
+    ul.innerHTML = BULLETS[metric].map(function (b) {
+      return '<li>' + b + '</li>';
+    }).join('');
+  }
+
+  function update() {
+    var metric = document.getElementById('ptn-metric').value;
+    buildChart(
+      document.getElementById('ptn-cr').value,
+      document.getElementById('ptn-sigma').value,
+      metric
+    );
+    updateTakeaways(metric);
+  }
+
+  ['ptn-cr', 'ptn-sigma', 'ptn-metric'].forEach(function (id) {
+    document.getElementById(id).addEventListener('change', update);
+  });
+
+  if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', update);
+  } else {
+    setTimeout(update, 0);
+  }
+})();
+</script>
+```
+
 # Code Snippets
 
-Two reusable pieces from the analysis — simulating the control arm and simulating the treatment arm with a randomly drawn true effect. Both generate all 100,000 simulations in a single NumPy call — no for loops.
+Six reusable pieces from the analysis — the full pipeline from raw simulation through the test statistics that drive every stopping decision. All fully vectorized — no for loops.
 
 ```{=html}
 <div class="mt-3 mb-2">
@@ -2070,5 +2420,185 @@ def add_random_effect_condition(df, random_effect_parameters, seed=None):
     )</code></pre>
   </div>
 </div>
+<div class="mt-3 mb-2">
+  <div class="accordion-item" style="border: 1.5px dashed #90b8e0; border-radius: 6px; background: #f0f6fd; margin-bottom: 0.5rem;">
+    <div class="accordion-header" style="margin:0;">
+      <button class="accordion-button collapsed px-3 shadow-none"
+              style="font-size:0.9rem; font-weight:600; color:#1e46a0; background:transparent; height:auto; width:100%; display:flex; align-items:center; padding-top:0.5rem; padding-bottom:0.5rem; flex-wrap:wrap;"
+              type="button" data-bs-toggle="collapse" data-bs-target="#code-cumulative-collapse">
+        <span style="flex:1;">Computing Cumulative Stats</span>
+        <span class="accordion-chevron" style="flex-shrink:0; margin-left:0.75rem; font-size:1.8rem; line-height:1; transition:transform 0.2s;">&#8964;</span>
+        <span style="width:100%; font-size:0.85rem; font-weight:400; font-style:italic; color:#555; margin-top:0.2rem;">Converts daily draws into running totals — the input to every stopping rule.</span>
+      </button>
+    </div>
+  </div>
+  <div id="code-cumulative-collapse" class="collapse" style="border: 1.5px dashed #90b8e0; border-top: none; border-radius: 0 0 6px 6px; padding: 1rem; background: #fff; margin-bottom: 0.5rem;">
+    <p style="font-size:0.9rem; margin-bottom:0.75rem;"><code>add_cumulative_columns</code> converts daily event counts into running totals grouped by simulation. Each condition gets a cumulative event count, trial count, and conversion rate. Cross-condition totals and remaining trials are derived in a single vectorized pass — no loops.</p>
+    <pre style="background:#f8f8f8; border-radius:4px; padding:1rem; font-size:0.8rem; overflow-x:auto;"><code>import polars as pl
+
+
+def add_cumulative_columns(df):
+    value_cols  = [col for col in df.columns if col.endswith("_value")]
+    trials_cols = [col for col in df.columns if col.endswith("_trials")]
+
+    # Running totals per condition, grouped by simulation
+    cumsum_exprs = [
+        pl.col(col).cum_sum().over("simulation").alias(f"{col}_cumsum")
+        for col in value_cols + trials_cols
+    ]
+    df = df.with_columns(cumsum_exprs)
+
+    # Cross-condition totals
+    value_cumsums  = [f"{c}_cumsum" for c in value_cols]
+    trials_cumsums = [f"{c}_cumsum" for c in trials_cols]
+    df = df.with_columns([
+        pl.sum_horizontal(value_cumsums).alias("total_value_cumsum"),
+        pl.sum_horizontal(trials_cumsums).alias("total_trials_cumsum"),
+    ])
+
+    # Trials remaining in the experiment window
+    df = df.with_columns([
+        (pl.col("total_trials_cumsum").max().over("simulation")
+         - pl.col("total_trials_cumsum")).alias("total_remaining_test_trials")
+    ])
+
+    # Cumulative conversion rate per condition
+    mean_exprs = [
+        (pl.col(f"{c}_cumsum") / pl.col(f"{c.replace('_value','_trials')}_cumsum"))
+        .alias(f"{c.replace('_value','')}_mean_cumsum")
+        for c in value_cols
+        if f"{c.replace('_value','_trials')}" in trials_cols
+    ]
+    return df.with_columns(mean_exprs)</code></pre>
+  </div>
+</div>
+
+<div class="mt-3 mb-2">
+  <div class="accordion-item" style="border: 1.5px dashed #90b8e0; border-radius: 6px; background: #f0f6fd; margin-bottom: 0.5rem;">
+    <div class="accordion-header" style="margin:0;">
+      <button class="accordion-button collapsed px-3 shadow-none"
+              style="font-size:0.9rem; font-weight:600; color:#1e46a0; background:transparent; height:auto; width:100%; display:flex; align-items:center; padding-top:0.5rem; padding-bottom:0.5rem; flex-wrap:wrap;"
+              type="button" data-bs-toggle="collapse" data-bs-target="#code-std-collapse">
+        <span style="flex:1;">Cumulative Standard Deviation</span>
+        <span class="accordion-chevron" style="flex-shrink:0; margin-left:0.75rem; font-size:1.8rem; line-height:1; transition:transform 0.2s;">&#8964;</span>
+        <span style="width:100%; font-size:0.85rem; font-weight:400; font-style:italic; color:#555; margin-top:0.2rem;">Binomial std of the running conversion rate — input to z-scores and confidence intervals.</span>
+      </button>
+    </div>
+  </div>
+  <div id="code-std-collapse" class="collapse" style="border: 1.5px dashed #90b8e0; border-top: none; border-radius: 0 0 6px 6px; padding: 1rem; background: #fff; margin-bottom: 0.5rem;">
+    <p style="font-size:0.9rem; margin-bottom:0.75rem;"><code>compute_cumulative_std_rates</code> applies the binomial standard deviation formula <code>sqrt(p * (1 - p))</code> to each condition's running conversion rate. Note: this is the <em>std of the proportion</em>, not the standard error — divide by <code>sqrt(n)</code> to get SE.</p>
+    <pre style="background:#f8f8f8; border-radius:4px; padding:1rem; font-size:0.8rem; overflow-x:auto;"><code>import polars as pl
+
+
+def compute_cumulative_std_rates(df):
+    mean_cumsum_cols = [col for col in df.columns if col.endswith("_mean_cumsum")]
+
+    std_exprs = [
+        (pl.col(col) * (1 - pl.col(col)))
+        .sqrt()
+        .alias(col.replace("_mean_cumsum", "_std_cumsum"))
+        for col in mean_cumsum_cols
+    ]
+    return df.with_columns(std_exprs)</code></pre>
+  </div>
+</div>
+
+<div class="mt-3 mb-2">
+  <div class="accordion-item" style="border: 1.5px dashed #90b8e0; border-radius: 6px; background: #f0f6fd; margin-bottom: 0.5rem;">
+    <div class="accordion-header" style="margin:0;">
+      <button class="accordion-button collapsed px-3 shadow-none"
+              style="font-size:0.9rem; font-weight:600; color:#1e46a0; background:transparent; height:auto; width:100%; display:flex; align-items:center; padding-top:0.5rem; padding-bottom:0.5rem; flex-wrap:wrap;"
+              type="button" data-bs-toggle="collapse" data-bs-target="#code-delta-collapse">
+        <span style="flex:1;">Computing Delta Statistics</span>
+        <span class="accordion-chevron" style="flex-shrink:0; margin-left:0.75rem; font-size:1.8rem; line-height:1; transition:transform 0.2s;">&#8964;</span>
+        <span style="width:100%; font-size:0.85rem; font-weight:400; font-style:italic; color:#555; margin-top:0.2rem;">Treatment effect size and combined standard error — inputs to z-scores and p-values.</span>
+      </button>
+    </div>
+  </div>
+  <div id="code-delta-collapse" class="collapse" style="border: 1.5px dashed #90b8e0; border-top: none; border-radius: 0 0 6px 6px; padding: 1rem; background: #fff; margin-bottom: 0.5rem;">
+    <p style="font-size:0.9rem; margin-bottom:0.75rem;"><code>compute_delta_stats</code> computes two things for each treatment condition vs control: the standard error (<code>SE = std / sqrt(n)</code>) and the delta statistics (<code>delta_mean = mean_i - mean_0</code>, <code>delta_se = sqrt(SE_i² + SE_0²)</code>). These are the direct inputs to z-scores and p-values — this function does not compute those itself.</p>
+    <pre style="background:#f8f8f8; border-radius:4px; padding:1rem; font-size:0.8rem; overflow-x:auto;"><code>import polars as pl
+
+
+def compute_delta_stats(df):
+    mean_cols = [c for c in df.columns if c.endswith("_mean_cumsum")]
+
+    # SE = std / sqrt(trials) for every condition
+    se_exprs = [
+        (pl.col(f"condition_{i}_std_cumsum") / pl.col(f"condition_{i}_trials_cumsum").sqrt())
+        .alias(f"condition_{i}_se_cumsum")
+        for i in [int(c.split("_")[1]) for c in mean_cols if c.startswith("condition_")]
+        if f"condition_{i}_std_cumsum" in df.columns
+    ]
+    df = df.with_columns(se_exprs)
+
+    # Delta mean and delta SE for each treatment vs condition_0 (control)
+    treatment_nums = [
+        int(c.split("_")[1]) for c in mean_cols
+        if c.startswith("condition_") and int(c.split("_")[1]) > 0
+    ]
+    delta_exprs = []
+    for i in treatment_nums:
+        delta_exprs += [
+            (pl.col(f"condition_{i}_mean_cumsum") - pl.col("condition_0_mean_cumsum"))
+            .alias(f"condition_{i}_delta_mean"),
+            (pl.col(f"condition_{i}_se_cumsum").pow(2) + pl.col("condition_0_se_cumsum").pow(2))
+            .sqrt()
+            .alias(f"condition_{i}_delta_se"),
+        ]
+    return df.with_columns(delta_exprs)</code></pre>
+  </div>
+</div>
+
+<div class="mt-3 mb-2">
+  <div class="accordion-item" style="border: 1.5px dashed #90b8e0; border-radius: 6px; background: #f0f6fd; margin-bottom: 0.5rem;">
+    <div class="accordion-header" style="margin:0;">
+      <button class="accordion-button collapsed px-3 shadow-none"
+              style="font-size:0.9rem; font-weight:600; color:#1e46a0; background:transparent; height:auto; width:100%; display:flex; align-items:center; padding-top:0.5rem; padding-bottom:0.5rem; flex-wrap:wrap;"
+              type="button" data-bs-toggle="collapse" data-bs-target="#code-teststats-collapse">
+        <span style="flex:1;">Computing Test Statistics</span>
+        <span class="accordion-chevron" style="flex-shrink:0; margin-left:0.75rem; font-size:1.8rem; line-height:1; transition:transform 0.2s;">&#8964;</span>
+        <span style="width:100%; font-size:0.85rem; font-weight:400; font-style:italic; color:#555; margin-top:0.2rem;">Converts delta stats into Pr(Best) and expected gain/loss — the signal the stopping rule acts on.</span>
+      </button>
+    </div>
+  </div>
+  <div id="code-teststats-collapse" class="collapse" style="border: 1.5px dashed #90b8e0; border-top: none; border-radius: 0 0 6px 6px; padding: 1rem; background: #fff; margin-bottom: 0.5rem;">
+    <p style="font-size:0.9rem; margin-bottom:0.75rem;"><code>compute_test_stats</code> converts delta statistics into probabilities and expected values using the normal CDF. For each treatment: <code>Pr(treatment &gt; control) = Φ(delta_mean / delta_se)</code>. Expected gain and loss use truncated normal formulas. These are the columns the stopping rule reads — it stops when <code>Pr(Best)</code> crosses the threshold α.</p>
+    <pre style="background:#f8f8f8; border-radius:4px; padding:1rem; font-size:0.8rem; overflow-x:auto;"><code>import numpy as np
+import polars as pl
+from scipy.stats import norm
+
+
+def compute_test_stats(df):
+    delta_mean_cols = [c for c in df.columns if c.endswith("_delta_mean")]
+    condition_nums  = [int(c.split("_")[1]) for c in delta_mean_cols]
+
+    pr_cols = []
+    for i in condition_nums:
+        z = df[f"condition_{i}_delta_mean"].to_numpy() / df[f"condition_{i}_delta_se"].to_numpy()
+        pr = norm.cdf(z)
+        df = df.with_columns([
+            pl.lit(pr).alias(f"condition_{i}_pr_positive_diff"),
+            pl.lit(1 - pr).alias(f"condition_{i}_pr_lowest_diff"),
+        ])
+        pr_cols.append(f"condition_{i}_pr_positive_diff")
+
+        # Expected gain and loss (truncated normal)
+        pdf_z = norm.pdf(z)
+        df = df.with_columns([
+            pl.lit(np.abs(pr   * (df[f"condition_{i}_delta_mean"].to_numpy() + df[f"condition_{i}_delta_se"].to_numpy() * pdf_z / np.maximum(pr,     1e-10)))).alias(f"condition_{i}_expected_gain"),
+            pl.lit(np.abs((1-pr) * (-df[f"condition_{i}_delta_mean"].to_numpy() + df[f"condition_{i}_delta_se"].to_numpy() * pdf_z / np.maximum(1-pr, 1e-10)))).alias(f"condition_{i}_expected_loss"),
+        ])
+
+    # Control: Pr(best) = 1 - max(Pr(treatment > control))
+    if pr_cols:
+        df = df.with_columns([
+            (1 - pl.max_horizontal(pr_cols)).alias("condition_0_pr_highest_diff"),
+            pl.min_horizontal(pr_cols).alias("condition_0_pr_lowest_diff"),
+        ])
+    return df</code></pre>
+  </div>
+</div>
+
 <p style="margin-top:1rem; font-size:0.95rem; color:#555;">Want to see more? <a href="mailto:rzaliznyak@gmail.com">Let me know</a>.</p>
 ```
