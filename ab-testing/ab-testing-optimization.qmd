@@ -17,7 +17,7 @@ css: wider.css
 
 # TL;DR
 
-Significance testing is excellent at one thing: controlling error rates. If minimizing false positives is your goal, p < 0.05 is the right tool. But most product teams aren't in the business of error control — they're in the business of maximizing long-run value. That's a different objective, and it calls for a different stopping rule.
+Significance testing is excellent at controlling error rates. If minimizing false positives is your goal, p < 0.05 is exactly what you need. But most teams running experiments aren't in the business of error control — they're in the business of maximizing long-run value. That's a different objective, and it calls for a different stopping rule.
 
 We simulated 1.6 million experiments — 4 baseline conversion rates × 3 effect size distributions — and evaluated each stopping rule across 5 post-test audience sizes, yielding 60 scenarios in total. Each stopping rule was scored by the long-run conversion rate it produced. The findings are consistent across all scenarios.
 
@@ -1175,14 +1175,18 @@ window.__wif_scenarios['400k_s1_cr10'] = {{
     <select id="wif-cr" class="form-select form-select-sm" style="width:auto; font-size:0.85rem;">
       <option value="cr05">5%</option>
       <option value="cr10" selected>10%</option>
-      <option value="cr30">30%</option>
-      <option value="cr65">65%</option>
+      <option value="cr25">25%</option>
+      <option value="cr40">40%</option>
+      <option value="cr60">60%</option>
+      <option value="cr80">80%</option>
     </select>
   </div>
   <div style="display:flex; flex-direction:column; gap:0.25rem;">
     <label style="font-size:0.85rem; color:#555; font-weight:600;">Post-Test N</label>
     <select id="wif-ptn" class="form-select form-select-sm" style="width:auto; font-size:0.85rem;">
+      <option value="50k">50,000</option>
       <option value="100k">100,000</option>
+      <option value="150k">150,000</option>
       <option value="200k">200,000</option>
       <option value="400k" selected>400,000</option>
       <option value="800k">800,000</option>
@@ -1210,8 +1214,8 @@ window.__wif_scenarios['400k_s1_cr10'] = {{
 
 <script>
 (function() {{
-  var CR_ORDER    = {{ 'cr05': 0, 'cr10': 1, 'cr30': 2, 'cr65': 3 }};
-  var PTN_ORDER   = {{ '100k': 0, '200k': 1, '400k': 2, '800k': 3, '1600k': 4 }};
+  var CR_ORDER    = {{ 'cr05': 0, 'cr10': 1, 'cr25': 2, 'cr40': 3, 'cr60': 4, 'cr80': 5 }};
+  var PTN_ORDER   = {{ '50k': 0, '100k': 1, '150k': 2, '200k': 3, '400k': 4, '800k': 5, '1600k': 6 }};
   var SIGMA_ORDER = {{ 's05': 0, 's1': 1, 's2': 2 }};
   var prevCr    = 'cr10';
   var prevPtn   = '400k';
@@ -1628,6 +1632,131 @@ window.__wif_scenarios['800k_s05_cr10'] = {{
 
 ```{python}
 #| echo: false
+# Scenario 50k: N=50k, σ=1 (reuse base df)
+_ptn_50k = 50_000
+
+_df_50k_s1 = se.calculate_launch_potential(df, post_test_n=_ptn_50k)
+_df_50k_s1 = se.calculate_total_potential(_df_50k_s1)
+_norm_50k_s1 = _df_50k_s1["total_trials_cumsum"].max() + _ptn_50k
+
+_df_prepped_50k_s1 = prepare_stopping_decision_columns(
+    _df_50k_s1.filter(pl.col("day") >= MIN_TEST_DAYS),
+    metric_direction_improvement="increase",
+).sort(["simulation", "day"])
+_df_fixed_50k_s1 = prepare_stopping_decision_columns(
+    _df_50k_s1.filter(pl.col("day") >= NUMBER_TEST_DAYS),
+    metric_direction_improvement="increase",
+).sort(["simulation", "day"])
+
+_o50k_s1_1, _t50k_s1_1, _m50k_s1_1, _r50k_s1_1, _d50k_s1_1 = run_loop_df(_df_prepped_50k_s1, True)
+_o50k_s1_2, _t50k_s1_2, _m50k_s1_2, _r50k_s1_2, _d50k_s1_2 = run_loop_df(_df_prepped_50k_s1, False)
+_o50k_s1_3, _t50k_s1_3, _m50k_s1_3, _r50k_s1_3, _d50k_s1_3 = run_loop_df(_df_fixed_50k_s1, False)
+
+_row_50k_s1   = make_scenario_row(
+    _o50k_s1_1, _t50k_s1_1, _m50k_s1_1, _r50k_s1_1,
+    _o50k_s1_2, _t50k_s1_2, _m50k_s1_2, _r50k_s1_2,
+    _o50k_s1_3, _t50k_s1_3, _m50k_s1_3, _r50k_s1_3,
+    _norm_50k_s1, CONTROL_MEAN, _ptn_50k + MAX_TEST_N,
+)
+_stats_50k_s1 = make_scenario_stats(
+    _o50k_s1_1, _d50k_s1_1, _t50k_s1_1, _r50k_s1_1,
+    _o50k_s1_2, _d50k_s1_2, _t50k_s1_2, _r50k_s1_2,
+    _o50k_s1_3, _d50k_s1_3, _t50k_s1_3, _r50k_s1_3,
+    _norm_50k_s1, CONTROL_MEAN, _ptn_50k + MAX_TEST_N,
+)
+display(HTML(f"""<script>
+window.__wif_scenarios = window.__wif_scenarios || {{}};
+window.__wif_scenarios['50k_s1_cr10'] = {{
+  row1:  {pio.to_json(_row_50k_s1)},
+  stats: {json.dumps(_stats_50k_s1)}
+}};
+</script>"""))
+```
+
+```{python}
+#| echo: false
+# Scenario 50k: N=50k, σ=2 (reuse _df_wide)
+_df_50k_s2 = se.calculate_launch_potential(_df_wide, post_test_n=_ptn_50k)
+_df_50k_s2 = se.calculate_total_potential(_df_50k_s2)
+_norm_50k_s2 = _df_50k_s2["total_trials_cumsum"].max() + _ptn_50k
+
+_df_prepped_50k_s2 = prepare_stopping_decision_columns(
+    _df_50k_s2.filter(pl.col("day") >= MIN_TEST_DAYS),
+    metric_direction_improvement="increase",
+).sort(["simulation", "day"])
+_df_fixed_50k_s2 = prepare_stopping_decision_columns(
+    _df_50k_s2.filter(pl.col("day") >= NUMBER_TEST_DAYS),
+    metric_direction_improvement="increase",
+).sort(["simulation", "day"])
+
+_o50k_s2_1, _t50k_s2_1, _m50k_s2_1, _r50k_s2_1, _d50k_s2_1 = run_loop_df(_df_prepped_50k_s2, True)
+_o50k_s2_2, _t50k_s2_2, _m50k_s2_2, _r50k_s2_2, _d50k_s2_2 = run_loop_df(_df_prepped_50k_s2, False)
+_o50k_s2_3, _t50k_s2_3, _m50k_s2_3, _r50k_s2_3, _d50k_s2_3 = run_loop_df(_df_fixed_50k_s2, False)
+
+_row_50k_s2   = make_scenario_row(
+    _o50k_s2_1, _t50k_s2_1, _m50k_s2_1, _r50k_s2_1,
+    _o50k_s2_2, _t50k_s2_2, _m50k_s2_2, _r50k_s2_2,
+    _o50k_s2_3, _t50k_s2_3, _m50k_s2_3, _r50k_s2_3,
+    _norm_50k_s2, CONTROL_MEAN, _ptn_50k + MAX_TEST_N,
+)
+_stats_50k_s2 = make_scenario_stats(
+    _o50k_s2_1, _d50k_s2_1, _t50k_s2_1, _r50k_s2_1,
+    _o50k_s2_2, _d50k_s2_2, _t50k_s2_2, _r50k_s2_2,
+    _o50k_s2_3, _d50k_s2_3, _t50k_s2_3, _r50k_s2_3,
+    _norm_50k_s2, CONTROL_MEAN, _ptn_50k + MAX_TEST_N,
+)
+display(HTML(f"""<script>
+window.__wif_scenarios = window.__wif_scenarios || {{}};
+window.__wif_scenarios['50k_s2_cr10'] = {{
+  row1:  {pio.to_json(_row_50k_s2)},
+  stats: {json.dumps(_stats_50k_s2)}
+}};
+</script>"""))
+```
+
+```{python}
+#| echo: false
+# Scenario 50k: N=50k, σ=0.5 (reuse _df_s05)
+_df_50k_s05 = se.calculate_launch_potential(_df_s05, post_test_n=_ptn_50k)
+_df_50k_s05 = se.calculate_total_potential(_df_50k_s05)
+_norm_50k_s05 = _df_50k_s05["total_trials_cumsum"].max() + _ptn_50k
+
+_df_prepped_50k_s05 = prepare_stopping_decision_columns(
+    _df_50k_s05.filter(pl.col("day") >= MIN_TEST_DAYS),
+    metric_direction_improvement="increase",
+).sort(["simulation", "day"])
+_df_fixed_50k_s05 = prepare_stopping_decision_columns(
+    _df_50k_s05.filter(pl.col("day") >= NUMBER_TEST_DAYS),
+    metric_direction_improvement="increase",
+).sort(["simulation", "day"])
+
+_o50k_s05_1, _t50k_s05_1, _m50k_s05_1, _r50k_s05_1, _d50k_s05_1 = run_loop_df(_df_prepped_50k_s05, True)
+_o50k_s05_2, _t50k_s05_2, _m50k_s05_2, _r50k_s05_2, _d50k_s05_2 = run_loop_df(_df_prepped_50k_s05, False)
+_o50k_s05_3, _t50k_s05_3, _m50k_s05_3, _r50k_s05_3, _d50k_s05_3 = run_loop_df(_df_fixed_50k_s05, False)
+
+_row_50k_s05   = make_scenario_row(
+    _o50k_s05_1, _t50k_s05_1, _m50k_s05_1, _r50k_s05_1,
+    _o50k_s05_2, _t50k_s05_2, _m50k_s05_2, _r50k_s05_2,
+    _o50k_s05_3, _t50k_s05_3, _m50k_s05_3, _r50k_s05_3,
+    _norm_50k_s05, CONTROL_MEAN, _ptn_50k + MAX_TEST_N,
+)
+_stats_50k_s05 = make_scenario_stats(
+    _o50k_s05_1, _d50k_s05_1, _t50k_s05_1, _r50k_s05_1,
+    _o50k_s05_2, _d50k_s05_2, _t50k_s05_2, _r50k_s05_2,
+    _o50k_s05_3, _d50k_s05_3, _t50k_s05_3, _r50k_s05_3,
+    _norm_50k_s05, CONTROL_MEAN, _ptn_50k + MAX_TEST_N,
+)
+display(HTML(f"""<script>
+window.__wif_scenarios = window.__wif_scenarios || {{}};
+window.__wif_scenarios['50k_s05_cr10'] = {{
+  row1:  {pio.to_json(_row_50k_s05)},
+  stats: {json.dumps(_stats_50k_s05)}
+}};
+</script>"""))
+```
+
+```{python}
+#| echo: false
 # Scenario 6: N=250k, σ=1 (reuse base df)
 _ptn_250k = 100_000
 
@@ -1753,6 +1882,131 @@ window.__wif_scenarios = window.__wif_scenarios || {{}};
 window.__wif_scenarios['100k_s05_cr10'] = {{
   row1:  {pio.to_json(_row_250k_s05)},
   stats: {json.dumps(_stats_250k_s05)}
+}};
+</script>"""))
+```
+
+```{python}
+#| echo: false
+# Scenario 150k: N=150k, σ=1 (reuse base df)
+_ptn_150k = 150_000
+
+_df_150k_s1 = se.calculate_launch_potential(df, post_test_n=_ptn_150k)
+_df_150k_s1 = se.calculate_total_potential(_df_150k_s1)
+_norm_150k_s1 = _df_150k_s1["total_trials_cumsum"].max() + _ptn_150k
+
+_df_prepped_150k_s1 = prepare_stopping_decision_columns(
+    _df_150k_s1.filter(pl.col("day") >= MIN_TEST_DAYS),
+    metric_direction_improvement="increase",
+).sort(["simulation", "day"])
+_df_fixed_150k_s1 = prepare_stopping_decision_columns(
+    _df_150k_s1.filter(pl.col("day") >= NUMBER_TEST_DAYS),
+    metric_direction_improvement="increase",
+).sort(["simulation", "day"])
+
+_o150k_s1_1, _t150k_s1_1, _m150k_s1_1, _r150k_s1_1, _d150k_s1_1 = run_loop_df(_df_prepped_150k_s1, True)
+_o150k_s1_2, _t150k_s1_2, _m150k_s1_2, _r150k_s1_2, _d150k_s1_2 = run_loop_df(_df_prepped_150k_s1, False)
+_o150k_s1_3, _t150k_s1_3, _m150k_s1_3, _r150k_s1_3, _d150k_s1_3 = run_loop_df(_df_fixed_150k_s1, False)
+
+_row_150k_s1   = make_scenario_row(
+    _o150k_s1_1, _t150k_s1_1, _m150k_s1_1, _r150k_s1_1,
+    _o150k_s1_2, _t150k_s1_2, _m150k_s1_2, _r150k_s1_2,
+    _o150k_s1_3, _t150k_s1_3, _m150k_s1_3, _r150k_s1_3,
+    _norm_150k_s1, CONTROL_MEAN, _ptn_150k + MAX_TEST_N,
+)
+_stats_150k_s1 = make_scenario_stats(
+    _o150k_s1_1, _d150k_s1_1, _t150k_s1_1, _r150k_s1_1,
+    _o150k_s1_2, _d150k_s1_2, _t150k_s1_2, _r150k_s1_2,
+    _o150k_s1_3, _d150k_s1_3, _t150k_s1_3, _r150k_s1_3,
+    _norm_150k_s1, CONTROL_MEAN, _ptn_150k + MAX_TEST_N,
+)
+display(HTML(f"""<script>
+window.__wif_scenarios = window.__wif_scenarios || {{}};
+window.__wif_scenarios['150k_s1_cr10'] = {{
+  row1:  {pio.to_json(_row_150k_s1)},
+  stats: {json.dumps(_stats_150k_s1)}
+}};
+</script>"""))
+```
+
+```{python}
+#| echo: false
+# Scenario 150k: N=150k, σ=2 (reuse _df_wide)
+_df_150k_s2 = se.calculate_launch_potential(_df_wide, post_test_n=_ptn_150k)
+_df_150k_s2 = se.calculate_total_potential(_df_150k_s2)
+_norm_150k_s2 = _df_150k_s2["total_trials_cumsum"].max() + _ptn_150k
+
+_df_prepped_150k_s2 = prepare_stopping_decision_columns(
+    _df_150k_s2.filter(pl.col("day") >= MIN_TEST_DAYS),
+    metric_direction_improvement="increase",
+).sort(["simulation", "day"])
+_df_fixed_150k_s2 = prepare_stopping_decision_columns(
+    _df_150k_s2.filter(pl.col("day") >= NUMBER_TEST_DAYS),
+    metric_direction_improvement="increase",
+).sort(["simulation", "day"])
+
+_o150k_s2_1, _t150k_s2_1, _m150k_s2_1, _r150k_s2_1, _d150k_s2_1 = run_loop_df(_df_prepped_150k_s2, True)
+_o150k_s2_2, _t150k_s2_2, _m150k_s2_2, _r150k_s2_2, _d150k_s2_2 = run_loop_df(_df_prepped_150k_s2, False)
+_o150k_s2_3, _t150k_s2_3, _m150k_s2_3, _r150k_s2_3, _d150k_s2_3 = run_loop_df(_df_fixed_150k_s2, False)
+
+_row_150k_s2   = make_scenario_row(
+    _o150k_s2_1, _t150k_s2_1, _m150k_s2_1, _r150k_s2_1,
+    _o150k_s2_2, _t150k_s2_2, _m150k_s2_2, _r150k_s2_2,
+    _o150k_s2_3, _t150k_s2_3, _m150k_s2_3, _r150k_s2_3,
+    _norm_150k_s2, CONTROL_MEAN, _ptn_150k + MAX_TEST_N,
+)
+_stats_150k_s2 = make_scenario_stats(
+    _o150k_s2_1, _d150k_s2_1, _t150k_s2_1, _r150k_s2_1,
+    _o150k_s2_2, _d150k_s2_2, _t150k_s2_2, _r150k_s2_2,
+    _o150k_s2_3, _d150k_s2_3, _t150k_s2_3, _r150k_s2_3,
+    _norm_150k_s2, CONTROL_MEAN, _ptn_150k + MAX_TEST_N,
+)
+display(HTML(f"""<script>
+window.__wif_scenarios = window.__wif_scenarios || {{}};
+window.__wif_scenarios['150k_s2_cr10'] = {{
+  row1:  {pio.to_json(_row_150k_s2)},
+  stats: {json.dumps(_stats_150k_s2)}
+}};
+</script>"""))
+```
+
+```{python}
+#| echo: false
+# Scenario 150k: N=150k, σ=0.5 (reuse _df_s05)
+_df_150k_s05 = se.calculate_launch_potential(_df_s05, post_test_n=_ptn_150k)
+_df_150k_s05 = se.calculate_total_potential(_df_150k_s05)
+_norm_150k_s05 = _df_150k_s05["total_trials_cumsum"].max() + _ptn_150k
+
+_df_prepped_150k_s05 = prepare_stopping_decision_columns(
+    _df_150k_s05.filter(pl.col("day") >= MIN_TEST_DAYS),
+    metric_direction_improvement="increase",
+).sort(["simulation", "day"])
+_df_fixed_150k_s05 = prepare_stopping_decision_columns(
+    _df_150k_s05.filter(pl.col("day") >= NUMBER_TEST_DAYS),
+    metric_direction_improvement="increase",
+).sort(["simulation", "day"])
+
+_o150k_s05_1, _t150k_s05_1, _m150k_s05_1, _r150k_s05_1, _d150k_s05_1 = run_loop_df(_df_prepped_150k_s05, True)
+_o150k_s05_2, _t150k_s05_2, _m150k_s05_2, _r150k_s05_2, _d150k_s05_2 = run_loop_df(_df_prepped_150k_s05, False)
+_o150k_s05_3, _t150k_s05_3, _m150k_s05_3, _r150k_s05_3, _d150k_s05_3 = run_loop_df(_df_fixed_150k_s05, False)
+
+_row_150k_s05   = make_scenario_row(
+    _o150k_s05_1, _t150k_s05_1, _m150k_s05_1, _r150k_s05_1,
+    _o150k_s05_2, _t150k_s05_2, _m150k_s05_2, _r150k_s05_2,
+    _o150k_s05_3, _t150k_s05_3, _m150k_s05_3, _r150k_s05_3,
+    _norm_150k_s05, CONTROL_MEAN, _ptn_150k + MAX_TEST_N,
+)
+_stats_150k_s05 = make_scenario_stats(
+    _o150k_s05_1, _d150k_s05_1, _t150k_s05_1, _r150k_s05_1,
+    _o150k_s05_2, _d150k_s05_2, _t150k_s05_2, _r150k_s05_2,
+    _o150k_s05_3, _d150k_s05_3, _t150k_s05_3, _r150k_s05_3,
+    _norm_150k_s05, CONTROL_MEAN, _ptn_150k + MAX_TEST_N,
+)
+display(HTML(f"""<script>
+window.__wif_scenarios = window.__wif_scenarios || {{}};
+window.__wif_scenarios['150k_s05_cr10'] = {{
+  row1:  {pio.to_json(_row_150k_s05)},
+  stats: {json.dumps(_stats_150k_s05)}
 }};
 </script>"""))
 ```
@@ -2027,9 +2281,9 @@ def _peak_stats_cr(outcomes, avg_days_list, norm, cr_val, ptn_val, round_peak=Fa
       Avg(Days): <strong>{avg_d:.1f}</strong>
     </div>"""
 
-_cr_combos    = [(0.05, 'cr05'), (0.30, 'cr30'), (0.65, 'cr65')]
+_cr_combos    = [(0.05, 'cr05'), (0.25, 'cr25'), (0.40, 'cr40'), (0.60, 'cr60'), (0.80, 'cr80')]
 _sigma_combos = [(ITC_SE, 's1'), (2, 's2'), (0.5, 's05')]
-_ptn_combos   = [(100_000, '100k'), (200_000, '200k'), (POST_TEST_N, '400k'), (POST_TEST_N * 2, '800k'), (1_600_000, '1600k')]
+_ptn_combos   = [(50_000, '50k'), (100_000, '100k'), (150_000, '150k'), (200_000, '200k'), (POST_TEST_N, '400k'), (POST_TEST_N * 2, '800k'), (1_600_000, '1600k')]
 
 for _cr_val, _cr_key in _cr_combos:
     for _itc_se_val, _sigma_key in _sigma_combos:
@@ -2343,8 +2597,10 @@ The larger the post-test audience, the more costly a wrong call. The stopping th
       <select id="ptn-cr" class="form-select form-select-sm" style="width:auto; font-size:0.85rem;">
         <option value="cr05">5%</option>
         <option value="cr10" selected>10%</option>
-        <option value="cr30">30%</option>
-        <option value="cr65">65%</option>
+        <option value="cr25">25%</option>
+        <option value="cr40">40%</option>
+        <option value="cr60">60%</option>
+        <option value="cr80">80%</option>
       </select>
     </div>
     <div style="display:flex; flex-direction:column; gap:0.25rem;">
@@ -2375,9 +2631,9 @@ The larger the post-test audience, the more costly a wrong call. The stopping th
 
 <script>
 (function () {
-  var PTN_VALS   = [100000, 200000, 400000, 800000, 1600000];
-  var PTN_KEYS   = ['100k', '200k', '400k', '800k', '1600k'];
-  var PTN_LABELS = ['100k', '200k', '400k', '800k', '1600k'];
+  var PTN_VALS   = [50000, 100000, 150000, 200000, 400000, 800000, 1600000];
+  var PTN_KEYS   = ['50k', '100k', '150k', '200k', '400k', '800k', '1600k'];
+  var PTN_LABELS = ['50k', '100k', '150k', '200k', '400k', '800k', '1600k'];
   var PAL        = ['#1f77b4', '#ff7f0e', '#2ca02c'];
   var STRATS     = ['Peeking + Best', 'Peeking', 'Fixed Sample'];
 
@@ -2420,7 +2676,7 @@ The larger the post-test audience, the more costly a wrong call. The stopping th
     if (isAlpha) {
     } else if (isDays) {
       traces.push({
-        x: PTN_VALS, y: [20, 20, 20, 20, 20], mode: 'lines',
+        x: PTN_VALS, y: [20, 20, 20, 20, 20, 20, 20], mode: 'lines',
         name: 'Max test days (20)', showlegend: false,
         line: { color: '#aaa', width: 1.5, dash: 'dot' },
         hovertemplate: 'Max test days = 20<extra></extra>'
@@ -2467,11 +2723,11 @@ The larger the post-test audience, the more costly a wrong call. The stopping th
     Plotly.react('ptn-alpha-chart', traces, {
       barmode: isBar ? 'group' : undefined,
       xaxis: isBar ? {
-        title: { text: 'Post-Test N', font: { size: 12 }, standoff: 8 },
+        title: { text: 'Post-Test N', font: { size: 12 }, standoff: 4 },
         showgrid: false
       } : {
         tickvals: PTN_VALS, ticktext: PTN_LABELS,
-        title: { text: 'Post-Test N', font: { size: 12 }, standoff: 8 },
+        title: { text: 'Post-Test N', font: { size: 12 }, standoff: 4 },
         showgrid: true, gridcolor: '#eee'
       },
       yaxis: {
