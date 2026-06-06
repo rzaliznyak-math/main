@@ -445,7 +445,7 @@
     "href": "ab-testing/ab-testing-optimization.html#importance-of-post-test-n",
     "title": "AB Testing is an Optimization Problem",
     "section": "Importance of Post-Test N",
-    "text": "Importance of Post-Test N\nThe larger the post-test audience, the more costly a wrong call. The stopping threshold rises to match — making early stops harder to earn as the stakes grow.\n\n\n  \n    \n      Baseline Conversion\n      \n        5%\n        10%\n        30%\n        65%\n      \n    \n    \n      Expected Effects\n      \n        ITC ~ N(100, 0.5)\n        ITC ~ N(100, 1)\n        ITC ~ N(100, 2)\n      \n    \n    \n      Metric\n      \n        Optimal α\n        Marginal Events\n        Avg Days"
+    "text": "Importance of Post-Test N\nThe larger the post-test audience, the more costly a wrong call. The stopping threshold rises to match — making early stops harder to earn as the stakes grow.\n\n\n  \n    \n      Baseline Conversion\n      \n        5%\n        10%\n        25%\n        40%\n        60%\n        80%\n      \n    \n    \n      Expected Effects\n      \n        ITC ~ N(100, 0.5)\n        ITC ~ N(100, 1)\n        ITC ~ N(100, 2)\n      \n    \n    \n      Metric\n      \n        Optimal α\n        Marginal Events\n        Avg Days"
   },
   {
     "objectID": "ab-testing/ab-testing-optimization.html#what-the-data-says",
