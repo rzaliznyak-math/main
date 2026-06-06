@@ -19,7 +19,7 @@ css: wider.css
 
 Significance testing is excellent at controlling error rates. If minimizing false positives is your goal, p < 0.05 is exactly what you need. But most teams running experiments aren't in the business of error control — they're in the business of maximizing long-run value. That's a different objective, and it calls for a different stopping rule.
 
-We simulated 1.6 million experiments — 4 baseline conversion rates × 3 effect size distributions — and evaluated each stopping rule across 5 post-test audience sizes, yielding 60 scenarios in total. Each stopping rule was scored by the long-run conversion rate it produced. The findings are consistent across all scenarios.
+We simulated over 2 million experiments — 6 baseline conversion rates × 3 effect size distributions — and evaluated each stopping rule across 7 post-test audience sizes, yielding 126 scenarios in total. Each stopping rule was scored by the long-run conversion rate it produced. The findings are consistent across all scenarios.
 
 ::: {.callout-important appearance="minimal"}
 **Spoiler alert:** The strategies that maximize long-run value look nothing like what classical statistics recommends.
