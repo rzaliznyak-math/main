@@ -1,6 +1,6 @@
 ---
 title: "AB Testing is an Optimization Problem"
-subtitle: "Simulations Show P-Hacking Is Good for Business"
+subtitle: "Using Simulations to Find the Best AB Testing Strategy"
 author: "Russ Zaliznyak"
 date: "2026-05-30"
 categories: [AB Testing, Bayesian, Decision Theory, Optimization]
@@ -19,18 +19,16 @@ css: wider.css
 
 Significance testing is excellent at one thing: controlling error rates. If minimizing false positives is your goal, p < 0.05 is the right tool. But most product teams aren't in the business of error control — they're in the business of maximizing long-run value. That's a different objective, and it calls for a different stopping rule.
 
-We ran 100,000 simulated experiments across a range of baseline rates, post-test audiences, and effect distributions, scoring each stopping rule by the long-run conversion rate it produced — test traffic plus full post-test rollout. The findings are consistent across all scenarios.
+We simulated 1.6 million experiments — 4 baseline conversion rates × 3 effect size distributions — and evaluated each stopping rule across 5 post-test audience sizes, yielding 60 scenarios in total. Each stopping rule was scored by the long-run conversion rate it produced. The findings are consistent across all scenarios.
 
 ::: {.callout-important appearance="minimal"}
-**The findings:**
+**Spoiler alert:** The strategies that maximize long-run value look nothing like what classical statistics recommends.
 
-- **P-hacking is good for business.**
-  - Peeking at results early yields higher long-run value than waiting for a fixed sample size.
-  - When an experiment ends inconclusive, deploying whoever is *leading* outperforms defaulting to control.
-- **The optimal fixed-sample threshold is α = 0.50.** Not 0.05. Not 0.10. Just deploy whichever variant is winning on the last day, every time. Conventional thresholds don't leave a little value on the table — they actively cause you to default to control when the data already points elsewhere.
+- The optimal fixed-sample threshold is **α = 0.50** — not 0.05. Just deploy whoever is leading on the last day.
+- Peeking and Fixed Sample at α = 0.50 return comparable value — but peeking experiments end sooner.
+- Combine peeking with retaining the best performer — stop early on a signal, ship the leader when you can't.
 :::
 
-In all cases, the optimal stopping rule is far more aggressive than conventional practice — and any rule primarily designed to control error rates lands well short of the peak.
 
 # A Simulation Framework
 
@@ -211,8 +209,8 @@ MAX_TEST_N         = 100_000   # total users in the experiment
 SPLIT              = 0.50      # treatment allocation (50/50)
 MIN_TEST_DAYS      = 7         # mandatory burn-in before stopping decisions
 NUMBER_TEST_DAYS   = 20        # maximum experiment duration
-POST_TEST_N        = 500_000   # users exposed to winner once MAX_TEST_N is reached
-NUMBER_SIMULATIONS = 100_000   # simulations to run
+POST_TEST_N        = 400_000   # users exposed to winner once MAX_TEST_N is reached
+NUMBER_SIMULATIONS = 100_000    # simulations to run
 SEED               = 42
 ITC_MEAN           = 100       # index-to-control mean
 ITC_SE             = 1         # index-to-control standard error
@@ -903,10 +901,10 @@ print(f'<script>window.__pvalSimData = {json.dumps(pval_sim_data)};</script>')
 
 To find the stopping rule that maximizes long-term value, we naively apply three analysis strategies and measure their average outcome across the same 100,000 simulated experiments.
 
-| | **Peeking** | **Peeking + Best** | **Fixed Sample** |
+| | **Fixed Sample** | **Peeking** | **Peeking + Best** |
 |---|:---:|:---:|:---:|
-| Stop early on signal | ✓ | ✓ | ✗ |
-| No-breach fallback | Retain Control | Best Performer | Retain Control |
+| Stop early on signal | ✗ | ✓ | ✓ |
+| No-breach fallback | Retain Control | Retain Control | Best Performer |
 
 For each of 100,000 simulated experiments and each threshold α ∈ [0.01, 0.50]:
 
@@ -917,7 +915,7 @@ For each of 100,000 simulated experiments and each threshold α ∈ [0.01, 0.50]
 
 \* *Peeking strategies only. Fixed Sample skips the daily check and always runs to the final day.*
 
-## Results
+# Results
 
 Below are the optimization curves for each strategy — long-term value as a function of stopping threshold α. The square marker is the peak.
 
@@ -983,7 +981,7 @@ def make_curve_fig(outcomes, trials, med_trials, rate, title, y_fmt=".3%", round
         "Marginal Events: %{customdata[3]:,.0f}<br>"
         "Avg Trials: %{customdata[0]:,}<br>"
         "Median Trials: %{customdata[2]:,}<br>"
-        "Selected Best Condition: %{customdata[1]:.2%}<br>"
+        "Correct Decision Rate: %{customdata[1]:.2%}<br>"
         "<extra></extra>"
     )
     f = px.line(x=x, y=y)
@@ -1000,15 +998,15 @@ def make_curve_fig(outcomes, trials, med_trials, rate, title, y_fmt=".3%", round
     f.update_yaxes(title_text="Projected Mean @ Year-End", tickformat=y_fmt)
     return f
 
-def make_overlay_fig_n(o1, t1, o2, t2, o3, t3, norm):
+def make_overlay_fig_n(o1, t1, m1, r1, o2, t2, m2, r2, o3, t3, m3, r3, norm):
     """All 3 strategies on one chart: x = avg total trials, y = projected mean."""
     _pal    = ['#1f77b4', '#ff7f0e', '#2ca02c']
     _labels = ['Peeking + Best', 'Peeking', 'Fixed Sample']
     _rp     = [False, False, True]
     _x_pvals = 1 - p_thresholds
     fig = go.Figure()
-    for _outcomes, _trials, _col, _lbl, _round in zip(
-        [o1, o2, o3], [t1, t2, t3], _pal, _labels, _rp
+    for _outcomes, _trials, _marginal, _rate, _col, _lbl, _round in zip(
+        [o1, o2, o3], [t1, t2, t3], [m1, m2, m3], [r1, r2, r3], _pal, _labels, _rp
     ):
         _y = np.array(_outcomes) / norm
         _x = np.array(_trials)
@@ -1017,21 +1015,24 @@ def make_overlay_fig_n(o1, t1, o2, t2, o3, t3, norm):
             "Avg Trials: %{x:,}<br>"
             "Projected Mean: %{y:.3%}<br>"
             "\u03b1: %{customdata[0]:.2f}<br>"
+            "Marginal Events: %{customdata[1]:,.0f}<br>"
+            "Correct Decision Rate: %{customdata[2]:.2%}<br>"
             "<extra></extra>"
         )
+        _cd = np.column_stack([_x_pvals, np.array(_marginal), np.array(_rate)])
         fig.add_trace(go.Scatter(
             x=_x, y=_y,
             mode='lines+markers',
             name=_lbl,
             line=dict(color=_col, width=2),
             marker=dict(color=_col, size=4),
-            customdata=np.column_stack([_x_pvals]),
+            customdata=_cd,
             hovertemplate=hover_tmpl,
         ))
         fig.add_trace(go.Scatter(
             x=[_x[peak]], y=[_y[peak]], mode='markers', showlegend=False,
             marker=dict(symbol='square', size=10, color=_col),
-            customdata=[[_x_pvals[peak]]],
+            customdata=[[_x_pvals[peak], _marginal[peak], _rate[peak]]],
             hovertemplate=hover_tmpl,
         ))
     fig.update_layout(
@@ -1065,7 +1066,7 @@ def make_triple_curve_fig(o1, t1, m1, r1, o2, t2, m2, r2, o3, t3, m3, r3, norm,
             f"Projected Mean: %{{y:{y_fmt}}}<br>"
             f"{marginal_hover}"
             "Avg Trials: %{customdata[0]:,}<br>"
-            "Selected Best Condition: %{customdata[1]:.2%}<br>"
+            "Correct Decision Rate: %{customdata[1]:.2%}<br>"
             "<extra></extra>"
         )
         fig.add_trace(go.Scatter(
@@ -1090,7 +1091,7 @@ def make_triple_curve_fig(o1, t1, m1, r1, o2, t2, m2, r2, o3, t3, m3, r3, norm,
 
 def make_scenario_row(o1, t1, m1, r1, o2, t2, m2, r2, o3, t3, m3, r3, norm, baseline, total_n):
     triple  = make_triple_curve_fig(o1, t1, m1, r1, o2, t2, m2, r2, o3, t3, m3, r3, norm, baseline, total_n)
-    overlay = make_overlay_fig_n(o1, t1, o2, t2, o3, t3, norm)
+    overlay = make_overlay_fig_n(o1, t1, m1, r1, o2, t2, m2, r2, o3, t3, m3, r3, norm)
     row = make_subplots(rows=1, cols=2,
                         subplot_titles=["Value vs α", "Value vs Avg Trials"],
                         column_widths=[0.5, 0.5],
@@ -1160,18 +1161,13 @@ _stats_base = make_scenario_stats(
 display(HTML(f"""
 <script>
 window.__wif_scenarios = window.__wif_scenarios || {{}};
-window.__wif_scenarios['500k_s1_cr10'] = {{
+window.__wif_scenarios['400k_s1_cr10'] = {{
   row1:  {pio.to_json(row1)},
   stats: {json.dumps(_stats_base)}
 }};
 </script>
 
-<div id="wif-row1" style="min-height:380px;"></div>
-
-<p style="font-size:1.05rem; color:#333; margin-top:0.75rem; margin-bottom:0.25rem;">The table summarizes each strategy at its optimal α, with Fixed Sample at the conventional α = 0.05 included as a benchmark.</p>
-<div id="wif-stats1" style="margin-top:0.25rem;"></div>
-
-<div style="display:flex; flex-direction:column; gap:0.6rem; margin-top:0.5rem; margin-bottom:0.15rem; border: 1.5px dashed #90b8e0; border-radius:6px; padding:0.5rem 1rem;">
+<div style="display:flex; flex-direction:column; gap:0.6rem; margin-bottom:0.75rem; border: 1.5px dashed #90b8e0; border-radius:6px; padding:0.5rem 1rem;">
   <div style="font-size:1.05rem; color:#444; font-style:italic;">Change the scenario — notice whether the peaks shift or hold.</div>
   <div style="display:flex; gap:2rem; align-items:flex-start; flex-wrap:wrap;">
   <div style="display:flex; flex-direction:column; gap:0.25rem;">
@@ -1187,9 +1183,10 @@ window.__wif_scenarios['500k_s1_cr10'] = {{
     <label style="font-size:0.85rem; color:#555; font-weight:600;">Post-Test N</label>
     <select id="wif-ptn" class="form-select form-select-sm" style="width:auto; font-size:0.85rem;">
       <option value="100k">100,000</option>
-      <option value="250k">250,000</option>
-      <option value="500k" selected>500,000</option>
-      <option value="2m">2,000,000</option>
+      <option value="200k">200,000</option>
+      <option value="400k" selected>400,000</option>
+      <option value="800k">800,000</option>
+      <option value="1600k">1,600,000</option>
     </select>
   </div>
   <div style="display:flex; flex-direction:column; gap:0.25rem;">
@@ -1206,13 +1203,18 @@ window.__wif_scenarios['500k_s1_cr10'] = {{
   </div>
 </div>
 
+<div id="wif-row1" style="min-height:380px;"></div>
+
+<p style="font-size:1.05rem; color:#333; margin-top:0.75rem; margin-bottom:0.25rem;">The table summarizes each strategy at its optimal α, with Fixed Sample at the conventional α = 0.05 included as a benchmark.</p>
+<div id="wif-stats1" style="margin-top:0.25rem;"></div>
+
 <script>
 (function() {{
   var CR_ORDER    = {{ 'cr05': 0, 'cr10': 1, 'cr30': 2, 'cr65': 3 }};
-  var PTN_ORDER   = {{ '100k': 0, '250k': 1, '500k': 2, '2m': 3 }};
+  var PTN_ORDER   = {{ '100k': 0, '200k': 1, '400k': 2, '800k': 3, '1600k': 4 }};
   var SIGMA_ORDER = {{ 's05': 0, 's1': 1, 's2': 2 }};
   var prevCr    = 'cr10';
-  var prevPtn   = '500k';
+  var prevPtn   = '400k';
   var prevSigma = 's1';
 
   var CR_UP     = 'Higher baseline means larger absolute effects at the same ITC — easier to detect.';
@@ -1278,7 +1280,7 @@ window.__wif_scenarios['500k_s1_cr10'] = {{
       '<th ' + _th + '>\u03b1</th>' +
       '<th ' + _th + '>Projected Mean</th>' +
       '<th ' + _th + '>Marginal Events vs No Test</th>' +
-      '<th ' + _th + '>Selected Best Condition</th>' +
+      '<th ' + _th + '>Correct Decision Rate</th>' +
       '<th ' + _th + '>Avg Trials</th>' +
       '<th ' + _th + '>Avg(Days)</th>' +
       '</tr></thead><tbody>' + rows + '</tbody></' + 'table>';
@@ -1290,7 +1292,7 @@ window.__wif_scenarios['500k_s1_cr10'] = {{
            document.getElementById('wif-cr').value;
   }}
 
-  renderScenario('500k_s1_cr10');
+  renderScenario('400k_s1_cr10');
   document.getElementById('wif-ptn').addEventListener('change',   function() {{ renderScenario(getKey()); }});
   document.getElementById('wif-sigma').addEventListener('change', function() {{ renderScenario(getKey()); }});
   document.getElementById('wif-cr').addEventListener('change',    function() {{ renderScenario(getKey()); }});
@@ -1306,7 +1308,7 @@ window.__wif_scenarios['500k_s1_cr10'] = {{
 #| echo: false
 # Scenario 1: N=1M, σ=1
 
-_ptn_2x = POST_TEST_N * 4
+_ptn_2x = POST_TEST_N * 2
 df_2x = se.calculate_launch_potential(df, post_test_n=_ptn_2x)
 df_2x = se.calculate_total_potential(df_2x)
 
@@ -1354,7 +1356,7 @@ def make_curve_fig_n(outcomes, trials, med_trials, rate, title, norm, y_fmt=".3%
         f"{marginal_hover}"
         "Avg Trials: %{customdata[0]:,}<br>"
         "Median Trials: %{customdata[2]:,}<br>"
-        "Selected Best Condition: %{customdata[1]:.2%}<br>"
+        "Correct Decision Rate: %{customdata[1]:.2%}<br>"
         "<extra></extra>"
     )
     f = px.line(x=x, y=y)
@@ -1384,7 +1386,7 @@ _stats_2x = make_scenario_stats(
 
 display(HTML(f"""<script>
 window.__wif_scenarios = window.__wif_scenarios || {{}};
-window.__wif_scenarios['2m_s1_cr10'] = {{
+window.__wif_scenarios['800k_s1_cr10'] = {{
   row1:  {pio.to_json(_row_2x)},
   stats: {json.dumps(_stats_2x)}
 }};
@@ -1447,7 +1449,7 @@ _stats_wide = make_scenario_stats(
 
 display(HTML(f"""<script>
 window.__wif_scenarios = window.__wif_scenarios || {{}};
-window.__wif_scenarios['500k_s2_cr10'] = {{
+window.__wif_scenarios['400k_s2_cr10'] = {{
   row1:  {pio.to_json(_row_wide)},
   stats: {json.dumps(_stats_wide)}
 }};
@@ -1458,7 +1460,7 @@ window.__wif_scenarios['500k_s2_cr10'] = {{
 #| echo: false
 # Scenario 3: N=1M, σ=2
 
-_ptn_both    = POST_TEST_N * 4
+_ptn_both    = POST_TEST_N * 2
 _itc_se_both = 2
 _ref_params_both = {
     "itc_mean": ITC_MEAN,
@@ -1510,7 +1512,7 @@ _stats_both = make_scenario_stats(
 
 display(HTML(f"""<script>
 window.__wif_scenarios = window.__wif_scenarios || {{}};
-window.__wif_scenarios['2m_s2_cr10'] = {{
+window.__wif_scenarios['800k_s2_cr10'] = {{
   row1:  {pio.to_json(_row_both)},
   stats: {json.dumps(_stats_both)}
 }};
@@ -1531,7 +1533,7 @@ _ref_params_s05 = {
 
 _df_base_s05 = se.create_simulation_df(
     number_test_days=NUMBER_TEST_DAYS,
-    number_simulations=500_000,
+    number_simulations=NUMBER_SIMULATIONS,
     seed=SEED,
     condition_parameters=[{"mean": CONTROL_MEAN, "trials": int(MAX_TEST_N * SPLIT)}],
 )
@@ -1573,7 +1575,7 @@ _stats_s05 = make_scenario_stats(
 
 display(HTML(f"""<script>
 window.__wif_scenarios = window.__wif_scenarios || {{}};
-window.__wif_scenarios['500k_s05_cr10'] = {{
+window.__wif_scenarios['400k_s05_cr10'] = {{
   row1:  {pio.to_json(_row_s05)},
   stats: {json.dumps(_stats_s05)}
 }};
@@ -1584,7 +1586,7 @@ window.__wif_scenarios['500k_s05_cr10'] = {{
 #| echo: false
 # Scenario 5: N=1M, σ=0.5
 
-_ptn_s05_2x = POST_TEST_N * 4
+_ptn_s05_2x = POST_TEST_N * 2
 
 _df_s05_2x = se.calculate_launch_potential(_df_s05, post_test_n=_ptn_s05_2x)
 _df_s05_2x = se.calculate_total_potential(_df_s05_2x)
@@ -1617,7 +1619,7 @@ _stats_s05_2x = make_scenario_stats(
 
 display(HTML(f"""<script>
 window.__wif_scenarios = window.__wif_scenarios || {{}};
-window.__wif_scenarios['2m_s05_cr10'] = {{
+window.__wif_scenarios['800k_s05_cr10'] = {{
   row1:  {pio.to_json(_row_s05_2x)},
   stats: {json.dumps(_stats_s05_2x)}
 }};
@@ -1758,7 +1760,7 @@ window.__wif_scenarios['100k_s05_cr10'] = {{
 ```{python}
 #| echo: false
 # Scenario 9: N=250k, σ=1 (reuse base df)
-_ptn_250k_new = 250_000
+_ptn_250k_new = 200_000
 
 _df_250k_new_s1 = se.calculate_launch_potential(df, post_test_n=_ptn_250k_new)
 _df_250k_new_s1 = se.calculate_total_potential(_df_250k_new_s1)
@@ -1792,7 +1794,7 @@ _stats_250kn_s1 = make_scenario_stats(
 
 display(HTML(f"""<script>
 window.__wif_scenarios = window.__wif_scenarios || {{}};
-window.__wif_scenarios['250k_s1_cr10'] = {{
+window.__wif_scenarios['200k_s1_cr10'] = {{
   row1:  {pio.to_json(_row_250kn_s1)},
   stats: {json.dumps(_stats_250kn_s1)}
 }};
@@ -1834,7 +1836,7 @@ _stats_250kn_s2 = make_scenario_stats(
 
 display(HTML(f"""<script>
 window.__wif_scenarios = window.__wif_scenarios || {{}};
-window.__wif_scenarios['250k_s2_cr10'] = {{
+window.__wif_scenarios['200k_s2_cr10'] = {{
   row1:  {pio.to_json(_row_250kn_s2)},
   stats: {json.dumps(_stats_250kn_s2)}
 }};
@@ -1876,9 +1878,134 @@ _stats_250kn_s05 = make_scenario_stats(
 
 display(HTML(f"""<script>
 window.__wif_scenarios = window.__wif_scenarios || {{}};
-window.__wif_scenarios['250k_s05_cr10'] = {{
+window.__wif_scenarios['200k_s05_cr10'] = {{
   row1:  {pio.to_json(_row_250kn_s05)},
   stats: {json.dumps(_stats_250kn_s05)}
+}};
+</script>"""))
+```
+
+```{python}
+#| echo: false
+# Scenario 12: N=1600k, σ=1 (reuse base df)
+_ptn_1600k = 1_600_000
+
+_df_1600k_s1 = se.calculate_launch_potential(df, post_test_n=_ptn_1600k)
+_df_1600k_s1 = se.calculate_total_potential(_df_1600k_s1)
+_norm_1600k_s1 = _df_1600k_s1["total_trials_cumsum"].max() + _ptn_1600k
+
+_df_prepped_1600k_s1 = prepare_stopping_decision_columns(
+    _df_1600k_s1.filter(pl.col("day") >= MIN_TEST_DAYS),
+    metric_direction_improvement="increase",
+).sort(["simulation", "day"])
+_df_fixed_1600k_s1 = prepare_stopping_decision_columns(
+    _df_1600k_s1.filter(pl.col("day") >= NUMBER_TEST_DAYS),
+    metric_direction_improvement="increase",
+).sort(["simulation", "day"])
+
+_o1600k_s1_1, _t1600k_s1_1, _m1600k_s1_1, _r1600k_s1_1, _d1600k_s1_1 = run_loop_df(_df_prepped_1600k_s1, True)
+_o1600k_s1_2, _t1600k_s1_2, _m1600k_s1_2, _r1600k_s1_2, _d1600k_s1_2 = run_loop_df(_df_prepped_1600k_s1, False)
+_o1600k_s1_3, _t1600k_s1_3, _m1600k_s1_3, _r1600k_s1_3, _d1600k_s1_3 = run_loop_df(_df_fixed_1600k_s1, False)
+
+_row_1600k_s1   = make_scenario_row(
+    _o1600k_s1_1, _t1600k_s1_1, _m1600k_s1_1, _r1600k_s1_1,
+    _o1600k_s1_2, _t1600k_s1_2, _m1600k_s1_2, _r1600k_s1_2,
+    _o1600k_s1_3, _t1600k_s1_3, _m1600k_s1_3, _r1600k_s1_3,
+    _norm_1600k_s1, CONTROL_MEAN, _ptn_1600k + MAX_TEST_N,
+)
+_stats_1600k_s1 = make_scenario_stats(
+    _o1600k_s1_1, _d1600k_s1_1, _t1600k_s1_1, _r1600k_s1_1,
+    _o1600k_s1_2, _d1600k_s1_2, _t1600k_s1_2, _r1600k_s1_2,
+    _o1600k_s1_3, _d1600k_s1_3, _t1600k_s1_3, _r1600k_s1_3,
+    _norm_1600k_s1, CONTROL_MEAN, _ptn_1600k + MAX_TEST_N,
+)
+display(HTML(f"""<script>
+window.__wif_scenarios = window.__wif_scenarios || {{}};
+window.__wif_scenarios['1600k_s1_cr10'] = {{
+  row1:  {pio.to_json(_row_1600k_s1)},
+  stats: {json.dumps(_stats_1600k_s1)}
+}};
+</script>"""))
+```
+
+```{python}
+#| echo: false
+# Scenario 13: N=1600k, σ=2 (reuse _df_wide)
+_df_1600k_s2 = se.calculate_launch_potential(_df_wide, post_test_n=_ptn_1600k)
+_df_1600k_s2 = se.calculate_total_potential(_df_1600k_s2)
+_norm_1600k_s2 = _df_1600k_s2["total_trials_cumsum"].max() + _ptn_1600k
+
+_df_prepped_1600k_s2 = prepare_stopping_decision_columns(
+    _df_1600k_s2.filter(pl.col("day") >= MIN_TEST_DAYS),
+    metric_direction_improvement="increase",
+).sort(["simulation", "day"])
+_df_fixed_1600k_s2 = prepare_stopping_decision_columns(
+    _df_1600k_s2.filter(pl.col("day") >= NUMBER_TEST_DAYS),
+    metric_direction_improvement="increase",
+).sort(["simulation", "day"])
+
+_o1600k_s2_1, _t1600k_s2_1, _m1600k_s2_1, _r1600k_s2_1, _d1600k_s2_1 = run_loop_df(_df_prepped_1600k_s2, True)
+_o1600k_s2_2, _t1600k_s2_2, _m1600k_s2_2, _r1600k_s2_2, _d1600k_s2_2 = run_loop_df(_df_prepped_1600k_s2, False)
+_o1600k_s2_3, _t1600k_s2_3, _m1600k_s2_3, _r1600k_s2_3, _d1600k_s2_3 = run_loop_df(_df_fixed_1600k_s2, False)
+
+_row_1600k_s2   = make_scenario_row(
+    _o1600k_s2_1, _t1600k_s2_1, _m1600k_s2_1, _r1600k_s2_1,
+    _o1600k_s2_2, _t1600k_s2_2, _m1600k_s2_2, _r1600k_s2_2,
+    _o1600k_s2_3, _t1600k_s2_3, _m1600k_s2_3, _r1600k_s2_3,
+    _norm_1600k_s2, CONTROL_MEAN, _ptn_1600k + MAX_TEST_N,
+)
+_stats_1600k_s2 = make_scenario_stats(
+    _o1600k_s2_1, _d1600k_s2_1, _t1600k_s2_1, _r1600k_s2_1,
+    _o1600k_s2_2, _d1600k_s2_2, _t1600k_s2_2, _r1600k_s2_2,
+    _o1600k_s2_3, _d1600k_s2_3, _t1600k_s2_3, _r1600k_s2_3,
+    _norm_1600k_s2, CONTROL_MEAN, _ptn_1600k + MAX_TEST_N,
+)
+display(HTML(f"""<script>
+window.__wif_scenarios = window.__wif_scenarios || {{}};
+window.__wif_scenarios['1600k_s2_cr10'] = {{
+  row1:  {pio.to_json(_row_1600k_s2)},
+  stats: {json.dumps(_stats_1600k_s2)}
+}};
+</script>"""))
+```
+
+```{python}
+#| echo: false
+# Scenario 14: N=1600k, σ=0.5 (reuse _df_s05)
+_df_1600k_s05 = se.calculate_launch_potential(_df_s05, post_test_n=_ptn_1600k)
+_df_1600k_s05 = se.calculate_total_potential(_df_1600k_s05)
+_norm_1600k_s05 = _df_1600k_s05["total_trials_cumsum"].max() + _ptn_1600k
+
+_df_prepped_1600k_s05 = prepare_stopping_decision_columns(
+    _df_1600k_s05.filter(pl.col("day") >= MIN_TEST_DAYS),
+    metric_direction_improvement="increase",
+).sort(["simulation", "day"])
+_df_fixed_1600k_s05 = prepare_stopping_decision_columns(
+    _df_1600k_s05.filter(pl.col("day") >= NUMBER_TEST_DAYS),
+    metric_direction_improvement="increase",
+).sort(["simulation", "day"])
+
+_o1600k_s05_1, _t1600k_s05_1, _m1600k_s05_1, _r1600k_s05_1, _d1600k_s05_1 = run_loop_df(_df_prepped_1600k_s05, True)
+_o1600k_s05_2, _t1600k_s05_2, _m1600k_s05_2, _r1600k_s05_2, _d1600k_s05_2 = run_loop_df(_df_prepped_1600k_s05, False)
+_o1600k_s05_3, _t1600k_s05_3, _m1600k_s05_3, _r1600k_s05_3, _d1600k_s05_3 = run_loop_df(_df_fixed_1600k_s05, False)
+
+_row_1600k_s05   = make_scenario_row(
+    _o1600k_s05_1, _t1600k_s05_1, _m1600k_s05_1, _r1600k_s05_1,
+    _o1600k_s05_2, _t1600k_s05_2, _m1600k_s05_2, _r1600k_s05_2,
+    _o1600k_s05_3, _t1600k_s05_3, _m1600k_s05_3, _r1600k_s05_3,
+    _norm_1600k_s05, CONTROL_MEAN, _ptn_1600k + MAX_TEST_N,
+)
+_stats_1600k_s05 = make_scenario_stats(
+    _o1600k_s05_1, _d1600k_s05_1, _t1600k_s05_1, _r1600k_s05_1,
+    _o1600k_s05_2, _d1600k_s05_2, _t1600k_s05_2, _r1600k_s05_2,
+    _o1600k_s05_3, _d1600k_s05_3, _t1600k_s05_3, _r1600k_s05_3,
+    _norm_1600k_s05, CONTROL_MEAN, _ptn_1600k + MAX_TEST_N,
+)
+display(HTML(f"""<script>
+window.__wif_scenarios = window.__wif_scenarios || {{}};
+window.__wif_scenarios['1600k_s05_cr10'] = {{
+  row1:  {pio.to_json(_row_1600k_s05)},
+  stats: {json.dumps(_stats_1600k_s05)}
 }};
 </script>"""))
 ```
@@ -1902,7 +2029,7 @@ def _peak_stats_cr(outcomes, avg_days_list, norm, cr_val, ptn_val, round_peak=Fa
 
 _cr_combos    = [(0.05, 'cr05'), (0.30, 'cr30'), (0.65, 'cr65')]
 _sigma_combos = [(ITC_SE, 's1'), (2, 's2'), (0.5, 's05')]
-_ptn_combos   = [(100_000, '100k'), (250_000, '250k'), (POST_TEST_N, '500k'), (POST_TEST_N * 4, '2m')]
+_ptn_combos   = [(100_000, '100k'), (200_000, '200k'), (POST_TEST_N, '400k'), (POST_TEST_N * 2, '800k'), (1_600_000, '1600k')]
 
 for _cr_val, _cr_key in _cr_combos:
     for _itc_se_val, _sigma_key in _sigma_combos:
@@ -1961,105 +2088,251 @@ window.__wif_scenarios['{_key}'] = {{
 </script>"""))
 ```
 
-::: {style="margin-top:0.25rem;"}
-# Insights
-:::
+## What the Simulations Say
+
+### 1. Fixed Sample Testing at α = 0.50 is a Good Strategy
 
 ```{=html}
-<div style="font-size:1rem; color:#666; margin-top:-0.75rem; margin-bottom:0.75rem;">&#9432;&nbsp; Click a finding to highlight the relevant rows in the results table above.</div>
+<p style="font-size:0.95rem; color:#444; margin-bottom:0.75rem;">
+  Conventional α = 0.05 minimizes false positives. α = 0.50 maximizes value — deploy whoever is leading on the final day.
+</p>
 
-<div id="insights-list" style="margin-top:0.5rem; display:flex; flex-direction:column; gap:0.6rem;">
-
-  <label style="display:flex; align-items:flex-start; gap:0.65rem; cursor:pointer; font-size:0.95rem; line-height:1.5;">
-    <input type="radio" name="insight" value="peeking-best" checked
-           style="margin-top:3px; accent-color:#1e46a0; cursor:pointer; flex-shrink:0;">
-    <span><strong>Peeking + Best is the most profitable strategy.</strong> Stopping early when you have a signal and deploying the leader when you don't beats every alternative — it captures upside faster and never wastes an inconclusive experiment by defaulting to control.</span>
-  </label>
-
-  <label style="display:flex; align-items:flex-start; gap:0.65rem; cursor:pointer; font-size:0.95rem; line-height:1.5;">
-    <input type="radio" name="insight" value="phacking"
-           style="margin-top:3px; accent-color:#1e46a0; cursor:pointer; flex-shrink:0;">
-    <span><strong>P-Hacking is Good For Business:</strong> Flouting the rules of Fixed Sample <em>Significance Testing</em> — like peeking and retaining Best Performer when result is inconclusive — is good for business.</span>
-  </label>
-
-  <label style="display:flex; align-items:flex-start; gap:0.65rem; cursor:pointer; font-size:0.95rem; line-height:1.5;">
-    <input type="radio" name="insight" value="alpha50"
-           style="margin-top:3px; accent-color:#1e46a0; cursor:pointer; flex-shrink:0;">
-    <span><strong>The optimal α for a fixed sample test is 0.50</strong> — deploy whoever is leading on the final day, every time. Conventional thresholds don't just leave value on the table; they actively cause you to default to control when the data already points elsewhere.</span>
-  </label>
-
-  <label style="display:flex; align-items:flex-start; gap:0.65rem; cursor:pointer; font-size:0.95rem; line-height:1.5;">
-    <input type="radio" name="insight" value="peeking-vs-fixed"
-           style="margin-top:3px; accent-color:#1e46a0; cursor:pointer; flex-shrink:0;">
-    <span><strong>Peeking vs Fixed Sample (α = 0.50) is a toss-up.</strong> Both strategies produce similar outcomes — but Peeking gets there in roughly half the trials, at the cost of lower accuracy in picking the true winner.</span>
-  </label>
-
-</div>
+<table id="wts-ratio-stat" style="font-size:0.88rem; border-collapse:collapse; margin-bottom:0.6rem;">
+  <thead>
+    <tr>
+      <th style="padding:5px 14px; color:#666; font-weight:600; border-bottom:1px solid #ddd; text-align:left;">Strategy</th>
+      <th style="padding:5px 14px; color:#666; font-weight:600; border-bottom:1px solid #ddd; text-align:center;">Projected Mean</th>
+      <th style="padding:5px 14px; color:#666; font-weight:600; border-bottom:1px solid #ddd; text-align:center;">Marginal Events</th>
+      <th style="padding:5px 14px; color:#666; font-weight:600; border-bottom:1px solid #ddd; text-align:center;">Avg Days</th>
+    </tr>
+  </thead>
+  <tbody id="wts-ratio-tbody">
+    <tr><td colspan="4" style="padding:5px 14px; color:#aaa;">loading…</td></tr>
+  </tbody>
+</table>
+<p id="wts-ratio-note" style="font-size:0.82rem; color:#666; font-style:italic; margin-top:0.25rem;"></p>
 
 <script>
-(function() {
-  var HIGHLIGHTS = {
-    'peeking-best': function(row) {
-      return row.getAttribute('data-label') === 'Peeking + Best';
-    },
-    'phacking': function(row) {
-      var lbl    = row.getAttribute('data-label')  || '';
-      var is_ref = row.getAttribute('data-is-ref') === 'true';
-      return lbl === 'Peeking + Best' || lbl === 'Peeking' || (lbl === 'Fixed Sample' && is_ref);
-    },
-    'alpha50': function(row) {
-      return row.getAttribute('data-label') === 'Fixed Sample';
-    },
-    'peeking-vs-fixed': function(row) {
-      var lbl    = row.getAttribute('data-label')  || '';
-      var is_ref = row.getAttribute('data-is-ref') === 'true';
-      return lbl === 'Peeking' || (lbl === 'Fixed Sample' && !is_ref);
-    }
-  };
-
-  function applyHighlights() {
-    var active = document.querySelector('input[name="insight"]:checked');
-    var tbody  = document.querySelector('#wif-stats1 tbody');
-    if (!tbody) return;
-    tbody.querySelectorAll('tr').forEach(function(row) {
-      var hit = active && HIGHLIGHTS[active.value] && HIGHLIGHTS[active.value](row);
-      row.style.background   = hit ? '#fffbea' : '';
-      row.style.outline      = hit ? '1.5px solid #f0a500' : '';
-      row.style.outlineOffset = hit ? '-1px' : '';
-    });
+(function () {
+  function getStat(key, label, isRef) {
+    var sc = window.__wif_scenarios && window.__wif_scenarios[key];
+    if (!sc) return null;
+    return sc.stats.find(function (r) { return r.label === label && r.is_ref === isRef; }) || null;
   }
 
-  // Re-apply whenever the table is rebuilt
-  function watchStats() {
-    var el = document.getElementById('wif-stats1');
-    if (!el) { setTimeout(watchStats, 200); return; }
-    new MutationObserver(applyHighlights).observe(el, { childList: true, subtree: true });
-    applyHighlights();
+  function row(d, label, highlight) {
+    var bg = highlight ? 'background:#f0f6ff;' : '';
+    return '<tr style="' + bg + '">' +
+      '<td style="padding:5px 14px; font-weight:600; color:' + d.color + ';">' + label + '</td>' +
+      '<td style="padding:5px 14px; text-align:center; font-weight:700;">' + (d.proj_mean * 100).toFixed(3) + '%</td>' +
+      '<td style="padding:5px 14px; text-align:center; font-weight:700;">' + Math.round(d.marginal).toLocaleString() + '</td>' +
+      '<td style="padding:5px 14px; text-align:center; font-weight:700;">' + d.avg_days.toFixed(1) + '</td>' +
+      '</tr>';
   }
-  watchStats();
 
-  document.addEventListener('change', function(e) {
-    if (e.target && e.target.name === 'insight') {
-      applyHighlights();
-      var table = document.getElementById('wif-stats1');
-      if (table) {
-        var top = table.getBoundingClientRect().top + window.pageYOffset - 80;
-        window.scrollTo({ top: top, behavior: 'smooth' });
-      }
+  function update() {
+    var cr    = (document.getElementById('wif-cr')    || {}).value || 'cr10';
+    var sigma = (document.getElementById('wif-sigma') || {}).value || 's1';
+    var ptn   = (document.getElementById('wif-ptn')   || {}).value || '400k';
+    var key   = ptn + '_' + sigma + '_' + cr;
+    var opt   = getStat(key, 'Fixed Sample', false);
+    var ref   = getStat(key, 'Fixed Sample', true);
+    if (!opt || !ref || !ref.marginal) return;
+    var ratio = opt.marginal / ref.marginal;
+    var color = ratio >= 2 ? '#1a7a3c' : ratio >= 1.3 ? '#2d6fa3' : '#555';
+    document.getElementById('wts-ratio-tbody').innerHTML =
+      row(ref, 'Fixed Sample (α = 0.05)', false) +
+      row(opt, 'Fixed Sample (α = 0.50)', true);
+    var note = document.getElementById('wts-ratio-note');
+    if (note) {
+      note.textContent = '* α = 0.50 captures ';
+      note.innerHTML   = '* α = 0.50 captures <strong style="color:' + color + ';">' +
+        ratio.toFixed(2) + '×</strong> the marginal events of α = 0.05, in the same number of days.';
     }
+  }
+
+  function waitAndRender() {
+    if (!window.__wif_scenarios) { setTimeout(waitAndRender, 300); return; }
+    update();
+  }
+
+  ['wif-cr', 'wif-sigma', 'wif-ptn'].forEach(function (id) {
+    var el = document.getElementById(id);
+    if (el) el.addEventListener('change', update);
   });
+
+  if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', waitAndRender);
+  } else {
+    setTimeout(waitAndRender, 0);
+  }
 })();
 </script>
 ```
 
+### 2. Peeking is a Good Strategy
 
 ```{=html}
-<p style="margin-top:1.5rem;"><strong>Long story short:</strong> Significance testing protects you from being wrong. It doesn't optimize for being right. That caution has a measurable cost — value lost to experiments that run longer than needed, and value surrendered every time you default to control when the data already points elsewhere.</p>
+<p style="font-size:0.95rem; color:#444; margin-bottom:0.75rem;">
+  Peeking and Fixed Sample at α = 0.50 perform comparably — but peeking experiments end sooner.
+</p>
+
+<table id="wts-peek-stat" style="font-size:0.88rem; border-collapse:collapse; margin-bottom:0.6rem;">
+  <thead>
+    <tr>
+      <th style="padding:5px 14px; color:#666; font-weight:600; border-bottom:1px solid #ddd; text-align:left;">Strategy</th>
+      <th style="padding:5px 14px; color:#666; font-weight:600; border-bottom:1px solid #ddd; text-align:center;">Projected Mean</th>
+      <th style="padding:5px 14px; color:#666; font-weight:600; border-bottom:1px solid #ddd; text-align:center;">Marginal Events</th>
+      <th style="padding:5px 14px; color:#666; font-weight:600; border-bottom:1px solid #ddd; text-align:center;">Avg Days</th>
+    </tr>
+  </thead>
+  <tbody id="wts-peek-tbody">
+    <tr><td colspan="4" style="padding:5px 14px; color:#aaa;">loading…</td></tr>
+  </tbody>
+</table>
+<p id="wts-peek-note" style="font-size:0.82rem; color:#666; font-style:italic; margin-top:0.25rem;"></p>
+
+<script>
+(function () {
+  function getStat(key, label, isRef) {
+    var sc = window.__wif_scenarios && window.__wif_scenarios[key];
+    if (!sc) return null;
+    return sc.stats.find(function (r) { return r.label === label && r.is_ref === isRef; }) || null;
+  }
+
+  function row(d, highlight) {
+    var bg = highlight ? 'background:#f0f6ff;' : '';
+    return '<tr style="' + bg + '">' +
+      '<td style="padding:5px 14px; font-weight:600; color:' + d.color + ';">' + d.label + '</td>' +
+      '<td style="padding:5px 14px; text-align:center; font-weight:700;">' + (d.proj_mean * 100).toFixed(3) + '%</td>' +
+      '<td style="padding:5px 14px; text-align:center; font-weight:700;">' + Math.round(d.marginal).toLocaleString() + '</td>' +
+      '<td style="padding:5px 14px; text-align:center; font-weight:700;">' + d.avg_days.toFixed(1) + '</td>' +
+      '</tr>';
+  }
+
+  function update() {
+    var cr    = (document.getElementById('wif-cr')    || {}).value || 'cr10';
+    var sigma = (document.getElementById('wif-sigma') || {}).value || 's1';
+    var ptn   = (document.getElementById('wif-ptn')   || {}).value || '400k';
+    var key   = ptn + '_' + sigma + '_' + cr;
+    var peek  = getStat(key, 'Peeking',       false);
+    var fs    = getStat(key, 'Fixed Sample',  false);
+    if (!peek || !fs) return;
+    document.getElementById('wts-peek-tbody').innerHTML = row(fs, false) + row(peek, true);
+    var daysSaved = fs.avg_days - peek.avg_days;
+    var note = document.getElementById('wts-peek-note');
+    if (note) note.textContent = '* Peeking finishes ~' + Math.abs(daysSaved).toFixed(1) +
+      ' days faster on average while delivering ' +
+      (Math.abs((peek.marginal - fs.marginal) / fs.marginal * 100)).toFixed(1) +
+      '% ' + (peek.marginal >= fs.marginal ? 'more' : 'fewer') + ' marginal events.';
+  }
+
+  function waitAndRender() {
+    if (!window.__wif_scenarios) { setTimeout(waitAndRender, 300); return; }
+    update();
+  }
+
+  ['wif-cr', 'wif-sigma', 'wif-ptn'].forEach(function (id) {
+    var el = document.getElementById(id);
+    if (el) el.addEventListener('change', update);
+  });
+
+  if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', waitAndRender);
+  } else {
+    setTimeout(waitAndRender, 0);
+  }
+})();
+</script>
+```
+
+### 3. Peeking + Retaining the Leader Is Best
+
+```{=html}
+<p style="font-size:0.95rem; color:#444; margin-bottom:0.75rem;">
+  Peeking stops experiments early when the data says so. Retaining the best performer means every inconclusive test still ships a winner. Together, they dominate.
+</p>
+
+<table id="wts-best-stat" style="font-size:0.88rem; border-collapse:collapse; margin-bottom:0.6rem;">
+  <thead>
+    <tr>
+      <th style="padding:5px 14px; color:#666; font-weight:600; border-bottom:1px solid #ddd; text-align:left;">Strategy</th>
+      <th style="padding:5px 14px; color:#666; font-weight:600; border-bottom:1px solid #ddd; text-align:center;">Projected Mean</th>
+      <th style="padding:5px 14px; color:#666; font-weight:600; border-bottom:1px solid #ddd; text-align:center;">Marginal Events</th>
+      <th style="padding:5px 14px; color:#666; font-weight:600; border-bottom:1px solid #ddd; text-align:center;">Correct Decision Rate</th>
+      <th style="padding:5px 14px; color:#666; font-weight:600; border-bottom:1px solid #ddd; text-align:center;">Avg Days</th>
+    </tr>
+  </thead>
+  <tbody id="wts-best-tbody">
+    <tr><td colspan="5" style="padding:5px 14px; color:#aaa;">loading…</td></tr>
+  </tbody>
+</table>
+<p id="wts-best-note" style="font-size:0.82rem; color:#666; font-style:italic; margin-top:0.25rem;"></p>
+
+<script>
+(function () {
+  function getStat(key, label, isRef) {
+    var sc = window.__wif_scenarios && window.__wif_scenarios[key];
+    if (!sc) return null;
+    return sc.stats.find(function (r) { return r.label === label && r.is_ref === isRef; }) || null;
+  }
+
+  function row(d, highlight) {
+    var bg = highlight ? 'background:#f0f6ff;' : '';
+    return '<tr style="' + bg + '">' +
+      '<td style="padding:5px 14px; font-weight:600; color:' + d.color + ';">' + d.label + '</td>' +
+      '<td style="padding:5px 14px; text-align:center; font-weight:700;">' + (d.proj_mean * 100).toFixed(3) + '%</td>' +
+      '<td style="padding:5px 14px; text-align:center; font-weight:700;">' + Math.round(d.marginal).toLocaleString() + '</td>' +
+      '<td style="padding:5px 14px; text-align:center; font-weight:700;">' + (d.best_rate * 100).toFixed(1) + '%</td>' +
+      '<td style="padding:5px 14px; text-align:center; font-weight:700;">' + d.avg_days.toFixed(1) + '</td>' +
+      '</tr>';
+  }
+
+  function update() {
+    var cr    = (document.getElementById('wif-cr')    || {}).value || 'cr10';
+    var sigma = (document.getElementById('wif-sigma') || {}).value || 's1';
+    var ptn   = (document.getElementById('wif-ptn')   || {}).value || '400k';
+    var key   = ptn + '_' + sigma + '_' + cr;
+    var pb    = getStat(key, 'Peeking + Best', false);
+    var peek  = getStat(key, 'Peeking',        false);
+    var fs    = getStat(key, 'Fixed Sample',   false);
+    if (!pb || !peek || !fs) return;
+    document.getElementById('wts-best-tbody').innerHTML = row(fs, false) + row(peek, false) + row(pb, true);
+    var liftVsPeek = (pb.marginal - peek.marginal) / Math.abs(peek.marginal) * 100;
+    var liftVsFs   = (pb.marginal - fs.marginal)   / Math.abs(fs.marginal)   * 100;
+    var daysDiff   = pb.avg_days - peek.avg_days;
+    var note = document.getElementById('wts-best-note');
+    if (note) note.innerHTML =
+      '* Peeking+Best captures <strong>' + Math.abs(liftVsPeek).toFixed(1) + '%</strong> ' +
+      (liftVsPeek >= 0 ? 'more' : 'fewer') + ' marginal events than Peeking and ' +
+      '<strong>' + Math.abs(liftVsFs).toFixed(1) + '%</strong> ' +
+      (liftVsFs >= 0 ? 'more' : 'fewer') + ' than Fixed Sample (α = 0.50), ' +
+      'running ' + Math.abs(daysDiff).toFixed(1) + ' days ' +
+      (daysDiff >= 0 ? 'longer' : 'shorter') + ' than Peeking on average.';
+  }
+
+  function waitAndRender() {
+    if (!window.__wif_scenarios) { setTimeout(waitAndRender, 300); return; }
+    update();
+  }
+
+  ['wif-cr', 'wif-sigma', 'wif-ptn'].forEach(function (id) {
+    var el = document.getElementById(id);
+    if (el) el.addEventListener('change', update);
+  });
+
+  if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', waitAndRender);
+  } else {
+    setTimeout(waitAndRender, 0);
+  }
+})();
+</script>
 ```
 
 ## Importance of Post-Test N
 
-The optimal stopping threshold isn't fixed — it depends on how many users will see the winner after the test ends. Peeking+Best calibrates to that scale automatically. Fixed Sample can't; its threshold is blind to post-test consequences entirely.
+The larger the post-test audience, the more costly a wrong call. The stopping threshold rises to match — making early stops harder to earn as the stakes grow.
 
 ```{=html}
 <div style="margin-bottom:1.5rem;">
@@ -2094,21 +2367,17 @@ The optimal stopping threshold isn't fixed — it depends on how many users will
 
   <div id="ptn-alpha-chart"></div>
 
-  <div style="margin-top:0.75rem; padding:0.65rem 1rem; background:#f8f9fa; border-radius:6px; border-left:3px solid #3a6fd8; font-size:0.9rem; color:#333; line-height:1.75;">
-    <ul id="ptn-takeaways" style="margin:0; padding-left:1.2rem;">
-      <li><strong>Peeking+Best</strong> automatically adjusts its optimal threshold as Post-Test N grows — requiring stronger evidence before stopping when more users are on the line.</li>
-      <li><strong>Fixed Sample</strong> optimal α stays near 0.50 regardless of rollout scale. Stopping decisions are made at the end of the experiment, so post-test scale never enters the calculation.</li>
-      <li><strong>Peeking</strong> is less sensitive to Post-Test N because its fallback is reverting to control — so the cost of a wrong call is already priced in regardless of rollout size. Peeking+Best's fallback is deploying the leader, which makes the accuracy of that final call matter more as post-test scale grows.</li>
-    </ul>
+  <div id="ptn-takeaways-box" style="margin-top:0.75rem; padding:0.65rem 1rem; background:#f8f9fa; border-radius:6px; border-left:3px solid #3a6fd8; font-size:0.9rem; color:#333; line-height:1.75;">
+    <ul id="ptn-takeaways" style="margin:0; padding-left:1.2rem;"></ul>
   </div>
 
 </div>
 
 <script>
 (function () {
-  var PTN_VALS   = [100000, 250000, 500000, 2000000];
-  var PTN_KEYS   = ['100k', '250k', '500k', '2m'];
-  var PTN_LABELS = ['100k', '250k', '500k', '2M'];
+  var PTN_VALS   = [100000, 200000, 400000, 800000, 1600000];
+  var PTN_KEYS   = ['100k', '200k', '400k', '800k', '1600k'];
+  var PTN_LABELS = ['100k', '200k', '400k', '800k', '1600k'];
   var PAL        = ['#1f77b4', '#ff7f0e', '#2ca02c'];
   var STRATS     = ['Peeking + Best', 'Peeking', 'Fixed Sample'];
 
@@ -2138,7 +2407,8 @@ The optimal stopping threshold isn't fixed — it depends on how many users will
         }
       });
       traces.push({
-        x: PTN_VALS, y: vals, mode: 'lines+markers', name: lbl,
+        x: isBar ? PTN_LABELS : PTN_VALS, y: vals, mode: 'lines+markers', name: lbl,
+        visible: (!isAlpha && !isDays) || (lbl === 'Peeking + Best') ? true : 'legendonly',
         line: { color: PAL[i], width: 2 },
         marker: { symbol: 'square', size: 9, color: PAL[i] },
         hovertemplate: ht
@@ -2148,27 +2418,15 @@ The optimal stopping threshold isn't fixed — it depends on how many users will
     var annotations = [], extraRight = 55;
 
     if (isAlpha) {
-      traces.push({
-        x: PTN_VALS, y: [0.05, 0.05, 0.05, 0.05], mode: 'lines',
-        name: 'α = 0.05 (conventional)', showlegend: false,
-        line: { color: '#aaa', width: 1.5, dash: 'dot' },
-        hovertemplate: 'Conventional α = 0.05<extra></extra>'
-      });
-      annotations.push({
-        x: Math.log10(2000000), y: 0.05, xref: 'x', yref: 'y',
-        text: 'α = 0.05', showarrow: false,
-        font: { color: '#999', size: 11 },
-        xanchor: 'left', yanchor: 'bottom', xshift: 6
-      });
     } else if (isDays) {
       traces.push({
-        x: PTN_VALS, y: [20, 20, 20, 20], mode: 'lines',
+        x: PTN_VALS, y: [20, 20, 20, 20, 20], mode: 'lines',
         name: 'Max test days (20)', showlegend: false,
         line: { color: '#aaa', width: 1.5, dash: 'dot' },
         hovertemplate: 'Max test days = 20<extra></extra>'
       });
       annotations.push({
-        x: Math.log10(2000000), y: 20, xref: 'x', yref: 'y',
+        x: PTN_VALS[PTN_VALS.length - 1], y: 20, xref: 'x', yref: 'y',
         text: 'Day 20', showarrow: false,
         font: { color: '#999', size: 11 },
         xanchor: 'left', yanchor: 'bottom', xshift: 6
@@ -2209,11 +2467,11 @@ The optimal stopping threshold isn't fixed — it depends on how many users will
     Plotly.react('ptn-alpha-chart', traces, {
       barmode: isBar ? 'group' : undefined,
       xaxis: isBar ? {
-        title: { text: 'Post-Test N', font: { size: 12 } },
+        title: { text: 'Post-Test N', font: { size: 12 }, standoff: 8 },
         showgrid: false
       } : {
-        type: 'log', tickvals: PTN_VALS, ticktext: PTN_LABELS,
-        title: { text: 'Post-Test N', font: { size: 12 } },
+        tickvals: PTN_VALS, ticktext: PTN_LABELS,
+        title: { text: 'Post-Test N', font: { size: 12 }, standoff: 8 },
         showgrid: true, gridcolor: '#eee'
       },
       yaxis: {
@@ -2223,36 +2481,28 @@ The optimal stopping threshold isn't fixed — it depends on how many users will
         showgrid: true, gridcolor: '#eee'
       },
       annotations: annotations,
-      legend: { orientation: 'h', x: 0.5, xanchor: 'center', y: -0.18, font: { size: 11 } },
-      margin: { t: 20, b: 80, l: isAlpha ? 55 : (isDays ? 55 : 75), r: (isAlpha || isDays) ? 55 : 15 },
+      legend: { orientation: 'h', x: 0.5, xanchor: 'center', y: -0.22, font: { size: 11 },
+                title: { text: '— click to show/hide —', font: { size: 11, color: '#555' }, side: 'top' },
+                bordercolor: '#999', borderwidth: 1.5,
+                bgcolor: 'white' },
+      margin: { t: 20, b: 100, l: isAlpha ? 55 : (isDays ? 55 : 75), r: (isAlpha || isDays) ? 55 : 15 },
       height: 340, paper_bgcolor: 'white', plot_bgcolor: 'white'
     }, { responsive: true, displayModeBar: false });
   }
 
   var BULLETS = {
-    alpha: [
-      '<strong>Peeking+Best</strong> automatically adjusts its optimal threshold as Post-Test N grows — requiring stronger evidence before stopping when more users are on the line.',
-      '<strong>Fixed Sample</strong> optimal α stays near 0.50 regardless of rollout scale. Stopping decisions are made at the end of the experiment, so post-test scale never enters the calculation.',
-      '<strong>Peeking</strong> is less sensitive to Post-Test N because its fallback is reverting to control — so the cost of a wrong call is already priced in regardless of rollout size. Peeking+Best\'s fallback is deploying the leader, which makes the accuracy of that final call matter more as post-test scale grows.'
-    ],
-    marginal: [
-      '<strong>Marginal events grow with Post-Test N</strong> for all strategies — more users exposed to the winner means more incremental conversions captured.',
-      'The gap between strategies at their <em>optimal</em> α is modest. The bigger story is the dashed line: Fixed Sample at the conventional α = 0.05 leaves substantial value on the table, and that gap widens as rollout scale increases.',
-      '<strong>Peeking+Best</strong> leads across all Post-Test N levels. At small rollout the difference is minor; at large rollout the advantage compounds — more accurate decisions on more users.'
-    ],
-    days: [
-      '<strong>Avg days to stop is flat across Post-Test N</strong> — stopping decisions are made entirely on test data. How large the rollout is has no effect on when the experiment ends.',
-      '<strong>Peeking+Best</strong> stops later than Peeking on average because it requires a higher Pr(Best) at larger PTN. Deploying the leader at the end raises the stakes of each stopping call.',
-      '<strong>Fixed Sample</strong> always runs to day 20. The flat line at the top is the ceiling — any peeking strategy that stops early is freeing up traffic sooner, regardless of what the rollout looks like.'
-    ]
+    alpha: [],
+    marginal: [],
+    days: []
   };
 
   function updateTakeaways(metric) {
-    var ul = document.getElementById('ptn-takeaways');
+    var ul  = document.getElementById('ptn-takeaways');
+    var box = document.getElementById('ptn-takeaways-box');
     if (!ul) return;
-    ul.innerHTML = BULLETS[metric].map(function (b) {
-      return '<li>' + b + '</li>';
-    }).join('');
+    var bullets = BULLETS[metric] || [];
+    ul.innerHTML = bullets.map(function (b) { return '<li>' + b + '</li>'; }).join('');
+    if (box) box.style.display = bullets.length ? '' : 'none';
   }
 
   function update() {
@@ -2274,6 +2524,27 @@ The optimal stopping threshold isn't fixed — it depends on how many users will
   } else {
     setTimeout(update, 0);
   }
+})();
+
+// Sync Baseline Conversion and Expected Effects dropdowns between Results and Importance sections
+(function () {
+  var _syncing = false;
+  function syncTo(srcId, dstId) {
+    var src = document.getElementById(srcId);
+    var dst = document.getElementById(dstId);
+    if (!src || !dst) return;
+    src.addEventListener('change', function () {
+      if (_syncing || dst.value === src.value) return;
+      _syncing = true;
+      dst.value = src.value;
+      dst.dispatchEvent(new Event('change'));
+      _syncing = false;
+    });
+  }
+  syncTo('wif-cr',    'ptn-cr');
+  syncTo('ptn-cr',    'wif-cr');
+  syncTo('wif-sigma', 'ptn-sigma');
+  syncTo('ptn-sigma', 'wif-sigma');
 })();
 </script>
 ```
