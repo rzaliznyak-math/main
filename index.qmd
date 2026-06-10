@@ -54,7 +54,7 @@ body-classes: home-page
 ## AB Testing is an Optimization Problem
 
 ::: {.post-meta}
-May 22, 2026 · [In Progress]{.badge-wip} · AB Testing · Decision Theory · Bayesian
+June 10, 2026 · AB Testing · Decision Theory · Bayesian
 :::
 
 Frequentist stopping rules — run until p < 0.05 — are not derived from any business
