@@ -1683,8 +1683,7 @@ Post-Test N is the audience that sees the winning variant after the experiment e
 
 Significance testing was designed to control errors, not maximize revenue. It waits for certainty that isn't necessary — running experiments longer than needed, defaulting to control when the data already points elsewhere, and optimizing for a threshold that has nothing to do with long-run value.
 
-The simulations make the cost concrete. Compared to conventional significance testing (α = 0.05), Optimal Stopping ships the right variant more often, reaches a decision in fewer days, and produces more conversions over the full rollout window. The gap isn't noise — it compounds across every experiment a team runs.
-
+The simulations make the cost concrete. Compared to conventional significance testing (α = 0.05), Optimal Stopping ships the right variant more often, reaches a decision in fewer days, and produces more conversions over the full rollout window.
 The right stopping rule isn't the one that controls error rates. It's the one that maximizes expected value.
 
 # Extras: The Optimization Toolkit
