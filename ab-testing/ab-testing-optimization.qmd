@@ -17,28 +17,28 @@ css: wider.css
 
 # TL;DR
 
-Significance testing is excellent at controlling error rates. If minimizing false positives is your goal, p < 0.05 is exactly what you need — and in fields where claims carry legal, medical, or scientific weight, strict error control isn't optional. But most teams running product experiments aren't making irreversible claims — they're making deployment decisions. That's a different objective, and it calls for a different stopping rule.
+Significance testing was designed for science — where false positives are costly and claims must hold up to scrutiny. It does that job well. But running a product experiment isn't a scientific claim. It's a business decision.
 
-We simulated over 2 million experiments — 6 baseline conversion rates × 3 effect size distributions — and evaluated each stopping rule across 7 post-test audience sizes, yielding 126 scenarios in total. Each stopping rule was scored by the long-run conversion rate it produced. The findings are consistent across all scenarios.
+Three ways significance testing fails that decision:
 
-::: {.callout-important appearance="minimal"}
-**Spoiler alert:** The strategies that maximize long-run value look nothing like what classical statistics recommends.
-
-- The optimal fixed-sample threshold is **α = 0.50** — not 0.05. Just deploy whoever is leading on the last day.
-- Peeking and Fixed Sample at α = 0.50 return comparable value — but peeking experiments end sooner.
-- Combining peeking with retaining the best performer is the dominant strategy — stop early on a signal, ship the leader when you can't.
-:::
+1. **It optimizes for error control, not value.** A p-value tells you whether an effect is real — not whether acting on it is worth it.
+2. **It assumes a single fixed effect.** The MDE is a fiction. Treatment effects come from a distribution — sometimes beneficial, sometimes harmful, usually marginal.
+3. **It defaults to control.** When results are inconclusive, significance testing says "keep control" — even when the data already points elsewhere.
 
 
-# A Simulation Framework
 
-Traditional power analysis starts from assumptions: fix α = 0.05 and β = 0.20, specify a minimum detectable effect, and it hands you a sample size. That workflow has two problems.
+# Finding the Optimal Stopping Rule
 
-**The MDE is a fiction.** Power analysis requires you to commit to a single assumed effect — but effects follow a distribution. Some tests move the needle, most barely register, a few backfire.
+Instead of α, β, and MDE, we fix:
 
-**It isn't forward-looking.** Power analysis tells you when to stop — not what the decision is worth once you ship to the full audience.
+- **`Max Test N`** — the maximum number of users in the experiment
+- **`Post-Test N`** — the audience that sees the winner after the test ends
 
-This framework answers a different question: *which stopping rule is most profitable?* We simulate the full lifecycle — random effects, early stopping decisions, post-test rollout — and score each candidate by the long-run value it generates. Mistakes are counted, consequences are measured, and the rule that wins on value is the one worth using.
+What we simulate:
+
+- Treatment effects drawn from a realistic distribution — not a single MDE
+
+The search: which stopping rule produces the most long-term value, across the full distribution of effects and scenarios?
 
 ## Simulation Parameters
 
@@ -1531,7 +1531,7 @@ _ref_params_s05 = {
 
 _df_base_s05 = se.create_simulation_df(
     number_test_days=NUMBER_TEST_DAYS,
-    number_simulations=500_000,
+    number_simulations=NUMBER_SIMULATIONS,
     seed=SEED,
     condition_parameters=[{"mean": CONTROL_MEAN, "trials": int(MAX_TEST_N * SPLIT)}],
 )
@@ -2281,7 +2281,7 @@ _ptn_combos   = [(50_000, '50k'), (100_000, '100k'), (150_000, '150k'), (200_000
 
 for _cr_val, _cr_key in _cr_combos:
     for _itc_se_val, _sigma_key in _sigma_combos:
-        _n_sims_loop = 500_000 if (_cr_val in (0.05, 0.10) and _itc_se_val == 0.5) else NUMBER_SIMULATIONS
+        _n_sims_loop = NUMBER_SIMULATIONS
         _df_tmp = se.create_simulation_df(
             number_test_days=NUMBER_TEST_DAYS,
             number_simulations=_n_sims_loop,
