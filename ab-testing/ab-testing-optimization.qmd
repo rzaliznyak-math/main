@@ -1681,10 +1681,9 @@ Post-Test N is the audience that sees the winning variant after the experiment e
 
 # Conclusion
 
-Significance testing was designed to control errors, not maximize revenue. It waits for certainty that isn't necessary — running experiments longer than needed, defaulting to control when the data already points elsewhere, and optimizing for a threshold that has nothing to do with long-run value.
+Significance testing optimizes for error control, not revenue. It runs longer than necessary, defaults to control when the data already points elsewhere, and treats a threshold with no connection to long-run value as the decision criterion.
 
-The simulations make the cost concrete. Compared to conventional significance testing (α = 0.05), Optimal Stopping ships the right variant more often, reaches a decision in fewer days, and produces more conversions over the full rollout window.
-The right stopping rule isn't the one that controls error rates. It's the one that maximizes expected value.
+The simulations show the cost. Compared to conventional significance testing (α = 0.05), Optimal Stopping ships the right variant more often, in fewer days, with more conversions over the full rollout window. **The right stopping rule maximizes expected value, not statistical certainty.**
 
 # Extras: The Optimization Toolkit
 
@@ -1696,7 +1695,7 @@ display(_HTML(f'<div style="font-size:1.4rem; font-weight:700; color:#1e46a0; ma
 
 To run your own optimization, swap in your experiment parameters — baseline conversion, test N, post-test N, effect distribution — and the pipeline handles the rest.
 
-The whole thing is fully vectorized. Every simulation, every day, every threshold is computed as a single set of array operations — no Python for loops anywhere in the hot path. Under the hood, `simulationengine` uses [Polars](https://pola.rs/) for columnar data transformations and NumPy for the numerical sweep.
+The whole thing is fully vectorized. Every simulation, every day, every threshold is computed as a single set of array operations — no Python for loops anywhere. Under the hood, `simulationengine` uses [Polars](https://pola.rs/) for columnar data transformations and NumPy for the numerical sweep.
 ```{=html}
 <div class="mt-3 mb-2">
 
