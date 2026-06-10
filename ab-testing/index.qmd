@@ -9,7 +9,7 @@ Articles on experimentation design, statistical analysis, and simulation-driven 
 
 ::: {.g-col-6}
 ### [AB Testing is an Optimization Problem](ab-testing-optimization.qmd)
-**May 2026** &nbsp;·&nbsp; [In Progress]{.badge-wip} &nbsp;·&nbsp; Decision Theory · Bayesian · Optimization
+**June 2026** &nbsp;·&nbsp; Decision Theory · Bayesian · Optimization
 
 Frequentist stopping rules are not derived from any business objective. Reframes AB testing as a decision optimization problem and shows how Bayesian methods align stopping criteria with what actually matters.
 

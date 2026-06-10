@@ -1,8 +1,8 @@
 ---
 title: "AB Testing is an Optimization Problem"
-subtitle: "Using Simulations to Find the Best AB Testing Strategy"
+subtitle: "Significance Testing is Costing You Revenue"
 author: "Russ Zaliznyak"
-date: "2026-05-30"
+date: "2026-06-10"
 categories: [AB Testing, Bayesian, Decision Theory, Optimization]
 page-layout: full
 jupyter: py311
@@ -11,42 +11,35 @@ execute:
 css: wider.css
 ---
 
-::: {.post-meta}
-[In Progress]{.badge-wip}
-:::
 
 # TL;DR
 
-Significance testing is excellent at controlling error rates. If minimizing false positives is your goal, p < 0.05 is exactly what you need. But most teams running experiments aren't in the business of error control — they're in the business of maximizing long-run value. That's a different objective, and it calls for a different stopping rule.
+Significance testing was designed for science — where false positives are costly and claims must hold up to scrutiny. It does that job well. But running a product experiment isn't a scientific claim. It's a business decision.
 
-We simulated over 2 million experiments — 6 baseline conversion rates × 3 effect size distributions — and evaluated each stopping rule across 7 post-test audience sizes, yielding 126 scenarios in total. Each stopping rule was scored by the long-run conversion rate it produced. The findings are consistent across all scenarios.
+Three ways significance testing fails that decision:
 
-::: {.callout-important appearance="minimal"}
-**Spoiler alert:** The strategies that maximize long-run value look nothing like what classical statistics recommends.
-
-- The optimal fixed-sample threshold is **α = 0.50** — not 0.05. Just deploy whoever is leading on the last day.
-- Peeking and Fixed Sample at α = 0.50 return comparable value — but peeking experiments end sooner.
-- Combine peeking with retaining the best performer — stop early on a signal, ship the leader when you can't.
-:::
+1. **It optimizes for error control, not value.** α controls false positives; β controls false negatives. Neither tells you whether acting on the result is worth it.
+2. **It assumes a single fixed effect.** The MDE — Minimum Detectable Effect — requires you to declare the effect size before the experiment. But treatment effects aren't fixed. They come from a distribution — sometimes beneficial, sometimes harmful, usually marginal.
+3. **It defaults to control.** When results are inconclusive, significance testing says "keep control" — even when the data already points elsewhere.
 
 
-# A Simulation Framework
 
-Traditional power analysis starts from assumptions: fix α = 0.05 and β = 0.20, specify a minimum detectable effect, and it hands you a sample size. That workflow has two problems.
+# Finding the Optimal Stopping Rule
 
-**The MDE is a fiction.** Power analysis requires you to commit to a single assumed effect — but effects follow a distribution. Some tests move the needle, most barely register, a few backfire.
+Instead of α, β, and MDE, we fix:
 
-**It isn't forward-looking.** Power analysis tells you when to stop — not what the decision is worth once you ship to the full audience.
+- **`Max Test N`** — the maximum number of users in the experiment
+- **`Post-Test N`** — the audience that sees the winner after the test ends
 
-This framework addresses both. It simulates experiments across the full distribution of realistic effects and scores each stopping rule by the long-term value it produces — not the error rates it controls.
+What we simulate:
 
-::: {.callout-note appearance="minimal"}
-ⓘ **Long-term value** = total conversions generated across the full experiment lifecycle — both arms during the test period, plus the winner deployed to the post-test audience — divided by total users. A stopping rule scores higher by picking the true winner more often or by ending the experiment sooner, both of which put more users on the better variant. *Marginal Events* is the same metric expressed as incremental conversions over running no test.
-:::
+- Treatment effects drawn from a realistic distribution — not a single MDE
+
+The question is simple: for a given experiment setup, what's the optimal stopping rule? We use simulations to find out.
 
 ## Simulation Parameters
 
-In order to determine optimal stopping rules, we simulated 100,000 experiments like the one below. Click any parameter to learn more.
+These factors determine the optimal stopping rule — click any to learn more.
 
 ```{=html}
 <div class="stopping-factors-ui mt-3 mb-4">
@@ -60,7 +53,17 @@ In order to determine optimal stopping rules, we simulated 100,000 experiments l
       </button>
       <div class="factor-inputs">
         <label class="param-label" style="text-align:center; display:block;">Conversion</label>
-        <input type="text" class="form-control" value="10%" disabled>
+        <input type="text" class="form-control" value="60%" disabled>
+      </div>
+    </div>
+
+    <div class="factor-col">
+      <button class="btn factor-btn w-100" data-target="effects">
+        Expected Effects
+      </button>
+      <div class="factor-inputs" style="padding: 0.15rem 0.5rem;">
+        <div id="itc-density-label" style="font-size:0.72rem; color:#555; text-align:center; line-height:1.2; margin-bottom:1px;"></div>
+        <div id="itc-density-chart" style="height:63px; width:100%; margin-top:0;"></div>
       </div>
     </div>
 
@@ -92,33 +95,25 @@ In order to determine optimal stopping rules, we simulated 100,000 experiments l
       </button>
       <div class="factor-inputs">
         <label class="param-label" style="text-align:center; display:block;">Post-Test Traffic</label>
-        <input type="text" class="form-control" value="500,000" disabled>
-      </div>
-    </div>
-
-    <div class="factor-col">
-      <button class="btn factor-btn w-100" data-target="effects">
-        Expected Effects
-      </button>
-      <div class="factor-inputs" style="padding: 0.15rem 0.5rem;">
-        <div id="itc-density-label" style="font-size:0.72rem; color:#555; text-align:center; line-height:1.2; margin-bottom:1px;"></div>
-        <div id="itc-density-chart" style="height:63px; width:100%; margin-top:0;"></div>
+        <input type="text" class="form-control" value="100,000" disabled>
       </div>
     </div>
 
   </div>
 
   <!-- Definition box -->
-  <div class="factor-content p-3 border rounded mt-3" id="factor-display">
+  <div id="factor-display" style="display:none; margin-top:0.75rem;">
     <div class="factor-panel" id="panel-baseline">
       The pre-experiment conversion rate. Sets the variance of your test statistic
       and determines how much room for improvement exists.
     </div>
-    <div class="factor-panel d-none" id="panel-traffic">
+    <div class="factor-panel d-none" id="panel-traffic" style="border: 1.5px dashed #90b8e0; border-radius:6px; background:#f0f6fd; padding:0.6rem 1rem; font-size:0.9rem; color:#333;">
+      <div style="font-size:0.9rem; font-weight:600; color:#1e46a0; margin-bottom:0.3rem;">Test Traffic &amp; Split</div>
       Total users in the experiment and their control/treatment split.
       The first 7 days are burn-in — no stopping decisions. The experiment runs at most 20 days.
     </div>
-    <div class="factor-panel d-none" id="panel-posttest">
+    <div class="factor-panel d-none" id="panel-posttest" style="border: 1.5px dashed #90b8e0; border-radius:6px; background:#f0f6fd; padding:0.6rem 1rem; font-size:0.9rem; color:#333;">
+      <div style="font-size:0.9rem; font-weight:600; color:#1e46a0; margin-bottom:0.3rem;">Post-Test Traffic</div>
       The population exposed to the winner after the decision is made. More post-test traffic means more value at stake — potentially justifying a more aggressive stopping rule.
     </div>
     <div class="factor-panel d-none" id="panel-effects">
@@ -179,7 +174,7 @@ document.addEventListener('DOMContentLoaded', function() {
     yaxis: { visible: false, fixedrange: true },
     showlegend: false,
     shapes: [{ type: 'line', x0: 100, x1: 100, y0: 0, y1: 1, yref: 'paper', line: { color: '#555', width: 1, dash: 'dot' } }],
-    hoverlabel: { bgcolor: '#111', font: { color: '#fff', size: 11 } },
+    hoverlabel: { bgcolor: '#111', font: { color: '#fff', size: 16 } },
   }, { displayModeBar: false, responsive: true });
 })();
 </script>
@@ -191,6 +186,14 @@ document.querySelectorAll('.factor-btn').forEach(btn => {
     document.querySelectorAll('.factor-panel').forEach(p => p.classList.add('d-none'));
     btn.classList.add('active');
     document.getElementById('panel-' + btn.dataset.target).classList.remove('d-none');
+
+    const target = btn.dataset.target;
+    const simWrap       = document.getElementById('sim-accordion-wrap');
+    const treatmentWrap = document.getElementById('treatment-accordion-wrap');
+    const factorDisplay = document.getElementById('factor-display');
+    if (simWrap)       simWrap.style.display       = (target === 'baseline') ? '' : 'none';
+    if (treatmentWrap) treatmentWrap.style.display  = (target === 'effects')  ? '' : 'none';
+    if (factorDisplay) factorDisplay.style.display  = (target === 'baseline' || target === 'effects') ? 'none' : '';
   });
 });
 </script>
@@ -201,16 +204,19 @@ document.querySelectorAll('.factor-btn').forEach(btn => {
 #| code-fold: true
 #| code-summary: "Experiment Assumptions"
 
+import time as _time_module
 import simulationengine as se
 
+_t_total_start = _time_module.time()
+
 # ── Experiment Assumptions ─────────────────────────────────────────
-CONTROL_MEAN       = 0.10      # pre-experiment conversion rate
+CONTROL_MEAN       = 0.60      # pre-experiment conversion rate
 MAX_TEST_N         = 100_000   # total users in the experiment
 SPLIT              = 0.50      # treatment allocation (50/50)
 MIN_TEST_DAYS      = 7         # mandatory burn-in before stopping decisions
 NUMBER_TEST_DAYS   = 20        # maximum experiment duration
-POST_TEST_N        = 400_000   # users exposed to winner once MAX_TEST_N is reached
-NUMBER_SIMULATIONS = 100_000    # simulations to run
+POST_TEST_N        = 100_000   # users exposed to winner once MAX_TEST_N is reached
+NUMBER_SIMULATIONS = 100_000   # simulations to run
 SEED               = 42
 ITC_MEAN           = 100       # index-to-control mean
 ITC_SE             = 1         # index-to-control standard error
@@ -369,7 +375,7 @@ fig.update_layout(
     autosize=True,
     margin=dict(t=45, b=30, l=50, r=20),
     hovermode="closest",
-    hoverlabel=dict(bgcolor="white", font_size=12, namelength=0),
+    hoverlabel=dict(bgcolor="white", font_size=16, namelength=0),
 )
 fig.update_xaxes(tickformat="d", title_text="Day", col=1, row=1)
 fig.update_xaxes(tickformat=".1%", title_text="Conversion Rate",
@@ -473,7 +479,7 @@ print(f'<script>window.__histData = {json.dumps(hist_data)}; window.__simData = 
 ```
 
 ```{=html}
-<div class="mt-3 mb-2" id="treatment-accordion-wrap">
+<div class="mt-3 mb-2" id="treatment-accordion-wrap" style="display:none;">
   <div class="accordion-item" style="border: 1.5px dashed #90b8e0; border-radius: 6px; background: #f0f6fd; margin-bottom: 0;" id="treatment-accordion-header">
     <div class="accordion-header" style="margin:0;">
       <button class="accordion-button collapsed px-3 shadow-none"
@@ -647,7 +653,7 @@ t_fig.update_layout(
     autosize=True,
     margin=dict(t=45, b=30, l=50, r=20),
     hovermode="closest",
-    hoverlabel=dict(bgcolor="white", font_size=12, namelength=0),
+    hoverlabel=dict(bgcolor="white", font_size=16, namelength=0),
 )
 t_fig.update_xaxes(tickformat="d", title_text="Day", col=1, row=1)
 t_fig.update_xaxes(tickformat=".1f", title_text="Index-to-Control (ITC)",
@@ -756,7 +762,7 @@ document.addEventListener('DOMContentLoaded', function() {
 ```
 
 ```{=html}
-<div class="mt-3 mb-2" id="pvalue-accordion-wrap">
+<div class="mt-3 mb-2" id="pvalue-accordion-wrap" style="display:none;">
   <div class="accordion-item" style="border: 1.5px dashed #90b8e0; border-radius: 6px; background: #f0f6fd; margin-bottom: 0;" id="pvalue-accordion-header">
     <div class="accordion-header" style="margin:0;">
       <button class="accordion-button collapsed px-3 shadow-none"
@@ -787,7 +793,7 @@ pv_fig.add_trace(go.Scatter(
     name="Treatment",
     line=dict(color="#e45c3a", width=2),
     hovertemplate="Pr(Best) = %{y:.3f}<extra></extra>",
-    hoverlabel=dict(bgcolor="#c03a1e", font_color="white", bordercolor="#c03a1e", font_size=14),
+    hoverlabel=dict(bgcolor="#c03a1e", font_color="white", bordercolor="#c03a1e", font_size=16),
 ))
 pv_fig.add_trace(go.Scatter(
     x=s1_pv_df["day"].to_list(),
@@ -796,7 +802,7 @@ pv_fig.add_trace(go.Scatter(
     name="Control",
     line=dict(color="#1e46a0", width=2),
     hovertemplate="Pr(Best) = %{y:.3f}<extra></extra>",
-    hoverlabel=dict(font_size=14),
+    hoverlabel=dict(font_size=16),
 ))
 pv_fig.update_layout(
     height=320,
@@ -899,28 +905,53 @@ print(f'<script>window.__pvalSimData = {json.dumps(pval_sim_data)};</script>')
 
 ## Optimal Stopping Algorithm
 
-To find the stopping rule that maximizes long-term value, we naively apply three analysis strategies and measure their average outcome across the same 100,000 simulated experiments.
+The same simulated data is evaluated under 50 different stopping rules — Pr(Best) thresholds from 0.50 to 0.99. For each:
 
-| | **Fixed Sample** | **Peeking** | **Peeking + Best** |
-|---|:---:|:---:|:---:|
-| Stop early on signal | ✗ | ✓ | ✓ |
-| No-breach fallback | Retain Control | Retain Control | Best Performer |
+1. **Burn-in:** No stopping before day `min_test_days = 7`
+2. **Daily check:** If either condition's Pr(Best) crosses the threshold, the experiment stops.
+3. **Rollout:** The leading condition is deployed to remaining test users and the full post-test audience
+4. **Score:** Record the long-run value produced
 
-For each of 100,000 simulated experiments and each threshold α ∈ [0.01, 0.50]:
+The threshold with the highest average score across all simulations is the optimal stopping rule.
 
-1. **Burn-in:** No stopping decisions before `min_test_days = 7`
-2. **Daily check:** Stop when either condition's Pr(Best) exceeds `1 - α`\*
-3. **Rollout:** Deploy the winner to remaining test users and post-test traffic
-4. **Evaluate:** Pick the α with the highest average long-term outcome
+## Simulation Stats
 
-\* *Peeking strategies only. Fixed Sample skips the daily check and always runs to the final day.*
+```{=html}
+<table style="width:100%; font-size:0.9rem; border-collapse:collapse;">
+  <colgroup>
+    <col style="width:22%;">
+    <col style="width:78%;">
+  </colgroup>
+  <thead>
+    <tr>
+      <th style="padding:6px 12px; border-bottom:2px solid #ddd; text-align:left; color:#555;">Metric</th>
+      <th style="padding:6px 12px; border-bottom:2px solid #ddd; text-align:left; color:#555;">Description</th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr>
+      <td style="padding:6px 12px; border-bottom:1px solid #eee; font-weight:600; vertical-align:top;">Projected Mean</td>
+      <td style="padding:6px 12px; border-bottom:1px solid #eee; color:#444;">Average conversion rate across all users: both arms during the test, plus the winner deployed to the full post-test audience.</td>
+    </tr>
+    <tr>
+      <td style="padding:6px 12px; border-bottom:1px solid #eee; font-weight:600; vertical-align:top;">Marginal Events vs No Test</td>
+      <td style="padding:6px 12px; border-bottom:1px solid #eee; color:#444;">Incremental conversions above the baseline of never running an experiment.</td>
+    </tr>
+    <tr>
+      <td style="padding:6px 12px; border-bottom:1px solid #eee; font-weight:600; vertical-align:top;">Correct Decision Rate</td>
+      <td style="padding:6px 12px; border-bottom:1px solid #eee; color:#444;">How often the strategy deploys the correct variant. Covers the full distribution of effects — beneficial and harmful — not just the single MDE statistical power is designed for.</td>
+    </tr>
+    <tr>
+      <td style="padding:6px 12px; font-weight:600; vertical-align:top;">Avg Trials (Days)</td>
+      <td style="padding:6px 12px; color:#444;">Total user-experiment observations before stopping, with calendar duration in parentheses. Shorter experiments compound value by freeing up traffic faster.</td>
+    </tr>
+  </tbody>
+</table>
+```
 
-# Results
+## Results
 
-Below are the optimization curves for each strategy — long-term value as a function of stopping threshold α. The square marker is the peak.
-
-- **Value vs α:** Shows where each strategy is optimized. Compare peak heights to see which strategy produces more value; compare peak positions to see how aggressive the optimal threshold is.
-- **Value vs Avg Trials:** Shows the efficiency trade-off. A strategy that reaches the same value with fewer trials is strictly better — it frees up traffic sooner.
+The curve below shows long-run value as a function of Pr(Best) stopping threshold. The peak is the optimal rule — the threshold that maximizes value across all `{python} f"{NUMBER_SIMULATIONS:,}"` simulated experiments.
 
 ```{python}
 #| echo: false
@@ -963,20 +994,35 @@ def run_loop(select_best_at_end, prepped_df=None):
     avg_days   = (r["mean_trials"] / DAILY_N).to_list()
     return outcomes, trials, med_trials, rate, avg_days
 
+def run_loop_df(df_p, select_best_at_end):
+    r = evaluate_probability_thresholds(
+        df_p,
+        threshold_values=p_thresholds,
+        metric_direction_improvement="increase",
+        pre_sorted=True,
+        select_best_at_end=select_best_at_end,
+    )
+    outcomes   = r["mean_potential_value"].to_list()
+    trials     = r["mean_trials"].to_list()
+    med_trials = r["median_trials"].to_list()
+    rate       = r["match_rate"].to_list()
+    avg_days   = (r["mean_trials"] / DAILY_N).to_list()
+    return outcomes, trials, med_trials, rate, avg_days
+
 _t0 = time.time()
 all_potential_outcomes, total_trials, median_trials, match_rate, all_avg_days = run_loop(True)
 ctrl_potential_outcomes, ctrl_trials, ctrl_med_trials, ctrl_match_rate, ctrl_avg_days = run_loop(False)
 fixed_potential_outcomes, fixed_trials, fixed_med_trials, fixed_match_rate, fixed_avg_days = run_loop(False, df_prepped_fixed)
-_runtime = time.time() - _t0
+_runtime = _time_module.time() - _t_total_start
 
 def make_curve_fig(outcomes, trials, med_trials, rate, title, y_fmt=".3%", round_peak=False):
     y = np.array(outcomes) / normalizer
-    x = 1 - p_thresholds
+    x = p_thresholds
     peak = int(np.argmax(np.round(y * 100, 4)) if round_peak else np.argmax(y))
     marginal = (y - CONTROL_MEAN) * (POST_TEST_N + MAX_TEST_N)
     cd = np.column_stack([np.array(trials).astype(int), np.array(rate), np.array(med_trials), marginal])
     hover_tmpl = (
-        f"\u03b1: %{{x:.2f}}<br>"
+        f"Pr(Best): %{{x:.2f}}<br>"
         f"Projected Mean: %{{y:{y_fmt}}}<br>"
         "Marginal Events: %{customdata[3]:,.0f}<br>"
         "Avg Trials: %{customdata[0]:,}<br>"
@@ -993,20 +1039,20 @@ def make_curve_fig(outcomes, trials, med_trials, rate, title, y_fmt=".3%", round
         showlegend=False,
     )
     f.update_traces(selector=dict(mode="lines"), customdata=cd, hovertemplate=hover_tmpl)
-    f.update_layout(title_text=title)
-    f.update_xaxes(title_text="\u03b1", tickformat=".2f")
+    f.update_layout(title_text=title, hoverlabel=dict(font_size=16, font_color="white"))
+    f.update_xaxes(title_text="Pr(Best)", tickformat=".2f")
     f.update_yaxes(title_text="Projected Mean @ Year-End", tickformat=y_fmt)
     return f
 
 def make_overlay_fig_n(o1, t1, m1, r1, o2, t2, m2, r2, o3, t3, m3, r3, norm):
-    """All 3 strategies on one chart: x = avg total trials, y = projected mean."""
-    _pal    = ['#1f77b4', '#ff7f0e', '#2ca02c']
-    _labels = ['Peeking + Best', 'Peeking', 'Fixed Sample']
-    _rp     = [False, False, True]
-    _x_pvals = 1 - p_thresholds
+    """Optimal Stopping only: x = avg total trials, y = projected mean."""
+    _pal    = ['#1f77b4']
+    _labels = ['Optimal Stopping']
+    _rp     = [False]
+    _x_pvals = p_thresholds
     fig = go.Figure()
     for _outcomes, _trials, _marginal, _rate, _col, _lbl, _round in zip(
-        [o1, o2, o3], [t1, t2, t3], [m1, m2, m3], [r1, r2, r3], _pal, _labels, _rp
+        [o1], [t1], [m1], [r1], _pal, _labels, _rp
     ):
         _y = np.array(_outcomes) / norm
         _x = np.array(_trials)
@@ -1014,7 +1060,7 @@ def make_overlay_fig_n(o1, t1, m1, r1, o2, t2, m2, r2, o3, t3, m3, r3, norm):
         hover_tmpl = (
             "Avg Trials: %{x:,}<br>"
             "Projected Mean: %{y:.3%}<br>"
-            "\u03b1: %{customdata[0]:.2f}<br>"
+            "Pr(Best): %{customdata[0]:.2f}<br>"
             "Marginal Events: %{customdata[1]:,.0f}<br>"
             "Correct Decision Rate: %{customdata[2]:.2%}<br>"
             "<extra></extra>"
@@ -1042,27 +1088,28 @@ def make_overlay_fig_n(o1, t1, m1, r1, o2, t2, m2, r2, o3, t3, m3, r3, norm):
             xanchor="center", x=0.5, font=dict(size=10),
         ),
         height=300,
+        hoverlabel=dict(font_size=16, font_color="white"),
     )
     return fig
 
 def make_triple_curve_fig(o1, t1, m1, r1, o2, t2, m2, r2, o3, t3, m3, r3, norm,
                           baseline=None, total_n=None, y_fmt=".3%"):
-    """All 3 strategies overlaid: x = p-value threshold, y = projected mean."""
-    _pal    = ['#1f77b4', '#ff7f0e', '#2ca02c']
-    _labels = ['Peeking + Best', 'Peeking', 'Fixed Sample']
-    _rp     = [False, False, True]
-    x       = 1 - p_thresholds
+    """Optimal Stopping only: x = p-value threshold, y = projected mean."""
+    _pal    = ['#1f77b4']
+    _labels = ['Optimal Stopping']
+    _rp     = [False]
+    x       = p_thresholds
     marginal_hover = "Marginal Events: %{customdata[3]:,.0f}<br>" if (baseline is not None and total_n is not None) else ""
     fig = go.Figure()
     for _o, _t, _m, _r, _col, _lbl, _round in zip(
-        [o1, o2, o3], [t1, t2, t3], [m1, m2, m3], [r1, r2, r3], _pal, _labels, _rp
+        [o1], [t1], [m1], [r1], _pal, _labels, _rp
     ):
         y = np.array(_o) / norm
         peak = int(np.argmax(np.round(y * 100, 4)) if _round else np.argmax(y))
         marginal = (y - baseline) * total_n if (baseline is not None and total_n is not None) else np.zeros(len(y))
         cd = np.column_stack([np.array(_t).astype(int), np.array(_r), np.array(_m), marginal])
         hover_tmpl = (
-            f"\u03b1: %{{x:.2f}}<br>"
+            f"Pr(Best): %{{x:.2f}}<br>"
             f"Projected Mean: %{{y:{y_fmt}}}<br>"
             f"{marginal_hover}"
             "Avg Trials: %{customdata[0]:,}<br>"
@@ -1070,7 +1117,7 @@ def make_triple_curve_fig(o1, t1, m1, r1, o2, t2, m2, r2, o3, t3, m3, r3, norm,
             "<extra></extra>"
         )
         fig.add_trace(go.Scatter(
-            x=x, y=y, mode='lines', name=_lbl,
+            x=x, y=y, mode='lines', name=_lbl, showlegend=False,
             line=dict(color=_col, width=2),
             customdata=cd, hovertemplate=hover_tmpl,
         ))
@@ -1080,64 +1127,71 @@ def make_triple_curve_fig(o1, t1, m1, r1, o2, t2, m2, r2, o3, t3, m3, r3, norm,
             customdata=[[int(_t[peak]), _r[peak], int(_m[peak]), marginal[peak]]],
             hovertemplate=hover_tmpl,
         ))
-    fig.update_xaxes(title_text="\u03b1", tickformat=".2f")
+    fig.update_xaxes(title_text="Pr(Best)", tickformat=".2f")
     fig.update_yaxes(title_text="Projected Mean @ Year-End", tickformat=y_fmt)
     fig.update_layout(
         showlegend=True,
         legend=dict(orientation="h", yanchor="top", y=-0.18, xanchor="center", x=0.5, font=dict(size=10)),
         height=350,
+        hoverlabel=dict(font_size=16, font_color="white"),
     )
     return fig
 
 def make_scenario_row(o1, t1, m1, r1, o2, t2, m2, r2, o3, t3, m3, r3, norm, baseline, total_n):
-    triple  = make_triple_curve_fig(o1, t1, m1, r1, o2, t2, m2, r2, o3, t3, m3, r3, norm, baseline, total_n)
-    overlay = make_overlay_fig_n(o1, t1, m1, r1, o2, t2, m2, r2, o3, t3, m3, r3, norm)
-    row = make_subplots(rows=1, cols=2,
-                        subplot_titles=["Value vs α", "Value vs Avg Trials"],
-                        column_widths=[0.5, 0.5],
-                        shared_yaxes=True)
-    for _tr in triple.data:  row.add_trace(_tr, row=1, col=1)
-    for _tr in overlay.data:
-        _tr.showlegend = False
-        row.add_trace(_tr, row=1, col=2)
-    row.update_xaxes(title_text="\u03b1", tickformat=".2f", col=1)
-    row.update_yaxes(title_text="Projected Mean @ Year-End", tickformat=".3%", col=1)
-    row.update_xaxes(title_text="Avg Total Trials", tickformat=",", col=2)
-    row.update_layout(
+    fig = make_triple_curve_fig(o1, t1, m1, r1, o2, t2, m2, r2, o3, t3, m3, r3, norm, baseline, total_n)
+    fig.update_xaxes(title_text="Pr(Best)", tickformat=".2f")
+    fig.update_yaxes(title_text="Projected Mean @ Year-End", tickformat=".3%")
+    fig.update_layout(
         showlegend=True,
         legend=dict(orientation="h", yanchor="top", y=-0.18, xanchor="center", x=0.5, font=dict(size=10)),
         height=380,
+        hoverlabel=dict(font_size=16, font_color="white"),
     )
-    return row
+    return fig
 
 def make_scenario_stats(o1, d1, t1, r1, o2, d2, t2, r2, o3, d3, t3, r3, norm, baseline, total_n):
     """Returns a list of plain dicts (no HTML) — table is built in JS to avoid Quarto postprocessing."""
     def _peak(outcomes, avg_days, trials, rate, round_peak=False):
         y    = np.array(outcomes) / norm
-        x    = 1 - p_thresholds
+        x    = p_thresholds
         peak = int(np.argmax(np.round(y * 100, 4)) if round_peak else np.argmax(y))
         return float(x[peak]), float((y[peak] - baseline) * total_n), float(avg_days[peak]), float(y[peak]), float(np.array(rate)[peak]), float(np.array(trials)[peak])
-    _pal  = ['#1f77b4', '#ff7f0e', '#2ca02c']
-    _lbls = ['Peeking + Best', 'Peeking', 'Fixed Sample']
-    _data = [_peak(o1, d1, t1, r1), _peak(o2, d2, t2, r2), _peak(o3, d3, t3, r3, round_peak=True)]
+    _pal  = ['#1f77b4', '#2ca02c']
+    _lbls = ['Optimal Stopping', 'Fixed Sample']
+    _data = [_peak(o1, d1, t1, r1), _peak(o3, d3, t3, r3, round_peak=True)]
     rows  = [
         {"label": lbl, "color": c, "alpha": a, "marginal": m, "avg_days": d,
          "proj_mean": pm, "best_rate": br, "avg_trials": at, "is_ref": False}
         for (a, m, d, pm, br, at), c, lbl in zip(_data, _pal, _lbls)
     ]
-    # Reference row: Fixed Sample at the conventional α = 0.05
-    idx_05 = int(np.argmin(np.abs((1 - p_thresholds) - 0.05)))
     y3 = np.array(o3) / norm
+    # Reference row: Fixed Sample at the conventional α = 0.05 (Pr(Best) = 0.95)
+    idx_05 = int(np.argmin(np.abs((1 - p_thresholds) - 0.05)))
     rows.append({
         "label": "Fixed Sample",
         "color": "#2ca02c",
-        "alpha": float((1 - p_thresholds)[idx_05]),
+        "alpha": float(p_thresholds[idx_05]),
         "marginal": float((y3[idx_05] - baseline) * total_n),
         "avg_days": float(np.array(d3)[idx_05]),
         "proj_mean": float(y3[idx_05]),
         "best_rate": float(np.array(r3)[idx_05]),
         "avg_trials": float(np.array(t3)[idx_05]),
         "is_ref": True,
+        "is_ref_50": False,
+    })
+    # Reference row: Fixed Sample at α = 0.50 (Pr(Best) = 0.50) — lenient benchmark
+    idx_50 = int(np.argmin(np.abs(p_thresholds - 0.50)))
+    rows.append({
+        "label": "Fixed Sample",
+        "color": "#2ca02c",
+        "alpha": float(p_thresholds[idx_50]),
+        "marginal": float((y3[idx_50] - baseline) * total_n),
+        "avg_days": float(np.array(d3)[idx_50]),
+        "proj_mean": float(y3[idx_50]),
+        "best_rate": float(np.array(r3)[idx_50]),
+        "avg_trials": float(np.array(t3)[idx_50]),
+        "is_ref": False,
+        "is_ref_50": True,
     })
     return rows
 
@@ -1161,35 +1215,35 @@ _stats_base = make_scenario_stats(
 display(HTML(f"""
 <script>
 window.__wif_scenarios = window.__wif_scenarios || {{}};
-window.__wif_scenarios['400k_s1_cr10'] = {{
+window.__wif_scenarios['400k_s1_cr60'] = {{
   row1:  {pio.to_json(row1)},
   stats: {json.dumps(_stats_base)}
 }};
 </script>
 
+<!-- scenario selector (hidden for now) -->
+<div style="display:none;">
 <div style="display:flex; flex-direction:column; gap:0.6rem; margin-bottom:0.75rem; border: 1.5px dashed #90b8e0; border-radius:6px; padding:0.5rem 1rem;">
   <div style="font-size:1.05rem; color:#444; font-style:italic;">Change the scenario — notice whether the peaks shift or hold.</div>
   <div style="display:flex; gap:2rem; align-items:flex-start; flex-wrap:wrap;">
   <div style="display:flex; flex-direction:column; gap:0.25rem;">
     <label style="font-size:0.85rem; color:#555; font-weight:600;">Baseline Conversion</label>
     <select id="wif-cr" class="form-select form-select-sm" style="width:auto; font-size:0.85rem;">
-      <option value="cr05">5%</option>
-      <option value="cr10" selected>10%</option>
-      <option value="cr25">25%</option>
-      <option value="cr40">40%</option>
-      <option value="cr60">60%</option>
-      <option value="cr80">80%</option>
+      <option value="cr60" selected>60%</option>
     </select>
   </div>
   <div style="display:flex; flex-direction:column; gap:0.25rem;">
     <label style="font-size:0.85rem; color:#555; font-weight:600;">Post-Test N</label>
     <select id="wif-ptn" class="form-select form-select-sm" style="width:auto; font-size:0.85rem;">
       <option value="50k">50,000</option>
-      <option value="100k">100,000</option>
+      <option value="100k" selected>100,000</option>
       <option value="150k">150,000</option>
       <option value="200k">200,000</option>
-      <option value="400k" selected>400,000</option>
+      <option value="300k">300,000</option>
+      <option value="400k">400,000</option>
+      <option value="600k">600,000</option>
       <option value="800k">800,000</option>
+      <option value="1200k">1,200,000</option>
       <option value="1600k">1,600,000</option>
     </select>
   </div>
@@ -1198,61 +1252,20 @@ window.__wif_scenarios['400k_s1_cr10'] = {{
       <span id="sigma-info-icon" data-bs-toggle="tooltip" data-bs-placement="top" data-bs-title="Bigger swings result in faster, more accurate experiments — large effects are easier to detect, so the stopping rule fires sooner and picks the right winner more often." style="cursor:help; display:inline-flex; align-items:center; justify-content:center; width:14px; height:14px; border-radius:50%; border:1px solid #888; color:#888; font-size:0.65rem; font-weight:700; vertical-align:middle; margin-left:3px;">i</span>
     </label>
     <select id="wif-sigma" class="form-select form-select-sm" style="width:auto; font-size:0.85rem;">
-      <option value="s05">ITC ~ N(100, 0.5)</option>
       <option value="s1" selected>ITC ~ N(100, 1)</option>
-      <option value="s2">ITC ~ N(100, 2)</option>
     </select>
   </div>
-  <div id="wif-context" style="align-self:center; font-size:0.85rem; color:#555; font-style:italic; flex:1; min-width:160px;"></div>
   </div>
+</div>
 </div>
 
 <div id="wif-row1" style="min-height:380px;"></div>
 
-<p style="font-size:1.05rem; color:#333; margin-top:0.75rem; margin-bottom:0.25rem;">The table summarizes each strategy at its optimal α, with Fixed Sample at the conventional α = 0.05 included as a benchmark.</p>
 <div id="wif-stats1" style="margin-top:0.25rem;"></div>
 
 <script>
 (function() {{
-  var CR_ORDER    = {{ 'cr05': 0, 'cr10': 1, 'cr25': 2, 'cr40': 3, 'cr60': 4, 'cr80': 5 }};
-  var PTN_ORDER   = {{ '50k': 0, '100k': 1, '150k': 2, '200k': 3, '400k': 4, '800k': 5, '1600k': 6 }};
-  var SIGMA_ORDER = {{ 's05': 0, 's1': 1, 's2': 2 }};
-  var prevCr    = 'cr10';
-  var prevPtn   = '400k';
-  var prevSigma = 's1';
 
-  var CR_UP     = 'Higher baseline means larger absolute effects at the same ITC — easier to detect.';
-  var CR_DOWN   = 'Lower baseline means smaller absolute effects at the same ITC — harder to detect.';
-  var PTN_UP    = 'Larger post-test audience means a bad decision reaches more people — the optimal stopping rule becomes more conservative.';
-  var PTN_DOWN  = 'Smaller post-test audience limits the downside of a wrong call — the optimal stopping rule becomes more lenient.';
-  var SIGMA_UP   = 'Bigger swings are easier to spot — the experiment ends sooner, accuracy improves, and the value gains are larger.';
-  var SIGMA_DOWN = 'Smaller swings are harder to spot — the experiment runs longer, picks the wrong winner more often, and the value gains are smaller.';
-
-  function updateContext(text) {{
-    var ctx = document.getElementById('wif-context');
-    if (ctx) ctx.textContent = text;
-  }}
-
-  document.getElementById('wif-cr').addEventListener('change', function() {{
-    var cr = document.getElementById('wif-cr').value;
-    if      (CR_ORDER[cr] > CR_ORDER[prevCr]) updateContext(CR_UP);
-    else if (CR_ORDER[cr] < CR_ORDER[prevCr]) updateContext(CR_DOWN);
-    prevCr = cr;
-  }});
-
-  document.getElementById('wif-ptn').addEventListener('change', function() {{
-    var ptn = document.getElementById('wif-ptn').value;
-    if      (PTN_ORDER[ptn] > PTN_ORDER[prevPtn]) updateContext(PTN_UP);
-    else if (PTN_ORDER[ptn] < PTN_ORDER[prevPtn]) updateContext(PTN_DOWN);
-    prevPtn = ptn;
-  }});
-
-  document.getElementById('wif-sigma').addEventListener('change', function() {{
-    var sigma = document.getElementById('wif-sigma').value;
-    if      (SIGMA_ORDER[sigma] > SIGMA_ORDER[prevSigma]) updateContext(SIGMA_UP);
-    else if (SIGMA_ORDER[sigma] < SIGMA_ORDER[prevSigma]) updateContext(SIGMA_DOWN);
-    prevSigma = sigma;
-  }});
 }})();
 </script>
 
@@ -1265,28 +1278,48 @@ window.__wif_scenarios['400k_s1_cr10'] = {{
     if (!s) {{ setTimeout(function() {{ renderScenario(key); }}, 200); return; }}
     var r1 = s.row1; r1.layout.height = 380;
     Plotly.react('wif-row1', r1.data, r1.layout);
-    var rows = s.stats.map(function(d) {{
-      return '<tr data-label="' + d.label + '" data-is-ref="' + d.is_ref + '">' +
-        '<td style="padding:5px 12px;font-weight:600;color:' + d.color + ';">' + d.label + '</td>' +
-        '<td style="padding:5px 12px;text-align:center;"><strong>' + d.alpha.toFixed(2) + '</strong></td>' +
-        '<td style="padding:5px 12px;text-align:center;"><strong>' + (d.proj_mean * 100).toFixed(3) + '%</strong></td>' +
-        '<td style="padding:5px 12px;text-align:center;"><strong>' + Math.round(d.marginal).toLocaleString() + '</strong></td>' +
-        '<td style="padding:5px 12px;text-align:center;"><strong>' + (d.best_rate * 100).toFixed(1) + '%</strong></td>' +
-        '<td style="padding:5px 12px;text-align:center;"><strong>' + Math.round(d.avg_trials).toLocaleString() + '</strong></td>' +
-        '<td style="padding:5px 12px;text-align:center;"><strong>' + d.avg_days.toFixed(1) + '</strong></td>' +
+    var opt   = s.stats.find(function(d) {{ return !d.is_ref && !d.is_ref_50 && d.label === 'Optimal Stopping'; }});
+    var ref50 = s.stats.find(function(d) {{ return d.is_ref_50; }});
+    var ref   = s.stats.find(function(d) {{ return d.is_ref; }});
+    var _tdl = 'style="padding:6px 12px;color:#444;font-weight:600;border-bottom:1px solid #eee;text-align:left;white-space:nowrap;"';
+    var _tdo = 'style="padding:6px 12px;text-align:center;font-weight:700;border-bottom:1px solid #eee;"';
+    var _tdr = 'style="padding:6px 12px;text-align:center;font-weight:700;border-bottom:1px solid #eee;"';
+    var _thl = 'style="padding:6px 12px;font-weight:700;border-bottom:2px solid #ccc;text-align:left;white-space:nowrap;"';
+    var _thc = 'style="padding:6px 12px;font-weight:700;border-bottom:2px solid #ccc;text-align:center;white-space:nowrap;"';
+    var rows = [
+      ['Projected Mean',
+        opt   ? (opt.proj_mean   * 100).toFixed(3) + '%' : '—',
+        ref   ? (ref.proj_mean   * 100).toFixed(3) + '%' : '—',
+        ref50 ? (ref50.proj_mean * 100).toFixed(3) + '%' : '—'],
+      ['Marginal Events vs No Test',
+        opt   ? Math.round(opt.marginal).toLocaleString()   : '—',
+        ref   ? Math.round(ref.marginal).toLocaleString()   : '—',
+        ref50 ? Math.round(ref50.marginal).toLocaleString() : '—'],
+      ['Correct Decision Rate',
+        opt   ? (opt.best_rate   * 100).toFixed(1) + '%' : '—',
+        ref   ? (ref.best_rate   * 100).toFixed(1) + '%' : '—',
+        ref50 ? (ref50.best_rate * 100).toFixed(1) + '%' : '—'],
+      ['Avg Trials (Days)',
+        opt   ? Math.round(opt.avg_trials).toLocaleString()   + ' (' + opt.avg_days.toFixed(0)   + ' days)' : '—',
+        ref   ? Math.round(ref.avg_trials).toLocaleString()   + ' (' + ref.avg_days.toFixed(0)   + ' days)' : '—',
+        ref50 ? Math.round(ref50.avg_trials).toLocaleString() + ' (' + ref50.avg_days.toFixed(0) + ' days)' : '—'],
+    ].map(function(r) {{
+      return '<tr>' +
+        '<td ' + _tdl + '>' + r[0] + '</td>' +
+        '<td ' + _tdo + '>' + r[1] + '</td>' +
+        '<td ' + _tdr + '>' + r[2] + '</td>' +
+        '<td ' + _tdr + '>' + r[3] + '</td>' +
         '</tr>';
     }}).join('');
-    var _th = 'style="padding:5px 12px;color:#666;font-weight:600;border-bottom:1px solid #ddd;text-align:center;"';
+    var optColor = opt   ? opt.color   : '#1f77b4';
+    var refColor = ref   ? ref.color   : '#2ca02c';
     document.getElementById('wif-stats1').innerHTML =
       '<' + 'table style="width:100%;font-size:0.85rem;border-collapse:collapse;margin-top:0.4rem;">' +
       '<thead><tr>' +
-      '<th style="padding:5px 12px;color:#666;font-weight:600;border-bottom:1px solid #ddd;text-align:left;">Strategy</th>' +
-      '<th ' + _th + '>\u03b1</th>' +
-      '<th ' + _th + '>Projected Mean</th>' +
-      '<th ' + _th + '>Marginal Events vs No Test</th>' +
-      '<th ' + _th + '>Correct Decision Rate</th>' +
-      '<th ' + _th + '>Avg Trials</th>' +
-      '<th ' + _th + '>Avg(Days)</th>' +
+      '<th ' + _thl + '></th>' +
+      '<th ' + _thc + ' style="color:' + optColor + ';">Optimal Stopping</th>' +
+      '<th ' + _thc + ' style="color:' + refColor + ';">Fixed Sample (α = 0.05)</th>' +
+      '<th ' + _thc + ' style="color:' + refColor + ';">Fixed Sample (α = 0.50)</th>' +
       '</tr></thead><tbody>' + rows + '</tbody></' + 'table>';
   }}
 
@@ -1296,7 +1329,7 @@ window.__wif_scenarios['400k_s1_cr10'] = {{
            document.getElementById('wif-cr').value;
   }}
 
-  renderScenario('400k_s1_cr10');
+  renderScenario('100k_s1_cr60');
   document.getElementById('wif-ptn').addEventListener('change',   function() {{ renderScenario(getKey()); }});
   document.getElementById('wif-sigma').addEventListener('change', function() {{ renderScenario(getKey()); }});
   document.getElementById('wif-cr').addEventListener('change',    function() {{ renderScenario(getKey()); }});
@@ -1304,964 +1337,7 @@ window.__wif_scenarios['400k_s1_cr10'] = {{
   if (_tip && typeof bootstrap !== 'undefined') {{ new bootstrap.Tooltip(_tip); }}
 }})();
 </script>
-<div style="display:none;">{_runtime:.1f}s</div>
 """))
-```
-
-```{python}
-#| echo: false
-# Scenario 1: N=1M, σ=1
-
-_ptn_2x = POST_TEST_N * 2
-df_2x = se.calculate_launch_potential(df, post_test_n=_ptn_2x)
-df_2x = se.calculate_total_potential(df_2x)
-
-_norm_2x = df_2x["total_trials_cumsum"].max() + _ptn_2x
-
-df_prepped_2x = prepare_stopping_decision_columns(
-    df_2x.filter(pl.col("day") >= MIN_TEST_DAYS),
-    metric_direction_improvement="increase",
-).sort(["simulation", "day"])
-
-df_fixed_2x = prepare_stopping_decision_columns(
-    df_2x.filter(pl.col("day") >= NUMBER_TEST_DAYS),
-    metric_direction_improvement="increase",
-).sort(["simulation", "day"])
-
-def run_loop_df(df_p, select_best_at_end):
-    r = evaluate_probability_thresholds(
-        df_p,
-        threshold_values=p_thresholds,
-        metric_direction_improvement="increase",
-        pre_sorted=True,
-        select_best_at_end=select_best_at_end,
-    )
-    outcomes   = r["mean_potential_value"].to_list()
-    trials     = r["mean_trials"].to_list()
-    med_trials = r["median_trials"].to_list()
-    rate       = r["match_rate"].to_list()
-    avg_days   = (r["mean_trials"] / DAILY_N).to_list()
-    return outcomes, trials, med_trials, rate, avg_days
-
-_o1, _t1, _m1, _r1, _d1 = run_loop_df(df_prepped_2x, True)
-_o2, _t2, _m2, _r2, _d2 = run_loop_df(df_prepped_2x, False)
-_o3, _t3, _m3, _r3, _d3 = run_loop_df(df_fixed_2x, False)
-
-def make_curve_fig_n(outcomes, trials, med_trials, rate, title, norm, y_fmt=".3%", baseline=None, total_n=None, round_peak=False):
-    y = np.array(outcomes) / norm
-    x = 1 - p_thresholds
-    peak = int(np.argmax(np.round(y * 100, 4)) if round_peak else np.argmax(y))
-    marginal = (y - baseline) * total_n if (baseline is not None and total_n is not None) else np.zeros(len(y))
-    cd = np.column_stack([np.array(trials).astype(int), np.array(rate), np.array(med_trials), marginal])
-    marginal_hover = "Marginal Events: %{customdata[3]:,.0f}<br>" if (baseline is not None and total_n is not None) else ""
-    hover_tmpl = (
-        f"\u03b1: %{{x:.2f}}<br>"
-        f"Projected Mean: %{{y:{y_fmt}}}<br>"
-        f"{marginal_hover}"
-        "Avg Trials: %{customdata[0]:,}<br>"
-        "Median Trials: %{customdata[2]:,}<br>"
-        "Correct Decision Rate: %{customdata[1]:.2%}<br>"
-        "<extra></extra>"
-    )
-    f = px.line(x=x, y=y)
-    f.add_scatter(
-        x=[x[peak]], y=[y[peak]], mode="markers",
-        marker=dict(symbol="square", size=14, color="#3a6fd8"),
-        customdata=[[int(trials[peak]), rate[peak], int(med_trials[peak]), marginal[peak]]],
-        hovertemplate=hover_tmpl,
-        showlegend=False,
-    )
-    f.update_traces(selector=dict(mode="lines"), customdata=cd, hovertemplate=hover_tmpl)
-    f.update_layout(title_text=title)
-    f.update_xaxes(title_text="\u03b1", tickformat=".2f")
-    f.update_yaxes(title_text="Projected Mean @ Year-End", tickformat=y_fmt)
-    return f
-
-_row_2x   = make_scenario_row(
-    _o1, _t1, _m1, _r1,
-    _o2, _t2, _m2, _r2,
-    _o3, _t3, _m3, _r3,
-    _norm_2x, CONTROL_MEAN, _ptn_2x + MAX_TEST_N,
-)
-_stats_2x = make_scenario_stats(
-    _o1, _d1, _t1, _r1, _o2, _d2, _t2, _r2, _o3, _d3, _t3, _r3,
-    _norm_2x, CONTROL_MEAN, _ptn_2x + MAX_TEST_N,
-)
-
-display(HTML(f"""<script>
-window.__wif_scenarios = window.__wif_scenarios || {{}};
-window.__wif_scenarios['800k_s1_cr10'] = {{
-  row1:  {pio.to_json(_row_2x)},
-  stats: {json.dumps(_stats_2x)}
-}};
-</script>"""))
-```
-
-```{python}
-#| echo: false
-# Scenario 2: N=500k, σ=2
-
-_itc_se_wide = 2
-_ptn_wide    = POST_TEST_N   # 500k — effects only
-_ref_params_wide = {
-    "itc_mean": ITC_MEAN,
-    "itc_se": _itc_se_wide,
-    "trials": int(MAX_TEST_N * SPLIT),
-}
-
-_df_base = se.create_simulation_df(
-    number_test_days=NUMBER_TEST_DAYS,
-    number_simulations=NUMBER_SIMULATIONS,
-    seed=SEED,
-    condition_parameters=[{"mean": CONTROL_MEAN, "trials": int(MAX_TEST_N * SPLIT)}],
-)
-_df_wide = se.add_random_effect_condition(_df_base, _ref_params_wide)
-_df_wide = se.add_cumulative_columns(_df_wide)
-_df_wide = se.compute_cumulative_std_rates(_df_wide)
-_df_wide = se.compute_delta_stats(_df_wide)
-_df_wide = se.compute_test_stats(_df_wide)
-_df_wide = se.calculate_remaining_test_potential(_df_wide)
-_df_wide = se.calculate_launch_potential(_df_wide, post_test_n=_ptn_wide)
-_df_wide = se.calculate_total_potential(_df_wide)
-
-_norm_wide = _df_wide["total_trials_cumsum"].max() + _ptn_wide
-
-_df_prepped_wide = prepare_stopping_decision_columns(
-    _df_wide.filter(pl.col("day") >= MIN_TEST_DAYS),
-    metric_direction_improvement="increase",
-).sort(["simulation", "day"])
-
-_df_fixed_wide = prepare_stopping_decision_columns(
-    _df_wide.filter(pl.col("day") >= NUMBER_TEST_DAYS),
-    metric_direction_improvement="increase",
-).sort(["simulation", "day"])
-
-_ow1, _tw1, _mw1, _rw1, _dw1 = run_loop_df(_df_prepped_wide, True)
-_ow2, _tw2, _mw2, _rw2, _dw2 = run_loop_df(_df_prepped_wide, False)
-_ow3, _tw3, _mw3, _rw3, _dw3 = run_loop_df(_df_fixed_wide, False)
-
-_row_wide   = make_scenario_row(
-    _ow1, _tw1, _mw1, _rw1,
-    _ow2, _tw2, _mw2, _rw2,
-    _ow3, _tw3, _mw3, _rw3,
-    _norm_wide, CONTROL_MEAN, _ptn_wide + MAX_TEST_N,
-)
-_stats_wide = make_scenario_stats(
-    _ow1, _dw1, _tw1, _rw1, _ow2, _dw2, _tw2, _rw2, _ow3, _dw3, _tw3, _rw3,
-    _norm_wide, CONTROL_MEAN, _ptn_wide + MAX_TEST_N,
-)
-
-display(HTML(f"""<script>
-window.__wif_scenarios = window.__wif_scenarios || {{}};
-window.__wif_scenarios['400k_s2_cr10'] = {{
-  row1:  {pio.to_json(_row_wide)},
-  stats: {json.dumps(_stats_wide)}
-}};
-</script>"""))
-```
-
-```{python}
-#| echo: false
-# Scenario 3: N=1M, σ=2
-
-_ptn_both    = POST_TEST_N * 2
-_itc_se_both = 2
-_ref_params_both = {
-    "itc_mean": ITC_MEAN,
-    "itc_se": _itc_se_both,
-    "trials": int(MAX_TEST_N * SPLIT),
-}
-
-_df_base_b = se.create_simulation_df(
-    number_test_days=NUMBER_TEST_DAYS,
-    number_simulations=NUMBER_SIMULATIONS,
-    seed=SEED,
-    condition_parameters=[{"mean": CONTROL_MEAN, "trials": int(MAX_TEST_N * SPLIT)}],
-)
-_df_both = se.add_random_effect_condition(_df_base_b, _ref_params_both)
-_df_both = se.add_cumulative_columns(_df_both)
-_df_both = se.compute_cumulative_std_rates(_df_both)
-_df_both = se.compute_delta_stats(_df_both)
-_df_both = se.compute_test_stats(_df_both)
-_df_both = se.calculate_remaining_test_potential(_df_both)
-_df_both = se.calculate_launch_potential(_df_both, post_test_n=_ptn_both)
-_df_both = se.calculate_total_potential(_df_both)
-
-_norm_both = _df_both["total_trials_cumsum"].max() + _ptn_both
-
-_df_prepped_both = prepare_stopping_decision_columns(
-    _df_both.filter(pl.col("day") >= MIN_TEST_DAYS),
-    metric_direction_improvement="increase",
-).sort(["simulation", "day"])
-
-_df_fixed_both = prepare_stopping_decision_columns(
-    _df_both.filter(pl.col("day") >= NUMBER_TEST_DAYS),
-    metric_direction_improvement="increase",
-).sort(["simulation", "day"])
-
-_ob1, _tb1, _mb1, _rb1, _db1 = run_loop_df(_df_prepped_both, True)
-_ob2, _tb2, _mb2, _rb2, _db2 = run_loop_df(_df_prepped_both, False)
-_ob3, _tb3, _mb3, _rb3, _db3 = run_loop_df(_df_fixed_both, False)
-
-_row_both   = make_scenario_row(
-    _ob1, _tb1, _mb1, _rb1,
-    _ob2, _tb2, _mb2, _rb2,
-    _ob3, _tb3, _mb3, _rb3,
-    _norm_both, CONTROL_MEAN, _ptn_both + MAX_TEST_N,
-)
-_stats_both = make_scenario_stats(
-    _ob1, _db1, _tb1, _rb1, _ob2, _db2, _tb2, _rb2, _ob3, _db3, _tb3, _rb3,
-    _norm_both, CONTROL_MEAN, _ptn_both + MAX_TEST_N,
-)
-
-display(HTML(f"""<script>
-window.__wif_scenarios = window.__wif_scenarios || {{}};
-window.__wif_scenarios['800k_s2_cr10'] = {{
-  row1:  {pio.to_json(_row_both)},
-  stats: {json.dumps(_stats_both)}
-}};
-</script>"""))
-```
-
-```{python}
-#| echo: false
-# Scenario 4: N=500k, σ=0.5
-
-_itc_se_s05 = 0.5
-_ptn_s05    = POST_TEST_N
-_ref_params_s05 = {
-    "itc_mean": ITC_MEAN,
-    "itc_se": _itc_se_s05,
-    "trials": int(MAX_TEST_N * SPLIT),
-}
-
-_df_base_s05 = se.create_simulation_df(
-    number_test_days=NUMBER_TEST_DAYS,
-    number_simulations=NUMBER_SIMULATIONS,
-    seed=SEED,
-    condition_parameters=[{"mean": CONTROL_MEAN, "trials": int(MAX_TEST_N * SPLIT)}],
-)
-_df_s05 = se.add_random_effect_condition(_df_base_s05, _ref_params_s05)
-_df_s05 = se.add_cumulative_columns(_df_s05)
-_df_s05 = se.compute_cumulative_std_rates(_df_s05)
-_df_s05 = se.compute_delta_stats(_df_s05)
-_df_s05 = se.compute_test_stats(_df_s05)
-_df_s05 = se.calculate_remaining_test_potential(_df_s05)
-_df_s05 = se.calculate_launch_potential(_df_s05, post_test_n=_ptn_s05)
-_df_s05 = se.calculate_total_potential(_df_s05)
-
-_norm_s05 = _df_s05["total_trials_cumsum"].max() + _ptn_s05
-
-_df_prepped_s05 = prepare_stopping_decision_columns(
-    _df_s05.filter(pl.col("day") >= MIN_TEST_DAYS),
-    metric_direction_improvement="increase",
-).sort(["simulation", "day"])
-
-_df_fixed_s05 = prepare_stopping_decision_columns(
-    _df_s05.filter(pl.col("day") >= NUMBER_TEST_DAYS),
-    metric_direction_improvement="increase",
-).sort(["simulation", "day"])
-
-_os051, _ts051, _ms051, _rs051, _ds051 = run_loop_df(_df_prepped_s05, True)
-_os052, _ts052, _ms052, _rs052, _ds052 = run_loop_df(_df_prepped_s05, False)
-_os053, _ts053, _ms053, _rs053, _ds053 = run_loop_df(_df_fixed_s05, False)
-
-_row_s05   = make_scenario_row(
-    _os051, _ts051, _ms051, _rs051,
-    _os052, _ts052, _ms052, _rs052,
-    _os053, _ts053, _ms053, _rs053,
-    _norm_s05, CONTROL_MEAN, _ptn_s05 + MAX_TEST_N,
-)
-_stats_s05 = make_scenario_stats(
-    _os051, _ds051, _ts051, _rs051, _os052, _ds052, _ts052, _rs052, _os053, _ds053, _ts053, _rs053,
-    _norm_s05, CONTROL_MEAN, _ptn_s05 + MAX_TEST_N,
-)
-
-display(HTML(f"""<script>
-window.__wif_scenarios = window.__wif_scenarios || {{}};
-window.__wif_scenarios['400k_s05_cr10'] = {{
-  row1:  {pio.to_json(_row_s05)},
-  stats: {json.dumps(_stats_s05)}
-}};
-</script>"""))
-```
-
-```{python}
-#| echo: false
-# Scenario 5: N=1M, σ=0.5
-
-_ptn_s05_2x = POST_TEST_N * 2
-
-_df_s05_2x = se.calculate_launch_potential(_df_s05, post_test_n=_ptn_s05_2x)
-_df_s05_2x = se.calculate_total_potential(_df_s05_2x)
-_norm_s05_2x = _df_s05_2x["total_trials_cumsum"].max() + _ptn_s05_2x
-
-_df_prepped_s05_2x = prepare_stopping_decision_columns(
-    _df_s05_2x.filter(pl.col("day") >= MIN_TEST_DAYS),
-    metric_direction_improvement="increase",
-).sort(["simulation", "day"])
-
-_df_fixed_s05_2x = prepare_stopping_decision_columns(
-    _df_s05_2x.filter(pl.col("day") >= NUMBER_TEST_DAYS),
-    metric_direction_improvement="increase",
-).sort(["simulation", "day"])
-
-_os05_2x1, _ts05_2x1, _ms05_2x1, _rs05_2x1, _ds05_2x1 = run_loop_df(_df_prepped_s05_2x, True)
-_os05_2x2, _ts05_2x2, _ms05_2x2, _rs05_2x2, _ds05_2x2 = run_loop_df(_df_prepped_s05_2x, False)
-_os05_2x3, _ts05_2x3, _ms05_2x3, _rs05_2x3, _ds05_2x3 = run_loop_df(_df_fixed_s05_2x, False)
-
-_row_s05_2x   = make_scenario_row(
-    _os05_2x1, _ts05_2x1, _ms05_2x1, _rs05_2x1,
-    _os05_2x2, _ts05_2x2, _ms05_2x2, _rs05_2x2,
-    _os05_2x3, _ts05_2x3, _ms05_2x3, _rs05_2x3,
-    _norm_s05_2x, CONTROL_MEAN, _ptn_s05_2x + MAX_TEST_N,
-)
-_stats_s05_2x = make_scenario_stats(
-    _os05_2x1, _ds05_2x1, _ts05_2x1, _rs05_2x1, _os05_2x2, _ds05_2x2, _ts05_2x2, _rs05_2x2, _os05_2x3, _ds05_2x3, _ts05_2x3, _rs05_2x3,
-    _norm_s05_2x, CONTROL_MEAN, _ptn_s05_2x + MAX_TEST_N,
-)
-
-display(HTML(f"""<script>
-window.__wif_scenarios = window.__wif_scenarios || {{}};
-window.__wif_scenarios['800k_s05_cr10'] = {{
-  row1:  {pio.to_json(_row_s05_2x)},
-  stats: {json.dumps(_stats_s05_2x)}
-}};
-</script>"""))
-```
-
-```{python}
-#| echo: false
-# Scenario 50k: N=50k, σ=1 (reuse base df)
-_ptn_50k = 50_000
-
-_df_50k_s1 = se.calculate_launch_potential(df, post_test_n=_ptn_50k)
-_df_50k_s1 = se.calculate_total_potential(_df_50k_s1)
-_norm_50k_s1 = _df_50k_s1["total_trials_cumsum"].max() + _ptn_50k
-
-_df_prepped_50k_s1 = prepare_stopping_decision_columns(
-    _df_50k_s1.filter(pl.col("day") >= MIN_TEST_DAYS),
-    metric_direction_improvement="increase",
-).sort(["simulation", "day"])
-_df_fixed_50k_s1 = prepare_stopping_decision_columns(
-    _df_50k_s1.filter(pl.col("day") >= NUMBER_TEST_DAYS),
-    metric_direction_improvement="increase",
-).sort(["simulation", "day"])
-
-_o50k_s1_1, _t50k_s1_1, _m50k_s1_1, _r50k_s1_1, _d50k_s1_1 = run_loop_df(_df_prepped_50k_s1, True)
-_o50k_s1_2, _t50k_s1_2, _m50k_s1_2, _r50k_s1_2, _d50k_s1_2 = run_loop_df(_df_prepped_50k_s1, False)
-_o50k_s1_3, _t50k_s1_3, _m50k_s1_3, _r50k_s1_3, _d50k_s1_3 = run_loop_df(_df_fixed_50k_s1, False)
-
-_row_50k_s1   = make_scenario_row(
-    _o50k_s1_1, _t50k_s1_1, _m50k_s1_1, _r50k_s1_1,
-    _o50k_s1_2, _t50k_s1_2, _m50k_s1_2, _r50k_s1_2,
-    _o50k_s1_3, _t50k_s1_3, _m50k_s1_3, _r50k_s1_3,
-    _norm_50k_s1, CONTROL_MEAN, _ptn_50k + MAX_TEST_N,
-)
-_stats_50k_s1 = make_scenario_stats(
-    _o50k_s1_1, _d50k_s1_1, _t50k_s1_1, _r50k_s1_1,
-    _o50k_s1_2, _d50k_s1_2, _t50k_s1_2, _r50k_s1_2,
-    _o50k_s1_3, _d50k_s1_3, _t50k_s1_3, _r50k_s1_3,
-    _norm_50k_s1, CONTROL_MEAN, _ptn_50k + MAX_TEST_N,
-)
-display(HTML(f"""<script>
-window.__wif_scenarios = window.__wif_scenarios || {{}};
-window.__wif_scenarios['50k_s1_cr10'] = {{
-  row1:  {pio.to_json(_row_50k_s1)},
-  stats: {json.dumps(_stats_50k_s1)}
-}};
-</script>"""))
-```
-
-```{python}
-#| echo: false
-# Scenario 50k: N=50k, σ=2 (reuse _df_wide)
-_df_50k_s2 = se.calculate_launch_potential(_df_wide, post_test_n=_ptn_50k)
-_df_50k_s2 = se.calculate_total_potential(_df_50k_s2)
-_norm_50k_s2 = _df_50k_s2["total_trials_cumsum"].max() + _ptn_50k
-
-_df_prepped_50k_s2 = prepare_stopping_decision_columns(
-    _df_50k_s2.filter(pl.col("day") >= MIN_TEST_DAYS),
-    metric_direction_improvement="increase",
-).sort(["simulation", "day"])
-_df_fixed_50k_s2 = prepare_stopping_decision_columns(
-    _df_50k_s2.filter(pl.col("day") >= NUMBER_TEST_DAYS),
-    metric_direction_improvement="increase",
-).sort(["simulation", "day"])
-
-_o50k_s2_1, _t50k_s2_1, _m50k_s2_1, _r50k_s2_1, _d50k_s2_1 = run_loop_df(_df_prepped_50k_s2, True)
-_o50k_s2_2, _t50k_s2_2, _m50k_s2_2, _r50k_s2_2, _d50k_s2_2 = run_loop_df(_df_prepped_50k_s2, False)
-_o50k_s2_3, _t50k_s2_3, _m50k_s2_3, _r50k_s2_3, _d50k_s2_3 = run_loop_df(_df_fixed_50k_s2, False)
-
-_row_50k_s2   = make_scenario_row(
-    _o50k_s2_1, _t50k_s2_1, _m50k_s2_1, _r50k_s2_1,
-    _o50k_s2_2, _t50k_s2_2, _m50k_s2_2, _r50k_s2_2,
-    _o50k_s2_3, _t50k_s2_3, _m50k_s2_3, _r50k_s2_3,
-    _norm_50k_s2, CONTROL_MEAN, _ptn_50k + MAX_TEST_N,
-)
-_stats_50k_s2 = make_scenario_stats(
-    _o50k_s2_1, _d50k_s2_1, _t50k_s2_1, _r50k_s2_1,
-    _o50k_s2_2, _d50k_s2_2, _t50k_s2_2, _r50k_s2_2,
-    _o50k_s2_3, _d50k_s2_3, _t50k_s2_3, _r50k_s2_3,
-    _norm_50k_s2, CONTROL_MEAN, _ptn_50k + MAX_TEST_N,
-)
-display(HTML(f"""<script>
-window.__wif_scenarios = window.__wif_scenarios || {{}};
-window.__wif_scenarios['50k_s2_cr10'] = {{
-  row1:  {pio.to_json(_row_50k_s2)},
-  stats: {json.dumps(_stats_50k_s2)}
-}};
-</script>"""))
-```
-
-```{python}
-#| echo: false
-# Scenario 50k: N=50k, σ=0.5 (reuse _df_s05)
-_df_50k_s05 = se.calculate_launch_potential(_df_s05, post_test_n=_ptn_50k)
-_df_50k_s05 = se.calculate_total_potential(_df_50k_s05)
-_norm_50k_s05 = _df_50k_s05["total_trials_cumsum"].max() + _ptn_50k
-
-_df_prepped_50k_s05 = prepare_stopping_decision_columns(
-    _df_50k_s05.filter(pl.col("day") >= MIN_TEST_DAYS),
-    metric_direction_improvement="increase",
-).sort(["simulation", "day"])
-_df_fixed_50k_s05 = prepare_stopping_decision_columns(
-    _df_50k_s05.filter(pl.col("day") >= NUMBER_TEST_DAYS),
-    metric_direction_improvement="increase",
-).sort(["simulation", "day"])
-
-_o50k_s05_1, _t50k_s05_1, _m50k_s05_1, _r50k_s05_1, _d50k_s05_1 = run_loop_df(_df_prepped_50k_s05, True)
-_o50k_s05_2, _t50k_s05_2, _m50k_s05_2, _r50k_s05_2, _d50k_s05_2 = run_loop_df(_df_prepped_50k_s05, False)
-_o50k_s05_3, _t50k_s05_3, _m50k_s05_3, _r50k_s05_3, _d50k_s05_3 = run_loop_df(_df_fixed_50k_s05, False)
-
-_row_50k_s05   = make_scenario_row(
-    _o50k_s05_1, _t50k_s05_1, _m50k_s05_1, _r50k_s05_1,
-    _o50k_s05_2, _t50k_s05_2, _m50k_s05_2, _r50k_s05_2,
-    _o50k_s05_3, _t50k_s05_3, _m50k_s05_3, _r50k_s05_3,
-    _norm_50k_s05, CONTROL_MEAN, _ptn_50k + MAX_TEST_N,
-)
-_stats_50k_s05 = make_scenario_stats(
-    _o50k_s05_1, _d50k_s05_1, _t50k_s05_1, _r50k_s05_1,
-    _o50k_s05_2, _d50k_s05_2, _t50k_s05_2, _r50k_s05_2,
-    _o50k_s05_3, _d50k_s05_3, _t50k_s05_3, _r50k_s05_3,
-    _norm_50k_s05, CONTROL_MEAN, _ptn_50k + MAX_TEST_N,
-)
-display(HTML(f"""<script>
-window.__wif_scenarios = window.__wif_scenarios || {{}};
-window.__wif_scenarios['50k_s05_cr10'] = {{
-  row1:  {pio.to_json(_row_50k_s05)},
-  stats: {json.dumps(_stats_50k_s05)}
-}};
-</script>"""))
-```
-
-```{python}
-#| echo: false
-# Scenario 6: N=250k, σ=1 (reuse base df)
-_ptn_250k = 100_000
-
-_df_250k_s1 = se.calculate_launch_potential(df, post_test_n=_ptn_250k)
-_df_250k_s1 = se.calculate_total_potential(_df_250k_s1)
-_norm_250k_s1 = _df_250k_s1["total_trials_cumsum"].max() + _ptn_250k
-
-_df_prepped_250k_s1 = prepare_stopping_decision_columns(
-    _df_250k_s1.filter(pl.col("day") >= MIN_TEST_DAYS),
-    metric_direction_improvement="increase",
-).sort(["simulation", "day"])
-
-_df_fixed_250k_s1 = prepare_stopping_decision_columns(
-    _df_250k_s1.filter(pl.col("day") >= NUMBER_TEST_DAYS),
-    metric_direction_improvement="increase",
-).sort(["simulation", "day"])
-
-_o250k_s1_1, _t250k_s1_1, _m250k_s1_1, _r250k_s1_1, _d250k_s1_1 = run_loop_df(_df_prepped_250k_s1, True)
-_o250k_s1_2, _t250k_s1_2, _m250k_s1_2, _r250k_s1_2, _d250k_s1_2 = run_loop_df(_df_prepped_250k_s1, False)
-_o250k_s1_3, _t250k_s1_3, _m250k_s1_3, _r250k_s1_3, _d250k_s1_3 = run_loop_df(_df_fixed_250k_s1, False)
-
-_row_250k_s1   = make_scenario_row(
-    _o250k_s1_1, _t250k_s1_1, _m250k_s1_1, _r250k_s1_1,
-    _o250k_s1_2, _t250k_s1_2, _m250k_s1_2, _r250k_s1_2,
-    _o250k_s1_3, _t250k_s1_3, _m250k_s1_3, _r250k_s1_3,
-    _norm_250k_s1, CONTROL_MEAN, _ptn_250k + MAX_TEST_N,
-)
-_stats_250k_s1 = make_scenario_stats(
-    _o250k_s1_1, _d250k_s1_1, _t250k_s1_1, _r250k_s1_1,
-    _o250k_s1_2, _d250k_s1_2, _t250k_s1_2, _r250k_s1_2,
-    _o250k_s1_3, _d250k_s1_3, _t250k_s1_3, _r250k_s1_3,
-    _norm_250k_s1, CONTROL_MEAN, _ptn_250k + MAX_TEST_N,
-)
-
-display(HTML(f"""<script>
-window.__wif_scenarios = window.__wif_scenarios || {{}};
-window.__wif_scenarios['100k_s1_cr10'] = {{
-  row1:  {pio.to_json(_row_250k_s1)},
-  stats: {json.dumps(_stats_250k_s1)}
-}};
-</script>"""))
-```
-
-```{python}
-#| echo: false
-# Scenario 7: N=250k, σ=2 (reuse _df_wide)
-_df_250k_s2 = se.calculate_launch_potential(_df_wide, post_test_n=_ptn_250k)
-_df_250k_s2 = se.calculate_total_potential(_df_250k_s2)
-_norm_250k_s2 = _df_250k_s2["total_trials_cumsum"].max() + _ptn_250k
-
-_df_prepped_250k_s2 = prepare_stopping_decision_columns(
-    _df_250k_s2.filter(pl.col("day") >= MIN_TEST_DAYS),
-    metric_direction_improvement="increase",
-).sort(["simulation", "day"])
-
-_df_fixed_250k_s2 = prepare_stopping_decision_columns(
-    _df_250k_s2.filter(pl.col("day") >= NUMBER_TEST_DAYS),
-    metric_direction_improvement="increase",
-).sort(["simulation", "day"])
-
-_o250k_s2_1, _t250k_s2_1, _m250k_s2_1, _r250k_s2_1, _d250k_s2_1 = run_loop_df(_df_prepped_250k_s2, True)
-_o250k_s2_2, _t250k_s2_2, _m250k_s2_2, _r250k_s2_2, _d250k_s2_2 = run_loop_df(_df_prepped_250k_s2, False)
-_o250k_s2_3, _t250k_s2_3, _m250k_s2_3, _r250k_s2_3, _d250k_s2_3 = run_loop_df(_df_fixed_250k_s2, False)
-
-_row_250k_s2   = make_scenario_row(
-    _o250k_s2_1, _t250k_s2_1, _m250k_s2_1, _r250k_s2_1,
-    _o250k_s2_2, _t250k_s2_2, _m250k_s2_2, _r250k_s2_2,
-    _o250k_s2_3, _t250k_s2_3, _m250k_s2_3, _r250k_s2_3,
-    _norm_250k_s2, CONTROL_MEAN, _ptn_250k + MAX_TEST_N,
-)
-_stats_250k_s2 = make_scenario_stats(
-    _o250k_s2_1, _d250k_s2_1, _t250k_s2_1, _r250k_s2_1,
-    _o250k_s2_2, _d250k_s2_2, _t250k_s2_2, _r250k_s2_2,
-    _o250k_s2_3, _d250k_s2_3, _t250k_s2_3, _r250k_s2_3,
-    _norm_250k_s2, CONTROL_MEAN, _ptn_250k + MAX_TEST_N,
-)
-
-display(HTML(f"""<script>
-window.__wif_scenarios = window.__wif_scenarios || {{}};
-window.__wif_scenarios['100k_s2_cr10'] = {{
-  row1:  {pio.to_json(_row_250k_s2)},
-  stats: {json.dumps(_stats_250k_s2)}
-}};
-</script>"""))
-```
-
-```{python}
-#| echo: false
-# Scenario 8: N=250k, σ=0.5 (reuse _df_s05)
-_df_250k_s05 = se.calculate_launch_potential(_df_s05, post_test_n=_ptn_250k)
-_df_250k_s05 = se.calculate_total_potential(_df_250k_s05)
-_norm_250k_s05 = _df_250k_s05["total_trials_cumsum"].max() + _ptn_250k
-
-_df_prepped_250k_s05 = prepare_stopping_decision_columns(
-    _df_250k_s05.filter(pl.col("day") >= MIN_TEST_DAYS),
-    metric_direction_improvement="increase",
-).sort(["simulation", "day"])
-
-_df_fixed_250k_s05 = prepare_stopping_decision_columns(
-    _df_250k_s05.filter(pl.col("day") >= NUMBER_TEST_DAYS),
-    metric_direction_improvement="increase",
-).sort(["simulation", "day"])
-
-_o250k_s05_1, _t250k_s05_1, _m250k_s05_1, _r250k_s05_1, _d250k_s05_1 = run_loop_df(_df_prepped_250k_s05, True)
-_o250k_s05_2, _t250k_s05_2, _m250k_s05_2, _r250k_s05_2, _d250k_s05_2 = run_loop_df(_df_prepped_250k_s05, False)
-_o250k_s05_3, _t250k_s05_3, _m250k_s05_3, _r250k_s05_3, _d250k_s05_3 = run_loop_df(_df_fixed_250k_s05, False)
-
-_row_250k_s05   = make_scenario_row(
-    _o250k_s05_1, _t250k_s05_1, _m250k_s05_1, _r250k_s05_1,
-    _o250k_s05_2, _t250k_s05_2, _m250k_s05_2, _r250k_s05_2,
-    _o250k_s05_3, _t250k_s05_3, _m250k_s05_3, _r250k_s05_3,
-    _norm_250k_s05, CONTROL_MEAN, _ptn_250k + MAX_TEST_N,
-)
-_stats_250k_s05 = make_scenario_stats(
-    _o250k_s05_1, _d250k_s05_1, _t250k_s05_1, _r250k_s05_1,
-    _o250k_s05_2, _d250k_s05_2, _t250k_s05_2, _r250k_s05_2,
-    _o250k_s05_3, _d250k_s05_3, _t250k_s05_3, _r250k_s05_3,
-    _norm_250k_s05, CONTROL_MEAN, _ptn_250k + MAX_TEST_N,
-)
-
-display(HTML(f"""<script>
-window.__wif_scenarios = window.__wif_scenarios || {{}};
-window.__wif_scenarios['100k_s05_cr10'] = {{
-  row1:  {pio.to_json(_row_250k_s05)},
-  stats: {json.dumps(_stats_250k_s05)}
-}};
-</script>"""))
-```
-
-```{python}
-#| echo: false
-# Scenario 150k: N=150k, σ=1 (reuse base df)
-_ptn_150k = 150_000
-
-_df_150k_s1 = se.calculate_launch_potential(df, post_test_n=_ptn_150k)
-_df_150k_s1 = se.calculate_total_potential(_df_150k_s1)
-_norm_150k_s1 = _df_150k_s1["total_trials_cumsum"].max() + _ptn_150k
-
-_df_prepped_150k_s1 = prepare_stopping_decision_columns(
-    _df_150k_s1.filter(pl.col("day") >= MIN_TEST_DAYS),
-    metric_direction_improvement="increase",
-).sort(["simulation", "day"])
-_df_fixed_150k_s1 = prepare_stopping_decision_columns(
-    _df_150k_s1.filter(pl.col("day") >= NUMBER_TEST_DAYS),
-    metric_direction_improvement="increase",
-).sort(["simulation", "day"])
-
-_o150k_s1_1, _t150k_s1_1, _m150k_s1_1, _r150k_s1_1, _d150k_s1_1 = run_loop_df(_df_prepped_150k_s1, True)
-_o150k_s1_2, _t150k_s1_2, _m150k_s1_2, _r150k_s1_2, _d150k_s1_2 = run_loop_df(_df_prepped_150k_s1, False)
-_o150k_s1_3, _t150k_s1_3, _m150k_s1_3, _r150k_s1_3, _d150k_s1_3 = run_loop_df(_df_fixed_150k_s1, False)
-
-_row_150k_s1   = make_scenario_row(
-    _o150k_s1_1, _t150k_s1_1, _m150k_s1_1, _r150k_s1_1,
-    _o150k_s1_2, _t150k_s1_2, _m150k_s1_2, _r150k_s1_2,
-    _o150k_s1_3, _t150k_s1_3, _m150k_s1_3, _r150k_s1_3,
-    _norm_150k_s1, CONTROL_MEAN, _ptn_150k + MAX_TEST_N,
-)
-_stats_150k_s1 = make_scenario_stats(
-    _o150k_s1_1, _d150k_s1_1, _t150k_s1_1, _r150k_s1_1,
-    _o150k_s1_2, _d150k_s1_2, _t150k_s1_2, _r150k_s1_2,
-    _o150k_s1_3, _d150k_s1_3, _t150k_s1_3, _r150k_s1_3,
-    _norm_150k_s1, CONTROL_MEAN, _ptn_150k + MAX_TEST_N,
-)
-display(HTML(f"""<script>
-window.__wif_scenarios = window.__wif_scenarios || {{}};
-window.__wif_scenarios['150k_s1_cr10'] = {{
-  row1:  {pio.to_json(_row_150k_s1)},
-  stats: {json.dumps(_stats_150k_s1)}
-}};
-</script>"""))
-```
-
-```{python}
-#| echo: false
-# Scenario 150k: N=150k, σ=2 (reuse _df_wide)
-_df_150k_s2 = se.calculate_launch_potential(_df_wide, post_test_n=_ptn_150k)
-_df_150k_s2 = se.calculate_total_potential(_df_150k_s2)
-_norm_150k_s2 = _df_150k_s2["total_trials_cumsum"].max() + _ptn_150k
-
-_df_prepped_150k_s2 = prepare_stopping_decision_columns(
-    _df_150k_s2.filter(pl.col("day") >= MIN_TEST_DAYS),
-    metric_direction_improvement="increase",
-).sort(["simulation", "day"])
-_df_fixed_150k_s2 = prepare_stopping_decision_columns(
-    _df_150k_s2.filter(pl.col("day") >= NUMBER_TEST_DAYS),
-    metric_direction_improvement="increase",
-).sort(["simulation", "day"])
-
-_o150k_s2_1, _t150k_s2_1, _m150k_s2_1, _r150k_s2_1, _d150k_s2_1 = run_loop_df(_df_prepped_150k_s2, True)
-_o150k_s2_2, _t150k_s2_2, _m150k_s2_2, _r150k_s2_2, _d150k_s2_2 = run_loop_df(_df_prepped_150k_s2, False)
-_o150k_s2_3, _t150k_s2_3, _m150k_s2_3, _r150k_s2_3, _d150k_s2_3 = run_loop_df(_df_fixed_150k_s2, False)
-
-_row_150k_s2   = make_scenario_row(
-    _o150k_s2_1, _t150k_s2_1, _m150k_s2_1, _r150k_s2_1,
-    _o150k_s2_2, _t150k_s2_2, _m150k_s2_2, _r150k_s2_2,
-    _o150k_s2_3, _t150k_s2_3, _m150k_s2_3, _r150k_s2_3,
-    _norm_150k_s2, CONTROL_MEAN, _ptn_150k + MAX_TEST_N,
-)
-_stats_150k_s2 = make_scenario_stats(
-    _o150k_s2_1, _d150k_s2_1, _t150k_s2_1, _r150k_s2_1,
-    _o150k_s2_2, _d150k_s2_2, _t150k_s2_2, _r150k_s2_2,
-    _o150k_s2_3, _d150k_s2_3, _t150k_s2_3, _r150k_s2_3,
-    _norm_150k_s2, CONTROL_MEAN, _ptn_150k + MAX_TEST_N,
-)
-display(HTML(f"""<script>
-window.__wif_scenarios = window.__wif_scenarios || {{}};
-window.__wif_scenarios['150k_s2_cr10'] = {{
-  row1:  {pio.to_json(_row_150k_s2)},
-  stats: {json.dumps(_stats_150k_s2)}
-}};
-</script>"""))
-```
-
-```{python}
-#| echo: false
-# Scenario 150k: N=150k, σ=0.5 (reuse _df_s05)
-_df_150k_s05 = se.calculate_launch_potential(_df_s05, post_test_n=_ptn_150k)
-_df_150k_s05 = se.calculate_total_potential(_df_150k_s05)
-_norm_150k_s05 = _df_150k_s05["total_trials_cumsum"].max() + _ptn_150k
-
-_df_prepped_150k_s05 = prepare_stopping_decision_columns(
-    _df_150k_s05.filter(pl.col("day") >= MIN_TEST_DAYS),
-    metric_direction_improvement="increase",
-).sort(["simulation", "day"])
-_df_fixed_150k_s05 = prepare_stopping_decision_columns(
-    _df_150k_s05.filter(pl.col("day") >= NUMBER_TEST_DAYS),
-    metric_direction_improvement="increase",
-).sort(["simulation", "day"])
-
-_o150k_s05_1, _t150k_s05_1, _m150k_s05_1, _r150k_s05_1, _d150k_s05_1 = run_loop_df(_df_prepped_150k_s05, True)
-_o150k_s05_2, _t150k_s05_2, _m150k_s05_2, _r150k_s05_2, _d150k_s05_2 = run_loop_df(_df_prepped_150k_s05, False)
-_o150k_s05_3, _t150k_s05_3, _m150k_s05_3, _r150k_s05_3, _d150k_s05_3 = run_loop_df(_df_fixed_150k_s05, False)
-
-_row_150k_s05   = make_scenario_row(
-    _o150k_s05_1, _t150k_s05_1, _m150k_s05_1, _r150k_s05_1,
-    _o150k_s05_2, _t150k_s05_2, _m150k_s05_2, _r150k_s05_2,
-    _o150k_s05_3, _t150k_s05_3, _m150k_s05_3, _r150k_s05_3,
-    _norm_150k_s05, CONTROL_MEAN, _ptn_150k + MAX_TEST_N,
-)
-_stats_150k_s05 = make_scenario_stats(
-    _o150k_s05_1, _d150k_s05_1, _t150k_s05_1, _r150k_s05_1,
-    _o150k_s05_2, _d150k_s05_2, _t150k_s05_2, _r150k_s05_2,
-    _o150k_s05_3, _d150k_s05_3, _t150k_s05_3, _r150k_s05_3,
-    _norm_150k_s05, CONTROL_MEAN, _ptn_150k + MAX_TEST_N,
-)
-display(HTML(f"""<script>
-window.__wif_scenarios = window.__wif_scenarios || {{}};
-window.__wif_scenarios['150k_s05_cr10'] = {{
-  row1:  {pio.to_json(_row_150k_s05)},
-  stats: {json.dumps(_stats_150k_s05)}
-}};
-</script>"""))
-```
-
-```{python}
-#| echo: false
-# Scenario 9: N=250k, σ=1 (reuse base df)
-_ptn_250k_new = 200_000
-
-_df_250k_new_s1 = se.calculate_launch_potential(df, post_test_n=_ptn_250k_new)
-_df_250k_new_s1 = se.calculate_total_potential(_df_250k_new_s1)
-_norm_250kn_s1 = _df_250k_new_s1["total_trials_cumsum"].max() + _ptn_250k_new
-
-_df_prepped_250k_new_s1 = prepare_stopping_decision_columns(
-    _df_250k_new_s1.filter(pl.col("day") >= MIN_TEST_DAYS),
-    metric_direction_improvement="increase",
-).sort(["simulation", "day"])
-_df_fixed_250k_new_s1 = prepare_stopping_decision_columns(
-    _df_250k_new_s1.filter(pl.col("day") >= NUMBER_TEST_DAYS),
-    metric_direction_improvement="increase",
-).sort(["simulation", "day"])
-
-_o250kn_s1_1, _t250kn_s1_1, _m250kn_s1_1, _r250kn_s1_1, _d250kn_s1_1 = run_loop_df(_df_prepped_250k_new_s1, True)
-_o250kn_s1_2, _t250kn_s1_2, _m250kn_s1_2, _r250kn_s1_2, _d250kn_s1_2 = run_loop_df(_df_prepped_250k_new_s1, False)
-_o250kn_s1_3, _t250kn_s1_3, _m250kn_s1_3, _r250kn_s1_3, _d250kn_s1_3 = run_loop_df(_df_fixed_250k_new_s1, False)
-
-_row_250kn_s1   = make_scenario_row(
-    _o250kn_s1_1, _t250kn_s1_1, _m250kn_s1_1, _r250kn_s1_1,
-    _o250kn_s1_2, _t250kn_s1_2, _m250kn_s1_2, _r250kn_s1_2,
-    _o250kn_s1_3, _t250kn_s1_3, _m250kn_s1_3, _r250kn_s1_3,
-    _norm_250kn_s1, CONTROL_MEAN, _ptn_250k_new + MAX_TEST_N,
-)
-_stats_250kn_s1 = make_scenario_stats(
-    _o250kn_s1_1, _d250kn_s1_1, _t250kn_s1_1, _r250kn_s1_1,
-    _o250kn_s1_2, _d250kn_s1_2, _t250kn_s1_2, _r250kn_s1_2,
-    _o250kn_s1_3, _d250kn_s1_3, _t250kn_s1_3, _r250kn_s1_3,
-    _norm_250kn_s1, CONTROL_MEAN, _ptn_250k_new + MAX_TEST_N,
-)
-
-display(HTML(f"""<script>
-window.__wif_scenarios = window.__wif_scenarios || {{}};
-window.__wif_scenarios['200k_s1_cr10'] = {{
-  row1:  {pio.to_json(_row_250kn_s1)},
-  stats: {json.dumps(_stats_250kn_s1)}
-}};
-</script>"""))
-```
-
-```{python}
-#| echo: false
-# Scenario 10: N=250k, σ=2 (reuse _df_wide)
-_df_250k_new_s2 = se.calculate_launch_potential(_df_wide, post_test_n=_ptn_250k_new)
-_df_250k_new_s2 = se.calculate_total_potential(_df_250k_new_s2)
-_norm_250kn_s2 = _df_250k_new_s2["total_trials_cumsum"].max() + _ptn_250k_new
-
-_df_prepped_250k_new_s2 = prepare_stopping_decision_columns(
-    _df_250k_new_s2.filter(pl.col("day") >= MIN_TEST_DAYS),
-    metric_direction_improvement="increase",
-).sort(["simulation", "day"])
-_df_fixed_250k_new_s2 = prepare_stopping_decision_columns(
-    _df_250k_new_s2.filter(pl.col("day") >= NUMBER_TEST_DAYS),
-    metric_direction_improvement="increase",
-).sort(["simulation", "day"])
-
-_o250kn_s2_1, _t250kn_s2_1, _m250kn_s2_1, _r250kn_s2_1, _d250kn_s2_1 = run_loop_df(_df_prepped_250k_new_s2, True)
-_o250kn_s2_2, _t250kn_s2_2, _m250kn_s2_2, _r250kn_s2_2, _d250kn_s2_2 = run_loop_df(_df_prepped_250k_new_s2, False)
-_o250kn_s2_3, _t250kn_s2_3, _m250kn_s2_3, _r250kn_s2_3, _d250kn_s2_3 = run_loop_df(_df_fixed_250k_new_s2, False)
-
-_row_250kn_s2   = make_scenario_row(
-    _o250kn_s2_1, _t250kn_s2_1, _m250kn_s2_1, _r250kn_s2_1,
-    _o250kn_s2_2, _t250kn_s2_2, _m250kn_s2_2, _r250kn_s2_2,
-    _o250kn_s2_3, _t250kn_s2_3, _m250kn_s2_3, _r250kn_s2_3,
-    _norm_250kn_s2, CONTROL_MEAN, _ptn_250k_new + MAX_TEST_N,
-)
-_stats_250kn_s2 = make_scenario_stats(
-    _o250kn_s2_1, _d250kn_s2_1, _t250kn_s2_1, _r250kn_s2_1,
-    _o250kn_s2_2, _d250kn_s2_2, _t250kn_s2_2, _r250kn_s2_2,
-    _o250kn_s2_3, _d250kn_s2_3, _t250kn_s2_3, _r250kn_s2_3,
-    _norm_250kn_s2, CONTROL_MEAN, _ptn_250k_new + MAX_TEST_N,
-)
-
-display(HTML(f"""<script>
-window.__wif_scenarios = window.__wif_scenarios || {{}};
-window.__wif_scenarios['200k_s2_cr10'] = {{
-  row1:  {pio.to_json(_row_250kn_s2)},
-  stats: {json.dumps(_stats_250kn_s2)}
-}};
-</script>"""))
-```
-
-```{python}
-#| echo: false
-# Scenario 11: N=250k, σ=0.5 (reuse _df_s05)
-_df_250k_new_s05 = se.calculate_launch_potential(_df_s05, post_test_n=_ptn_250k_new)
-_df_250k_new_s05 = se.calculate_total_potential(_df_250k_new_s05)
-_norm_250kn_s05 = _df_250k_new_s05["total_trials_cumsum"].max() + _ptn_250k_new
-
-_df_prepped_250k_new_s05 = prepare_stopping_decision_columns(
-    _df_250k_new_s05.filter(pl.col("day") >= MIN_TEST_DAYS),
-    metric_direction_improvement="increase",
-).sort(["simulation", "day"])
-_df_fixed_250k_new_s05 = prepare_stopping_decision_columns(
-    _df_250k_new_s05.filter(pl.col("day") >= NUMBER_TEST_DAYS),
-    metric_direction_improvement="increase",
-).sort(["simulation", "day"])
-
-_o250kn_s05_1, _t250kn_s05_1, _m250kn_s05_1, _r250kn_s05_1, _d250kn_s05_1 = run_loop_df(_df_prepped_250k_new_s05, True)
-_o250kn_s05_2, _t250kn_s05_2, _m250kn_s05_2, _r250kn_s05_2, _d250kn_s05_2 = run_loop_df(_df_prepped_250k_new_s05, False)
-_o250kn_s05_3, _t250kn_s05_3, _m250kn_s05_3, _r250kn_s05_3, _d250kn_s05_3 = run_loop_df(_df_fixed_250k_new_s05, False)
-
-_row_250kn_s05   = make_scenario_row(
-    _o250kn_s05_1, _t250kn_s05_1, _m250kn_s05_1, _r250kn_s05_1,
-    _o250kn_s05_2, _t250kn_s05_2, _m250kn_s05_2, _r250kn_s05_2,
-    _o250kn_s05_3, _t250kn_s05_3, _m250kn_s05_3, _r250kn_s05_3,
-    _norm_250kn_s05, CONTROL_MEAN, _ptn_250k_new + MAX_TEST_N,
-)
-_stats_250kn_s05 = make_scenario_stats(
-    _o250kn_s05_1, _d250kn_s05_1, _t250kn_s05_1, _r250kn_s05_1,
-    _o250kn_s05_2, _d250kn_s05_2, _t250kn_s05_2, _r250kn_s05_2,
-    _o250kn_s05_3, _d250kn_s05_3, _t250kn_s05_3, _r250kn_s05_3,
-    _norm_250kn_s05, CONTROL_MEAN, _ptn_250k_new + MAX_TEST_N,
-)
-
-display(HTML(f"""<script>
-window.__wif_scenarios = window.__wif_scenarios || {{}};
-window.__wif_scenarios['200k_s05_cr10'] = {{
-  row1:  {pio.to_json(_row_250kn_s05)},
-  stats: {json.dumps(_stats_250kn_s05)}
-}};
-</script>"""))
-```
-
-```{python}
-#| echo: false
-# Scenario 12: N=1600k, σ=1 (reuse base df)
-_ptn_1600k = 1_600_000
-
-_df_1600k_s1 = se.calculate_launch_potential(df, post_test_n=_ptn_1600k)
-_df_1600k_s1 = se.calculate_total_potential(_df_1600k_s1)
-_norm_1600k_s1 = _df_1600k_s1["total_trials_cumsum"].max() + _ptn_1600k
-
-_df_prepped_1600k_s1 = prepare_stopping_decision_columns(
-    _df_1600k_s1.filter(pl.col("day") >= MIN_TEST_DAYS),
-    metric_direction_improvement="increase",
-).sort(["simulation", "day"])
-_df_fixed_1600k_s1 = prepare_stopping_decision_columns(
-    _df_1600k_s1.filter(pl.col("day") >= NUMBER_TEST_DAYS),
-    metric_direction_improvement="increase",
-).sort(["simulation", "day"])
-
-_o1600k_s1_1, _t1600k_s1_1, _m1600k_s1_1, _r1600k_s1_1, _d1600k_s1_1 = run_loop_df(_df_prepped_1600k_s1, True)
-_o1600k_s1_2, _t1600k_s1_2, _m1600k_s1_2, _r1600k_s1_2, _d1600k_s1_2 = run_loop_df(_df_prepped_1600k_s1, False)
-_o1600k_s1_3, _t1600k_s1_3, _m1600k_s1_3, _r1600k_s1_3, _d1600k_s1_3 = run_loop_df(_df_fixed_1600k_s1, False)
-
-_row_1600k_s1   = make_scenario_row(
-    _o1600k_s1_1, _t1600k_s1_1, _m1600k_s1_1, _r1600k_s1_1,
-    _o1600k_s1_2, _t1600k_s1_2, _m1600k_s1_2, _r1600k_s1_2,
-    _o1600k_s1_3, _t1600k_s1_3, _m1600k_s1_3, _r1600k_s1_3,
-    _norm_1600k_s1, CONTROL_MEAN, _ptn_1600k + MAX_TEST_N,
-)
-_stats_1600k_s1 = make_scenario_stats(
-    _o1600k_s1_1, _d1600k_s1_1, _t1600k_s1_1, _r1600k_s1_1,
-    _o1600k_s1_2, _d1600k_s1_2, _t1600k_s1_2, _r1600k_s1_2,
-    _o1600k_s1_3, _d1600k_s1_3, _t1600k_s1_3, _r1600k_s1_3,
-    _norm_1600k_s1, CONTROL_MEAN, _ptn_1600k + MAX_TEST_N,
-)
-display(HTML(f"""<script>
-window.__wif_scenarios = window.__wif_scenarios || {{}};
-window.__wif_scenarios['1600k_s1_cr10'] = {{
-  row1:  {pio.to_json(_row_1600k_s1)},
-  stats: {json.dumps(_stats_1600k_s1)}
-}};
-</script>"""))
-```
-
-```{python}
-#| echo: false
-# Scenario 13: N=1600k, σ=2 (reuse _df_wide)
-_df_1600k_s2 = se.calculate_launch_potential(_df_wide, post_test_n=_ptn_1600k)
-_df_1600k_s2 = se.calculate_total_potential(_df_1600k_s2)
-_norm_1600k_s2 = _df_1600k_s2["total_trials_cumsum"].max() + _ptn_1600k
-
-_df_prepped_1600k_s2 = prepare_stopping_decision_columns(
-    _df_1600k_s2.filter(pl.col("day") >= MIN_TEST_DAYS),
-    metric_direction_improvement="increase",
-).sort(["simulation", "day"])
-_df_fixed_1600k_s2 = prepare_stopping_decision_columns(
-    _df_1600k_s2.filter(pl.col("day") >= NUMBER_TEST_DAYS),
-    metric_direction_improvement="increase",
-).sort(["simulation", "day"])
-
-_o1600k_s2_1, _t1600k_s2_1, _m1600k_s2_1, _r1600k_s2_1, _d1600k_s2_1 = run_loop_df(_df_prepped_1600k_s2, True)
-_o1600k_s2_2, _t1600k_s2_2, _m1600k_s2_2, _r1600k_s2_2, _d1600k_s2_2 = run_loop_df(_df_prepped_1600k_s2, False)
-_o1600k_s2_3, _t1600k_s2_3, _m1600k_s2_3, _r1600k_s2_3, _d1600k_s2_3 = run_loop_df(_df_fixed_1600k_s2, False)
-
-_row_1600k_s2   = make_scenario_row(
-    _o1600k_s2_1, _t1600k_s2_1, _m1600k_s2_1, _r1600k_s2_1,
-    _o1600k_s2_2, _t1600k_s2_2, _m1600k_s2_2, _r1600k_s2_2,
-    _o1600k_s2_3, _t1600k_s2_3, _m1600k_s2_3, _r1600k_s2_3,
-    _norm_1600k_s2, CONTROL_MEAN, _ptn_1600k + MAX_TEST_N,
-)
-_stats_1600k_s2 = make_scenario_stats(
-    _o1600k_s2_1, _d1600k_s2_1, _t1600k_s2_1, _r1600k_s2_1,
-    _o1600k_s2_2, _d1600k_s2_2, _t1600k_s2_2, _r1600k_s2_2,
-    _o1600k_s2_3, _d1600k_s2_3, _t1600k_s2_3, _r1600k_s2_3,
-    _norm_1600k_s2, CONTROL_MEAN, _ptn_1600k + MAX_TEST_N,
-)
-display(HTML(f"""<script>
-window.__wif_scenarios = window.__wif_scenarios || {{}};
-window.__wif_scenarios['1600k_s2_cr10'] = {{
-  row1:  {pio.to_json(_row_1600k_s2)},
-  stats: {json.dumps(_stats_1600k_s2)}
-}};
-</script>"""))
-```
-
-```{python}
-#| echo: false
-# Scenario 14: N=1600k, σ=0.5 (reuse _df_s05)
-_df_1600k_s05 = se.calculate_launch_potential(_df_s05, post_test_n=_ptn_1600k)
-_df_1600k_s05 = se.calculate_total_potential(_df_1600k_s05)
-_norm_1600k_s05 = _df_1600k_s05["total_trials_cumsum"].max() + _ptn_1600k
-
-_df_prepped_1600k_s05 = prepare_stopping_decision_columns(
-    _df_1600k_s05.filter(pl.col("day") >= MIN_TEST_DAYS),
-    metric_direction_improvement="increase",
-).sort(["simulation", "day"])
-_df_fixed_1600k_s05 = prepare_stopping_decision_columns(
-    _df_1600k_s05.filter(pl.col("day") >= NUMBER_TEST_DAYS),
-    metric_direction_improvement="increase",
-).sort(["simulation", "day"])
-
-_o1600k_s05_1, _t1600k_s05_1, _m1600k_s05_1, _r1600k_s05_1, _d1600k_s05_1 = run_loop_df(_df_prepped_1600k_s05, True)
-_o1600k_s05_2, _t1600k_s05_2, _m1600k_s05_2, _r1600k_s05_2, _d1600k_s05_2 = run_loop_df(_df_prepped_1600k_s05, False)
-_o1600k_s05_3, _t1600k_s05_3, _m1600k_s05_3, _r1600k_s05_3, _d1600k_s05_3 = run_loop_df(_df_fixed_1600k_s05, False)
-
-_row_1600k_s05   = make_scenario_row(
-    _o1600k_s05_1, _t1600k_s05_1, _m1600k_s05_1, _r1600k_s05_1,
-    _o1600k_s05_2, _t1600k_s05_2, _m1600k_s05_2, _r1600k_s05_2,
-    _o1600k_s05_3, _t1600k_s05_3, _m1600k_s05_3, _r1600k_s05_3,
-    _norm_1600k_s05, CONTROL_MEAN, _ptn_1600k + MAX_TEST_N,
-)
-_stats_1600k_s05 = make_scenario_stats(
-    _o1600k_s05_1, _d1600k_s05_1, _t1600k_s05_1, _r1600k_s05_1,
-    _o1600k_s05_2, _d1600k_s05_2, _t1600k_s05_2, _r1600k_s05_2,
-    _o1600k_s05_3, _d1600k_s05_3, _t1600k_s05_3, _r1600k_s05_3,
-    _norm_1600k_s05, CONTROL_MEAN, _ptn_1600k + MAX_TEST_N,
-)
-display(HTML(f"""<script>
-window.__wif_scenarios = window.__wif_scenarios || {{}};
-window.__wif_scenarios['1600k_s05_cr10'] = {{
-  row1:  {pio.to_json(_row_1600k_s05)},
-  stats: {json.dumps(_stats_1600k_s05)}
-}};
-</script>"""))
 ```
 
 ```{python}
@@ -2270,24 +1346,24 @@ window.__wif_scenarios['1600k_s05_cr10'] = {{
 
 def _peak_stats_cr(outcomes, avg_days_list, norm, cr_val, ptn_val, round_peak=False):
     y    = np.array(outcomes) / norm
-    x    = 1 - p_thresholds
+    x    = p_thresholds
     peak = int(np.argmax(np.round(y * 100, 4)) if round_peak else np.argmax(y))
-    opt_alpha       = x[peak]
+    opt_pr_best     = x[peak]
     marginal_events = (y[peak] - cr_val) * (ptn_val + MAX_TEST_N)
     avg_d           = avg_days_list[peak]
     return f"""<div style="text-align:center; font-size:0.9rem; color:#333; margin-top:0.25rem;">
-      α: <strong>{opt_alpha:.2f}</strong> &nbsp;|&nbsp;
+      Pr(Best): <strong>{opt_pr_best:.2f}</strong> &nbsp;|&nbsp;
       Marginal Events vs No Test: <strong>{marginal_events:,.0f}</strong> &nbsp;|&nbsp;
       Avg(Days): <strong>{avg_d:.1f}</strong>
     </div>"""
 
-_cr_combos    = [(0.05, 'cr05'), (0.25, 'cr25'), (0.40, 'cr40'), (0.60, 'cr60'), (0.80, 'cr80')]
-_sigma_combos = [(ITC_SE, 's1'), (2, 's2'), (0.5, 's05')]
-_ptn_combos   = [(50_000, '50k'), (100_000, '100k'), (150_000, '150k'), (200_000, '200k'), (POST_TEST_N, '400k'), (POST_TEST_N * 2, '800k'), (1_600_000, '1600k')]
+_cr_combos    = [(0.60, 'cr60')]
+_sigma_combos = [(ITC_SE, 's1')]
+_ptn_combos   = [(50_000, '50k'), (100_000, '100k'), (150_000, '150k'), (200_000, '200k'), (300_000, '300k'), (400_000, '400k'), (600_000, '600k'), (800_000, '800k'), (1_200_000, '1200k'), (1_600_000, '1600k')]
 
 for _cr_val, _cr_key in _cr_combos:
     for _itc_se_val, _sigma_key in _sigma_combos:
-        _n_sims_loop = 500_000 if (_cr_val == 0.05 and _itc_se_val == 0.5) else NUMBER_SIMULATIONS
+        _n_sims_loop = NUMBER_SIMULATIONS
         _df_tmp = se.create_simulation_df(
             number_test_days=NUMBER_TEST_DAYS,
             number_simulations=_n_sims_loop,
@@ -2340,285 +1416,60 @@ window.__wif_scenarios['{_key}'] = {{
   stats: {json.dumps(_stats_cr)}
 }};
 </script>"""))
+
 ```
 
-## What the Simulations Say
-
-### 1. Fixed Sample Testing at α = 0.50 is a Good Strategy
-
 ```{=html}
-<p style="font-size:0.95rem; color:#444; margin-bottom:0.75rem;">
-  Conventional α = 0.05 minimizes false positives. α = 0.50 maximizes value — deploy whoever is leading on the final day.
+<div class="mt-2 mb-2" id="ptn-accordion-wrap">
+  <div class="accordion-item" style="border: 1.5px dashed #90b8e0; border-radius: 6px; background: #f0f6fd; margin-bottom: 0;" id="ptn-accordion-header">
+    <div class="accordion-header" style="margin:0;">
+      <button class="accordion-button collapsed px-3 shadow-none"
+              id="ptn-accordion-btn"
+              style="font-size:0.9rem; font-weight:600; color:#1e46a0; background:transparent; min-height:0; height:auto; width:100%; display:flex; align-items:center; padding-top:0.5rem; padding-bottom:0.5rem; flex-wrap:wrap;"
+              type="button" data-bs-toggle="collapse"
+              data-bs-target="#ptn-collapse">
+        <span style="flex:1;">Importance of Post-Test N
+          <span id="ptn-info-icon" data-bs-toggle="tooltip" data-bs-placement="top" data-bs-title="The larger the post-test audience, the more costly a wrong call. The stopping threshold rises to match — making early stops harder to earn as the stakes grow." style="cursor:help; display:inline-flex; align-items:center; justify-content:center; width:14px; height:14px; border-radius:50%; border:1px solid #1e46a0; color:#1e46a0; font-size:0.65rem; font-weight:700; vertical-align:middle; margin-left:5px;">i</span>
+        </span>
+        <span class="accordion-chevron" style="flex-shrink:0; margin-left:0.75rem; font-size:1.8rem; line-height:1; transition:transform 0.2s;">&#8964;</span>
+      </button>
+    </div>
+  </div>
+  <div id="ptn-collapse" class="collapse" style="border: 1.5px dashed #90b8e0; border-top: none; border-radius: 0 0 6px 6px; padding: 1rem; background: #fff;">
+
+<p style="font-size:0.9rem; color:#444; margin-bottom:1rem; line-height:1.6;">
+Post-Test N is the audience that sees the winning variant after the experiment ends — the size of the real-world rollout. It matters because the value of an experiment isn't just what happens during the test: it's the cumulative impact of deploying the winner to every user who follows. A wrong call during a test with a small rollout is a minor cost; the same wrong call with a million-person rollout is a much larger one. As Post-Test N grows, the stakes of each stopping decision rise — and the optimal threshold rises with it, demanding stronger evidence before committing.
 </p>
 
-<table id="wts-ratio-stat" style="font-size:0.88rem; border-collapse:collapse; margin-bottom:0.6rem;">
-  <thead>
-    <tr>
-      <th style="padding:5px 14px; color:#666; font-weight:600; border-bottom:1px solid #ddd; text-align:left;">Strategy</th>
-      <th style="padding:5px 14px; color:#666; font-weight:600; border-bottom:1px solid #ddd; text-align:center;">Projected Mean</th>
-      <th style="padding:5px 14px; color:#666; font-weight:600; border-bottom:1px solid #ddd; text-align:center;">Marginal Events</th>
-      <th style="padding:5px 14px; color:#666; font-weight:600; border-bottom:1px solid #ddd; text-align:center;">Avg Days</th>
-    </tr>
-  </thead>
-  <tbody id="wts-ratio-tbody">
-    <tr><td colspan="4" style="padding:5px 14px; color:#aaa;">loading…</td></tr>
-  </tbody>
-</table>
-<p id="wts-ratio-note" style="font-size:0.82rem; color:#666; font-style:italic; margin-top:0.25rem;"></p>
-
-<script>
-(function () {
-  function getStat(key, label, isRef) {
-    var sc = window.__wif_scenarios && window.__wif_scenarios[key];
-    if (!sc) return null;
-    return sc.stats.find(function (r) { return r.label === label && r.is_ref === isRef; }) || null;
-  }
-
-  function row(d, label, highlight) {
-    var bg = highlight ? 'background:#f0f6ff;' : '';
-    return '<tr style="' + bg + '">' +
-      '<td style="padding:5px 14px; font-weight:600; color:' + d.color + ';">' + label + '</td>' +
-      '<td style="padding:5px 14px; text-align:center; font-weight:700;">' + (d.proj_mean * 100).toFixed(3) + '%</td>' +
-      '<td style="padding:5px 14px; text-align:center; font-weight:700;">' + Math.round(d.marginal).toLocaleString() + '</td>' +
-      '<td style="padding:5px 14px; text-align:center; font-weight:700;">' + d.avg_days.toFixed(1) + '</td>' +
-      '</tr>';
-  }
-
-  function update() {
-    var cr    = (document.getElementById('wif-cr')    || {}).value || 'cr10';
-    var sigma = (document.getElementById('wif-sigma') || {}).value || 's1';
-    var ptn   = (document.getElementById('wif-ptn')   || {}).value || '400k';
-    var key   = ptn + '_' + sigma + '_' + cr;
-    var opt   = getStat(key, 'Fixed Sample', false);
-    var ref   = getStat(key, 'Fixed Sample', true);
-    if (!opt || !ref || !ref.marginal) return;
-    var ratio = opt.marginal / ref.marginal;
-    var color = ratio >= 2 ? '#1a7a3c' : ratio >= 1.3 ? '#2d6fa3' : '#555';
-    document.getElementById('wts-ratio-tbody').innerHTML =
-      row(ref, 'Fixed Sample (α = 0.05)', false) +
-      row(opt, 'Fixed Sample (α = 0.50)', true);
-    var note = document.getElementById('wts-ratio-note');
-    if (note) {
-      note.textContent = '* α = 0.50 captures ';
-      note.innerHTML   = '* α = 0.50 captures <strong style="color:' + color + ';">' +
-        ratio.toFixed(2) + '×</strong> the marginal events of α = 0.05, in the same number of days.';
-    }
-  }
-
-  function waitAndRender() {
-    if (!window.__wif_scenarios) { setTimeout(waitAndRender, 300); return; }
-    update();
-  }
-
-  ['wif-cr', 'wif-sigma', 'wif-ptn'].forEach(function (id) {
-    var el = document.getElementById(id);
-    if (el) el.addEventListener('change', update);
-  });
-
-  if (document.readyState === 'loading') {
-    document.addEventListener('DOMContentLoaded', waitAndRender);
-  } else {
-    setTimeout(waitAndRender, 0);
-  }
-})();
-</script>
-```
-
-### 2. Peeking is a Good Strategy
-
-```{=html}
-<p style="font-size:0.95rem; color:#444; margin-bottom:0.75rem;">
-  Peeking and Fixed Sample at α = 0.50 perform comparably — but peeking experiments end sooner.
-</p>
-
-<table id="wts-peek-stat" style="font-size:0.88rem; border-collapse:collapse; margin-bottom:0.6rem;">
-  <thead>
-    <tr>
-      <th style="padding:5px 14px; color:#666; font-weight:600; border-bottom:1px solid #ddd; text-align:left;">Strategy</th>
-      <th style="padding:5px 14px; color:#666; font-weight:600; border-bottom:1px solid #ddd; text-align:center;">Projected Mean</th>
-      <th style="padding:5px 14px; color:#666; font-weight:600; border-bottom:1px solid #ddd; text-align:center;">Marginal Events</th>
-      <th style="padding:5px 14px; color:#666; font-weight:600; border-bottom:1px solid #ddd; text-align:center;">Avg Days</th>
-    </tr>
-  </thead>
-  <tbody id="wts-peek-tbody">
-    <tr><td colspan="4" style="padding:5px 14px; color:#aaa;">loading…</td></tr>
-  </tbody>
-</table>
-<p id="wts-peek-note" style="font-size:0.82rem; color:#666; font-style:italic; margin-top:0.25rem;"></p>
-
-<script>
-(function () {
-  function getStat(key, label, isRef) {
-    var sc = window.__wif_scenarios && window.__wif_scenarios[key];
-    if (!sc) return null;
-    return sc.stats.find(function (r) { return r.label === label && r.is_ref === isRef; }) || null;
-  }
-
-  function row(d, highlight) {
-    var bg = highlight ? 'background:#f0f6ff;' : '';
-    return '<tr style="' + bg + '">' +
-      '<td style="padding:5px 14px; font-weight:600; color:' + d.color + ';">' + d.label + '</td>' +
-      '<td style="padding:5px 14px; text-align:center; font-weight:700;">' + (d.proj_mean * 100).toFixed(3) + '%</td>' +
-      '<td style="padding:5px 14px; text-align:center; font-weight:700;">' + Math.round(d.marginal).toLocaleString() + '</td>' +
-      '<td style="padding:5px 14px; text-align:center; font-weight:700;">' + d.avg_days.toFixed(1) + '</td>' +
-      '</tr>';
-  }
-
-  function update() {
-    var cr    = (document.getElementById('wif-cr')    || {}).value || 'cr10';
-    var sigma = (document.getElementById('wif-sigma') || {}).value || 's1';
-    var ptn   = (document.getElementById('wif-ptn')   || {}).value || '400k';
-    var key   = ptn + '_' + sigma + '_' + cr;
-    var peek  = getStat(key, 'Peeking',       false);
-    var fs    = getStat(key, 'Fixed Sample',  false);
-    if (!peek || !fs) return;
-    document.getElementById('wts-peek-tbody').innerHTML = row(fs, false) + row(peek, true);
-    var daysSaved = fs.avg_days - peek.avg_days;
-    var note = document.getElementById('wts-peek-note');
-    if (note) note.textContent = '* Peeking finishes ~' + Math.abs(daysSaved).toFixed(1) +
-      ' days faster on average while delivering ' +
-      (Math.abs((peek.marginal - fs.marginal) / fs.marginal * 100)).toFixed(1) +
-      '% ' + (peek.marginal >= fs.marginal ? 'more' : 'fewer') + ' marginal events.';
-  }
-
-  function waitAndRender() {
-    if (!window.__wif_scenarios) { setTimeout(waitAndRender, 300); return; }
-    update();
-  }
-
-  ['wif-cr', 'wif-sigma', 'wif-ptn'].forEach(function (id) {
-    var el = document.getElementById(id);
-    if (el) el.addEventListener('change', update);
-  });
-
-  if (document.readyState === 'loading') {
-    document.addEventListener('DOMContentLoaded', waitAndRender);
-  } else {
-    setTimeout(waitAndRender, 0);
-  }
-})();
-</script>
-```
-
-### 3. Peeking + Retaining the Leader Is Best
-
-```{=html}
-<p style="font-size:0.95rem; color:#444; margin-bottom:0.75rem;">
-  Peeking stops experiments early when the data says so. Retaining the best performer means every inconclusive test still ships a winner. Together, they dominate.
-</p>
-
-<table id="wts-best-stat" style="font-size:0.88rem; border-collapse:collapse; margin-bottom:0.6rem;">
-  <thead>
-    <tr>
-      <th style="padding:5px 14px; color:#666; font-weight:600; border-bottom:1px solid #ddd; text-align:left;">Strategy</th>
-      <th style="padding:5px 14px; color:#666; font-weight:600; border-bottom:1px solid #ddd; text-align:center;">Projected Mean</th>
-      <th style="padding:5px 14px; color:#666; font-weight:600; border-bottom:1px solid #ddd; text-align:center;">Marginal Events</th>
-      <th style="padding:5px 14px; color:#666; font-weight:600; border-bottom:1px solid #ddd; text-align:center;">Correct Decision Rate</th>
-      <th style="padding:5px 14px; color:#666; font-weight:600; border-bottom:1px solid #ddd; text-align:center;">Avg Days</th>
-    </tr>
-  </thead>
-  <tbody id="wts-best-tbody">
-    <tr><td colspan="5" style="padding:5px 14px; color:#aaa;">loading…</td></tr>
-  </tbody>
-</table>
-<p id="wts-best-note" style="font-size:0.82rem; color:#666; font-style:italic; margin-top:0.25rem;"></p>
-
-<script>
-(function () {
-  function getStat(key, label, isRef) {
-    var sc = window.__wif_scenarios && window.__wif_scenarios[key];
-    if (!sc) return null;
-    return sc.stats.find(function (r) { return r.label === label && r.is_ref === isRef; }) || null;
-  }
-
-  function row(d, highlight) {
-    var bg = highlight ? 'background:#f0f6ff;' : '';
-    return '<tr style="' + bg + '">' +
-      '<td style="padding:5px 14px; font-weight:600; color:' + d.color + ';">' + d.label + '</td>' +
-      '<td style="padding:5px 14px; text-align:center; font-weight:700;">' + (d.proj_mean * 100).toFixed(3) + '%</td>' +
-      '<td style="padding:5px 14px; text-align:center; font-weight:700;">' + Math.round(d.marginal).toLocaleString() + '</td>' +
-      '<td style="padding:5px 14px; text-align:center; font-weight:700;">' + (d.best_rate * 100).toFixed(1) + '%</td>' +
-      '<td style="padding:5px 14px; text-align:center; font-weight:700;">' + d.avg_days.toFixed(1) + '</td>' +
-      '</tr>';
-  }
-
-  function update() {
-    var cr    = (document.getElementById('wif-cr')    || {}).value || 'cr10';
-    var sigma = (document.getElementById('wif-sigma') || {}).value || 's1';
-    var ptn   = (document.getElementById('wif-ptn')   || {}).value || '400k';
-    var key   = ptn + '_' + sigma + '_' + cr;
-    var pb    = getStat(key, 'Peeking + Best', false);
-    var peek  = getStat(key, 'Peeking',        false);
-    var fs    = getStat(key, 'Fixed Sample',   false);
-    if (!pb || !peek || !fs) return;
-    document.getElementById('wts-best-tbody').innerHTML = row(fs, false) + row(peek, false) + row(pb, true);
-    var liftVsPeek = (pb.marginal - peek.marginal) / Math.abs(peek.marginal) * 100;
-    var liftVsFs   = (pb.marginal - fs.marginal)   / Math.abs(fs.marginal)   * 100;
-    var daysDiff   = pb.avg_days - peek.avg_days;
-    var note = document.getElementById('wts-best-note');
-    if (note) note.innerHTML =
-      '* Peeking+Best captures <strong>' + Math.abs(liftVsPeek).toFixed(1) + '%</strong> ' +
-      (liftVsPeek >= 0 ? 'more' : 'fewer') + ' marginal events than Peeking and ' +
-      '<strong>' + Math.abs(liftVsFs).toFixed(1) + '%</strong> ' +
-      (liftVsFs >= 0 ? 'more' : 'fewer') + ' than Fixed Sample (α = 0.50), ' +
-      'running ' + Math.abs(daysDiff).toFixed(1) + ' days ' +
-      (daysDiff >= 0 ? 'longer' : 'shorter') + ' than Peeking on average.';
-  }
-
-  function waitAndRender() {
-    if (!window.__wif_scenarios) { setTimeout(waitAndRender, 300); return; }
-    update();
-  }
-
-  ['wif-cr', 'wif-sigma', 'wif-ptn'].forEach(function (id) {
-    var el = document.getElementById(id);
-    if (el) el.addEventListener('change', update);
-  });
-
-  if (document.readyState === 'loading') {
-    document.addEventListener('DOMContentLoaded', waitAndRender);
-  } else {
-    setTimeout(waitAndRender, 0);
-  }
-})();
-</script>
-```
-
-## Importance of Post-Test N
-
-The larger the post-test audience, the more costly a wrong call. The stopping threshold rises to match — making early stops harder to earn as the stakes grow.
-
-```{=html}
 <div style="margin-bottom:1.5rem;">
 
-  <div style="display:flex; gap:2rem; align-items:flex-start; flex-wrap:wrap; margin-bottom:0.75rem;">
+  <!-- scenario selector (hidden for now) -->
+  <div style="display:none;">
+  <div style="display:flex; flex-direction:column; gap:0.6rem; margin-bottom:0.75rem; border: 1.5px dashed #90b8e0; border-radius:6px; padding:0.5rem 1rem;">
+    <div style="font-size:1.05rem; color:#444; font-style:italic;">Change the scenario — notice whether the peaks shift or hold.</div>
+    <div style="display:flex; gap:2rem; align-items:flex-start; flex-wrap:wrap;">
     <div style="display:flex; flex-direction:column; gap:0.25rem;">
       <label style="font-size:0.85rem; color:#555; font-weight:600;">Baseline Conversion</label>
       <select id="ptn-cr" class="form-select form-select-sm" style="width:auto; font-size:0.85rem;">
-        <option value="cr05">5%</option>
-        <option value="cr10" selected>10%</option>
-        <option value="cr25">25%</option>
-        <option value="cr40">40%</option>
-        <option value="cr60">60%</option>
-        <option value="cr80">80%</option>
+        <option value="cr60" selected>60%</option>
       </select>
     </div>
     <div style="display:flex; flex-direction:column; gap:0.25rem;">
-      <label style="font-size:0.85rem; color:#555; font-weight:600;">Expected Effects</label>
+      <label style="font-size:0.85rem; color:#555; font-weight:function">Expected Effects</label>
       <select id="ptn-sigma" class="form-select form-select-sm" style="width:auto; font-size:0.85rem;">
-        <option value="s05">ITC ~ N(100, 0.5)</option>
         <option value="s1" selected>ITC ~ N(100, 1)</option>
-        <option value="s2">ITC ~ N(100, 2)</option>
       </select>
     </div>
     <div style="display:flex; flex-direction:column; gap:0.25rem;">
       <label style="font-size:0.85rem; color:#555; font-weight:600;">Metric</label>
       <select id="ptn-metric" class="form-select form-select-sm" style="width:auto; font-size:0.85rem;">
-        <option value="alpha" selected>Optimal α</option>
-        <option value="marginal">Marginal Events</option>
+        <option value="alpha" selected>Optimal Pr(Best)</option>
         <option value="days">Avg Days</option>
+        <option value="marginal">Marginal Events</option>
       </select>
     </div>
+    </div>
+  </div>
   </div>
 
   <div id="ptn-alpha-chart"></div>
@@ -2631,11 +1482,12 @@ The larger the post-test audience, the more costly a wrong call. The stopping th
 
 <script>
 (function () {
-  var PTN_VALS   = [50000, 100000, 150000, 200000, 400000, 800000, 1600000];
-  var PTN_KEYS   = ['50k', '100k', '150k', '200k', '400k', '800k', '1600k'];
-  var PTN_LABELS = ['50k', '100k', '150k', '200k', '400k', '800k', '1600k'];
-  var PAL        = ['#1f77b4', '#ff7f0e', '#2ca02c'];
-  var STRATS     = ['Peeking + Best', 'Peeking', 'Fixed Sample'];
+  var PTN_VALS      = [50000, 100000, 150000, 200000, 300000, 400000, 600000, 800000, 1200000, 1600000];
+  var PTN_KEYS      = ['50k', '100k', '150k', '200k', '300k', '400k', '600k', '800k', '1200k', '1600k'];
+  var PTN_LABELS    = ['50k', '100k', '150k', '200k', '300k', '400k', '600k', '800k', '1200k', '1600k'];
+  var PTN_TICK_LBLS = ['50k', '', '', '200k', '300k', '400k', '600k', '800k', '1200k', '1600k'];
+  var PAL        = ['#1f77b4'];
+  var STRATS     = ['Optimal Stopping'];
 
   function getStat(ptn_key, sigma_key, cr_key, label, isRef) {
     var key = ptn_key + '_' + sigma_key + '_' + cr_key;
@@ -2656,7 +1508,7 @@ The larger the post-test audience, the more costly a wrong call. The stopping th
         if (s) {
           vals.push(isDays ? s.avg_days : (isAlpha ? s.alpha : s.marginal));
           ht.push(lbl + '<br>Post-Test N: ' + PTN_LABELS[j] +
-            '<br>Optimal α: ' + s.alpha.toFixed(2) +
+            '<br>Optimal Pr(Best): ' + s.alpha.toFixed(2) +
             '<br>Avg Days: ' + s.avg_days.toFixed(1) +
             '<br>Marginal Events: ' + Math.round(s.marginal).toLocaleString() +
             '<extra></extra>');
@@ -2664,7 +1516,7 @@ The larger the post-test audience, the more costly a wrong call. The stopping th
       });
       traces.push({
         x: isBar ? PTN_LABELS : PTN_VALS, y: vals, mode: 'lines+markers', name: lbl,
-        visible: (!isAlpha && !isDays) || (lbl === 'Peeking + Best') ? true : 'legendonly',
+        visible: (!isAlpha && !isDays) || (lbl === 'Optimal Stopping') ? true : 'legendonly',
         line: { color: PAL[i], width: 2 },
         marker: { symbol: 'square', size: 9, color: PAL[i] },
         hovertemplate: ht
@@ -2693,13 +1545,13 @@ The larger the post-test audience, the more costly a wrong call. The stopping th
       PTN_KEYS.forEach(function (pk, j) {
         var s = getStat(pk, sigma_key, cr_key, 'Fixed Sample', true);
         ref_m.push(s ? s.marginal : null);
-        ref_ht.push(s ? 'Fixed @ α=0.05<br>Post-Test N: ' + PTN_LABELS[j] +
+        ref_ht.push(s ? 'Fixed @ Pr(Best)=0.95<br>Post-Test N: ' + PTN_LABELS[j] +
           '<br>Marginal Events: ' + Math.round(s.marginal).toLocaleString() +
           '<extra></extra>' : '<extra></extra>');
       });
       traces.push({
         x: PTN_LABELS, y: ref_m, type: 'bar',
-        name: 'Fixed @ α=0.05',
+        name: 'Fixed @ Pr(Best)=0.95',
         marker: { color: 'rgba(44,160,44,0.35)', line: { color: '#2ca02c', width: 1.5 } },
         hovertemplate: ref_ht
       });
@@ -2710,7 +1562,7 @@ The larger the post-test audience, the more costly a wrong call. The stopping th
     if (isBar) {
       traces = traces.map(function (t) {
         if (t.type === 'bar') return t;
-        var barName = t.name === 'Fixed Sample' ? 'Fixed Sample @ α = 0.50' : t.name;
+        var barName = t.name === 'Fixed Sample' ? 'Fixed Sample @ Pr(Best) = 0.50' : t.name;
         return Object.assign({}, t, {
           type: 'bar',
           x: PTN_LABELS,
@@ -2724,16 +1576,17 @@ The larger the post-test audience, the more costly a wrong call. The stopping th
       barmode: isBar ? 'group' : undefined,
       xaxis: isBar ? {
         title: { text: 'Post-Test N', font: { size: 12 }, standoff: 4 },
+        ticktext: PTN_TICK_LBLS, tickvals: PTN_LABELS,
         showgrid: false
       } : {
-        tickvals: PTN_VALS, ticktext: PTN_LABELS,
+        tickvals: PTN_VALS, ticktext: PTN_TICK_LBLS,
         title: { text: 'Post-Test N', font: { size: 12 }, standoff: 4 },
         showgrid: true, gridcolor: '#eee'
       },
       yaxis: {
-        title: { text: isAlpha ? 'Optimal α' : (isDays ? 'Avg Days to Stop' : 'Marginal Events vs No Test'), font: { size: 12 } },
+        title: { text: isAlpha ? 'Optimal Pr(Best)' : (isDays ? 'Avg Days to Stop' : 'Marginal Events vs No Test'), font: { size: 12 } },
         tickformat: isAlpha ? '.2f' : (isDays ? '.1f' : ',.0f'),
-        range: isAlpha ? [-0.02, 0.57] : (isDays ? [0, 22] : undefined),
+        range: isAlpha ? [0.50, 1.02] : (isDays ? [0, 22] : undefined),
         showgrid: true, gridcolor: '#eee'
       },
       annotations: annotations,
@@ -2742,7 +1595,8 @@ The larger the post-test audience, the more costly a wrong call. The stopping th
                 bordercolor: '#999', borderwidth: 1.5,
                 bgcolor: 'white' },
       margin: { t: 20, b: 100, l: isAlpha ? 55 : (isDays ? 55 : 75), r: (isAlpha || isDays) ? 55 : 15 },
-      height: 340, paper_bgcolor: 'white', plot_bgcolor: 'white'
+      height: 340, paper_bgcolor: 'white', plot_bgcolor: 'white',
+      hoverlabel: { font: { size: 16, color: 'white' } }
     }, { responsive: true, displayModeBar: false });
   }
 
@@ -2801,16 +1655,136 @@ The larger the post-test audience, the more costly a wrong call. The stopping th
   syncTo('ptn-cr',    'wif-cr');
   syncTo('wif-sigma', 'ptn-sigma');
   syncTo('ptn-sigma', 'wif-sigma');
+  var _ptnTip = document.getElementById('ptn-info-icon');
+  if (_ptnTip && typeof bootstrap !== 'undefined') { new bootstrap.Tooltip(_ptnTip); }
+  var _ptnBtn = document.getElementById('ptn-accordion-btn');
+  var _ptnChevron = _ptnBtn ? _ptnBtn.querySelector('.accordion-chevron') : null;
+  var _ptnCollapse = document.getElementById('ptn-collapse');
+  if (_ptnCollapse) {
+    _ptnCollapse.addEventListener('show.bs.collapse', function() {
+      document.getElementById('ptn-accordion-header').style.borderRadius = '6px 6px 0 0';
+      if (_ptnChevron) _ptnChevron.style.transform = 'rotate(180deg)';
+    });
+    _ptnCollapse.addEventListener('hide.bs.collapse', function() {
+      document.getElementById('ptn-accordion-header').style.borderRadius = '6px';
+      if (_ptnChevron) _ptnChevron.style.transform = '';
+    });
+  }
 })();
 </script>
 ```
 
-# Code Snippets
+```{=html}
+  </div><!-- /ptn-collapse -->
+</div><!-- /ptn-accordion-wrap -->
+```
 
-Six reusable pieces from the analysis — the full pipeline from raw simulation through the test statistics that drive every stopping decision. All fully vectorized — no for loops.
+# Conclusion
 
+Significance testing optimizes for error control, not revenue. It runs longer than necessary, defaults to control when the data already points elsewhere, and treats a threshold with no connection to long-run value as the decision criterion.
+
+The simulations show the cost. Compared to conventional significance testing (α = 0.05), Optimal Stopping ships the right variant more often, in fewer days, with more conversions over the full rollout window. **The right stopping rule maximizes expected value, not statistical certainty.**
+
+# Extras: The Optimization Toolkit
+
+```{python}
+#| echo: false
+from IPython.display import display, HTML as _HTML
+display(_HTML(f'<div style="font-size:1.4rem; font-weight:700; color:#1e46a0; margin-bottom:1rem;">⚡ {NUMBER_SIMULATIONS:,} simulations &times; 20 days &times; 2 conditions &mdash; {_runtime:.1f}s</div>'))
+```
+
+To run your own optimization, swap in your experiment parameters — baseline conversion, test N, post-test N, effect distribution — and the pipeline handles the rest.
+
+The whole thing is fully vectorized. Every simulation, every day, every threshold is computed as a single set of array operations — no Python for loops anywhere. Under the hood, `simulationengine` uses [Polars](https://pola.rs/) for columnar data transformations and NumPy for the numerical sweep.
 ```{=html}
 <div class="mt-3 mb-2">
+
+  <!-- full pipeline standalone accordion -->
+  <div style="border:1.5px dashed #90b8e0; border-radius:6px; overflow:hidden; margin-bottom:0.75rem;">
+    <div style="background:#f5f5f5;">
+      <button id="full-pipeline-btn" onclick="(function(){var el=document.getElementById('code-full-pipeline-collapse');var btn=document.getElementById('full-pipeline-chevron');var open=el.style.display==='none'||el.style.display==='';el.style.display=open?'block':'none';btn.style.transform=open?'rotate(180deg)':'rotate(0deg)';})()" style="background:none; border:none; width:100%; display:flex; align-items:center; justify-content:space-between; padding:0.6rem 1rem; cursor:pointer;">
+        <div style="display:flex; flex-direction:column; align-items:flex-start;">
+          <span style="font-size:0.9rem; font-weight:600; color:#444;">Full Simulation Pipeline</span>
+          <span style="font-size:0.8rem; font-weight:400; font-style:italic; color:#777;">The exact code that generated the optimization curves — from parameters to Pr(Best) sweep.</span>
+        </div>
+        <span id="full-pipeline-chevron" style="font-size:1.2rem; color:#888; transition:transform 0.2s; flex-shrink:0; margin-left:0.75rem;">&#8964;</span>
+      </button>
+    </div>
+  </div>
+  <div id="code-full-pipeline-collapse" style="display:none; border:1.5px dashed #90b8e0; border-top:none; border-radius:0 0 6px 6px; padding:1rem; background:#fff; margin-top:-0.75rem; margin-bottom:0.75rem;">
+    <p style="font-size:0.9rem; margin-bottom:0.75rem;">Four steps: simulate `{python} f"{NUMBER_SIMULATIONS:,}"` experiments, compute daily running stats, score each potential stopping decision, then sweep every Pr(Best) threshold to find the one that maximizes long-run value.</p>
+    <pre style="background:#f8f8f8; border-radius:4px; padding:1rem; font-size:0.8rem; overflow-x:auto;"><code>import simulationengine as se
+import numpy as np
+import polars as pl
+
+# ── Parameters ────────────────────────────────────────────────────────
+CONTROL_MEAN       = 0.60      # baseline conversion rate
+MAX_TEST_N         = 100_000   # total users in the experiment
+SPLIT              = 0.50      # 50/50 control/treatment split
+MIN_TEST_DAYS      = 7         # burn-in: no stopping before day 7
+NUMBER_TEST_DAYS   = 20        # max experiment duration
+POST_TEST_N        = 100_000   # post-test audience size
+NUMBER_SIMULATIONS = 100_000
+SEED               = 42
+ITC_MEAN           = 100       # index-to-control mean (100 = no lift)
+ITC_SE             = 1         # spread of treatment effects
+
+# ── Step 1: Simulate experiments ──────────────────────────────────────
+df = se.create_simulation_df(
+    number_test_days=NUMBER_TEST_DAYS,
+    number_simulations=NUMBER_SIMULATIONS,
+    seed=SEED,
+    condition_parameters=[{"mean": CONTROL_MEAN, "trials": int(MAX_TEST_N * SPLIT)}],
+)
+df = se.add_random_effect_condition(df, {
+    "itc_mean": ITC_MEAN,
+    "itc_se": ITC_SE,
+    "trials": int(MAX_TEST_N * SPLIT),
+})
+
+# ── Step 2: Compute running stats ─────────────────────────────────────
+df = se.add_cumulative_columns(df)
+df = se.compute_cumulative_std_rates(df)
+df = se.compute_delta_stats(df)
+df = se.compute_test_stats(df)
+
+# ── Step 3: Score each stopping decision ──────────────────────────────
+df = se.calculate_remaining_test_potential(df)
+df = se.calculate_launch_potential(df, post_test_n=POST_TEST_N)
+df = se.calculate_total_potential(df)
+
+# ── Step 4: Find the optimal Pr(Best) threshold ───────────────────────
+p_thresholds = np.arange(0.5, 1.00, 0.01)
+
+df_prepped = se.prepare_stopping_decision_columns(
+    df.filter(pl.col("day") >= MIN_TEST_DAYS),
+    metric_direction_improvement="increase",
+).sort(["simulation", "day"])
+
+results = se.evaluate_probability_thresholds(
+    df_prepped,
+    threshold_values=p_thresholds,
+    metric_direction_improvement="increase",
+    pre_sorted=True,
+    select_best_at_end=True,
+)
+
+optimal_threshold = p_thresholds[results["mean_potential_value"].arg_max()]
+print(f"Optimal Pr(Best) threshold: {optimal_threshold:.2f}")</code></pre>
+  </div>
+
+  <!-- uber toggle -->
+  <div style="border:1.5px dashed #90b8e0; border-radius:6px; overflow:hidden;">
+    <div style="background:#f5f5f5;">
+      <button id="uber-code-btn" onclick="(function(){var el=document.getElementById('uber-code-collapse');var btn=document.getElementById('uber-code-chevron');var open=el.style.display==='none'||el.style.display==='';el.style.display=open?'block':'none';btn.style.transform=open?'rotate(180deg)':'rotate(0deg)';})()" style="background:none; border:none; width:100%; display:flex; align-items:center; justify-content:space-between; padding:0.6rem 1rem; cursor:pointer;">
+        <div style="display:flex; flex-direction:column; align-items:flex-start;">
+          <span style="font-size:0.9rem; font-weight:600; color:#444;">Simulation Pipeline Code</span>
+          <span style="font-size:0.8rem; font-weight:400; font-style:italic; color:#777;">Ten individual functions — each a reusable building block of the pipeline above.</span>
+        </div>
+        <span id="uber-code-chevron" style="font-size:1.2rem; color:#888; transition:transform 0.2s; flex-shrink:0; margin-left:0.75rem;">&#8964;</span>
+      </button>
+    </div>
+    <div id="uber-code-collapse" style="display:none; padding:0.75rem;">
   <div class="accordion-item" style="border: 1.5px dashed #90b8e0; border-radius: 6px; background: #f0f6fd; margin-bottom: 0.5rem;">
     <div class="accordion-header" style="margin:0;">
       <button class="accordion-button collapsed px-3 shadow-none"
@@ -2871,9 +1845,6 @@ def create_simulation_df(
         }
     )</code></pre>
   </div>
-</div>
-
-<div class="mt-3 mb-2">
   <div class="accordion-item" style="border: 1.5px dashed #90b8e0; border-radius: 6px; background: #f0f6fd; margin-bottom: 0.5rem;">
     <div class="accordion-header" style="margin:0;">
       <button class="accordion-button collapsed px-3 shadow-none"
@@ -2946,8 +1917,6 @@ def add_random_effect_condition(df, random_effect_parameters, seed=None):
         ]
     )</code></pre>
   </div>
-</div>
-<div class="mt-3 mb-2">
   <div class="accordion-item" style="border: 1.5px dashed #90b8e0; border-radius: 6px; background: #f0f6fd; margin-bottom: 0.5rem;">
     <div class="accordion-header" style="margin:0;">
       <button class="accordion-button collapsed px-3 shadow-none"
@@ -2998,9 +1967,6 @@ def add_cumulative_columns(df):
     ]
     return df.with_columns(mean_exprs)</code></pre>
   </div>
-</div>
-
-<div class="mt-3 mb-2">
   <div class="accordion-item" style="border: 1.5px dashed #90b8e0; border-radius: 6px; background: #f0f6fd; margin-bottom: 0.5rem;">
     <div class="accordion-header" style="margin:0;">
       <button class="accordion-button collapsed px-3 shadow-none"
@@ -3028,9 +1994,6 @@ def compute_cumulative_std_rates(df):
     ]
     return df.with_columns(std_exprs)</code></pre>
   </div>
-</div>
-
-<div class="mt-3 mb-2">
   <div class="accordion-item" style="border: 1.5px dashed #90b8e0; border-radius: 6px; background: #f0f6fd; margin-bottom: 0.5rem;">
     <div class="accordion-header" style="margin:0;">
       <button class="accordion-button collapsed px-3 shadow-none"
@@ -3075,9 +2038,6 @@ def compute_delta_stats(df):
         ]
     return df.with_columns(delta_exprs)</code></pre>
   </div>
-</div>
-
-<div class="mt-3 mb-2">
   <div class="accordion-item" style="border: 1.5px dashed #90b8e0; border-radius: 6px; background: #f0f6fd; margin-bottom: 0.5rem;">
     <div class="accordion-header" style="margin:0;">
       <button class="accordion-button collapsed px-3 shadow-none"
@@ -3124,8 +2084,231 @@ def compute_test_stats(df):
             pl.min_horizontal(pr_cols).alias("condition_0_pr_lowest_diff"),
         ])
     return df</code></pre>
-  </div>
-</div>
+  </div><!-- /code-teststats-collapse -->
 
-<p style="margin-top:1rem; font-size:0.95rem; color:#555;">Want to see more? <a href="mailto:rzaliznyak@gmail.com">Let me know</a>.</p>
+  <div class="accordion-item" style="border: 1.5px dashed #90b8e0; border-radius: 6px; background: #f0f6fd; margin-bottom: 0.5rem;">
+    <div class="accordion-header" style="margin:0;">
+      <button class="accordion-button collapsed px-3 shadow-none"
+              style="font-size:0.9rem; font-weight:600; color:#1e46a0; background:transparent; height:auto; width:100%; display:flex; align-items:center; padding-top:0.5rem; padding-bottom:0.5rem; flex-wrap:wrap;"
+              type="button" data-bs-toggle="collapse" data-bs-target="#code-remaining-collapse">
+        <span style="flex:1;">Remaining Test Potential</span>
+        <span class="accordion-chevron" style="flex-shrink:0; margin-left:0.75rem; font-size:1.8rem; line-height:1; transition:transform 0.2s;">&#8964;</span>
+        <span style="width:100%; font-size:0.85rem; font-weight:400; font-style:italic; color:#555; margin-top:0.2rem;">Simulates conversions from deploying each condition to remaining test users — the opportunity cost of continuing.</span>
+      </button>
+    </div>
+  </div>
+  <div id="code-remaining-collapse" class="collapse" style="border: 1.5px dashed #90b8e0; border-top: none; border-radius: 0 0 6px 6px; padding: 1rem; background: #fff; margin-bottom: 0.5rem;">
+    <p style="font-size:0.9rem; margin-bottom:0.75rem;">For each condition, draws from <code>Binomial(total_remaining_test_trials, true_mean)</code> — one random realization of the value you'd capture by stopping now and deploying that condition to remaining test users.</p>
+    <pre style="background:#f8f8f8; border-radius:4px; padding:1rem; font-size:0.8rem; overflow-x:auto;"><code>import numpy as np
+import polars as pl
+
+
+def calculate_remaining_test_potential(df, seed=None):
+    if not isinstance(df, pl.DataFrame):
+        raise TypeError(f"df must be a polars DataFrame, got {type(df)}")
+    if "total_remaining_test_trials" not in df.columns:
+        raise ValueError("df must contain 'total_remaining_test_trials' column")
+    if seed is not None:
+        np.random.seed(seed)
+
+    true_mean_cols = [col for col in df.columns if col.endswith("_true_mean")]
+    if not true_mean_cols:
+        raise ValueError("df must contain at least one column ending with '_true_mean'")
+
+    potential_exprs = []
+    for mean_col in true_mean_cols:
+        condition_prefix = mean_col.replace("_true_mean", "")
+        n = df["total_remaining_test_trials"].to_numpy().astype(int)
+        p = np.clip(df[mean_col].to_numpy(), 0.0, 1.0)
+        draws = np.random.binomial(n=n, p=p)
+        potential_exprs.append(
+            pl.lit(draws).alias(f"{condition_prefix}_test_potential_value")
+        )
+
+    return df.with_columns(potential_exprs)</code></pre>
+  </div>
+
+  <div class="accordion-item" style="border: 1.5px dashed #90b8e0; border-radius: 6px; background: #f0f6fd; margin-bottom: 0.5rem;">
+    <div class="accordion-header" style="margin:0;">
+      <button class="accordion-button collapsed px-3 shadow-none"
+              style="font-size:0.9rem; font-weight:600; color:#1e46a0; background:transparent; height:auto; width:100%; display:flex; align-items:center; padding-top:0.5rem; padding-bottom:0.5rem; flex-wrap:wrap;"
+              type="button" data-bs-toggle="collapse" data-bs-target="#code-launch-collapse">
+        <span style="flex:1;">Launch Potential</span>
+        <span class="accordion-chevron" style="flex-shrink:0; margin-left:0.75rem; font-size:1.8rem; line-height:1; transition:transform 0.2s;">&#8964;</span>
+        <span style="width:100%; font-size:0.85rem; font-weight:400; font-style:italic; color:#555; margin-top:0.2rem;">Simulates post-test conversions for each condition deployed to the full post-test audience.</span>
+      </button>
+    </div>
+  </div>
+  <div id="code-launch-collapse" class="collapse" style="border: 1.5px dashed #90b8e0; border-top: none; border-radius: 0 0 6px 6px; padding: 1rem; background: #fff; margin-bottom: 0.5rem;">
+    <p style="font-size:0.9rem; margin-bottom:0.75rem;">Draws from <code>Binomial(post_test_n, true_mean)</code> for each condition — one random realization of the value you'd capture by launching that condition to the post-test population. This is where stopping decisions have the most leverage.</p>
+    <pre style="background:#f8f8f8; border-radius:4px; padding:1rem; font-size:0.8rem; overflow-x:auto;"><code>import numpy as np
+import polars as pl
+
+
+def calculate_launch_potential(df, post_test_n, seed=None):
+    if not isinstance(df, pl.DataFrame):
+        raise TypeError(f"df must be a polars DataFrame, got {type(df)}")
+    if not isinstance(post_test_n, (int, np.integer)):
+        raise TypeError(f"post_test_n must be an integer, got {type(post_test_n)}")
+    if post_test_n &lt; 0:
+        raise ValueError(f"post_test_n must be non-negative, got {post_test_n}")
+    if seed is not None:
+        np.random.seed(seed)
+
+    true_mean_cols = [col for col in df.columns if col.endswith("_true_mean")]
+    if not true_mean_cols:
+        raise ValueError("df must contain at least one column ending with '_true_mean'")
+
+    potential_exprs = []
+    for mean_col in true_mean_cols:
+        condition_prefix = mean_col.replace("_true_mean", "")
+        p = np.clip(df[mean_col].to_numpy(), 0.0, 1.0)
+        draws = np.random.binomial(n=post_test_n, p=p)
+        potential_exprs.append(
+            pl.lit(draws).alias(f"{condition_prefix}_launch_potential_value")
+        )
+
+    return df.with_columns(potential_exprs)</code></pre>
+  </div>
+
+  <div class="accordion-item" style="border: 1.5px dashed #90b8e0; border-radius: 6px; background: #f0f6fd; margin-bottom: 0.5rem;">
+    <div class="accordion-header" style="margin:0;">
+      <button class="accordion-button collapsed px-3 shadow-none"
+              style="font-size:0.9rem; font-weight:600; color:#1e46a0; background:transparent; height:auto; width:100%; display:flex; align-items:center; padding-top:0.5rem; padding-bottom:0.5rem; flex-wrap:wrap;"
+              type="button" data-bs-toggle="collapse" data-bs-target="#code-total-collapse">
+        <span style="flex:1;">Total Potential</span>
+        <span class="accordion-chevron" style="flex-shrink:0; margin-left:0.75rem; font-size:1.8rem; line-height:1; transition:transform 0.2s;">&#8964;</span>
+        <span style="width:100%; font-size:0.85rem; font-weight:400; font-style:italic; color:#555; margin-top:0.2rem;">Sums observed value, remaining test potential, and launch potential — the complete value score for each condition.</span>
+      </button>
+    </div>
+  </div>
+  <div id="code-total-collapse" class="collapse" style="border: 1.5px dashed #90b8e0; border-top: none; border-radius: 0 0 6px 6px; padding: 1rem; background: #fff; margin-bottom: 0.5rem;">
+    <p style="font-size:0.9rem; margin-bottom:0.75rem;"><code>total_potential = total_value_cumsum + test_potential + launch_potential</code>. The cumulative observed value is shared across all conditions; only the forward-looking components differ. The condition with the highest total potential is the one to deploy.</p>
+    <pre style="background:#f8f8f8; border-radius:4px; padding:1rem; font-size:0.8rem; overflow-x:auto;"><code>import polars as pl
+
+
+def calculate_total_potential(df):
+    if not isinstance(df, pl.DataFrame):
+        raise TypeError(f"df must be a polars DataFrame, got {type(df)}")
+    if "total_value_cumsum" not in df.columns:
+        raise ValueError("df must contain 'total_value_cumsum' column")
+
+    test_potential_cols = [
+        col for col in df.columns if col.endswith("_test_potential_value")
+    ]
+    if not test_potential_cols:
+        raise ValueError("df must contain at least one column ending with '_test_potential_value'")
+
+    total_exprs = []
+    for test_col in test_potential_cols:
+        condition_prefix = test_col.replace("_test_potential_value", "")
+        launch_col = f"{condition_prefix}_launch_potential_value"
+        if launch_col not in df.columns:
+            raise ValueError(f"Missing required column: {launch_col}")
+        total_exprs.append(
+            (pl.col("total_value_cumsum") + pl.col(test_col) + pl.col(launch_col))
+            .alias(f"{condition_prefix}_total_potential_value")
+        )
+
+    return df.with_columns(total_exprs)</code></pre>
+  </div>
+
+  <div class="accordion-item" style="border: 1.5px dashed #90b8e0; border-radius: 6px; background: #f0f6fd; margin-bottom: 0.5rem;">
+    <div class="accordion-header" style="margin:0;">
+      <button class="accordion-button collapsed px-3 shadow-none"
+              style="font-size:0.9rem; font-weight:600; color:#1e46a0; background:transparent; height:auto; width:100%; display:flex; align-items:center; padding-top:0.5rem; padding-bottom:0.5rem; flex-wrap:wrap;"
+              type="button" data-bs-toggle="collapse" data-bs-target="#code-evalprob-collapse">
+        <span style="flex:1;">Evaluating Probability Thresholds</span>
+        <span class="accordion-chevron" style="flex-shrink:0; margin-left:0.75rem; font-size:1.8rem; line-height:1; transition:transform 0.2s;">&#8964;</span>
+        <span style="width:100%; font-size:0.85rem; font-weight:400; font-style:italic; color:#555; margin-top:0.2rem;">Sweeps all Pr(Best) thresholds at once using NumPy broadcasting — produces the value curves shown in the graphs above.</span>
+      </button>
+    </div>
+  </div>
+  <div id="code-evalprob-collapse" class="collapse" style="border: 1.5px dashed #90b8e0; border-top: none; border-radius: 0 0 6px 6px; padding: 1rem; background: #fff; margin-bottom: 0.5rem;">
+    <p style="font-size:0.9rem; margin-bottom:0.75rem;">The core of the optimization loop. Rather than iterating over thresholds in Python, it stacks all Pr(Best) columns into a 3D NumPy array <code>(n_sims × n_days × n_conditions)</code>, finds the first crossing day per simulation per threshold in a single broadcast, then aggregates value, trial count, and decision accuracy across all thresholds simultaneously.</p>
+    <pre style="background:#f8f8f8; border-radius:4px; padding:1rem; font-size:0.8rem; overflow-x:auto;"><code>import numpy as np
+import polars as pl
+
+
+def evaluate_probability_thresholds(
+    df_prepped,
+    threshold_values,
+    metric_direction_improvement="increase",
+    pre_sorted=False,
+    select_best_at_end=False,
+):
+    if not isinstance(df_prepped, pl.DataFrame):
+        raise TypeError(f"df_prepped must be a polars DataFrame, got {type(df_prepped)}")
+    if metric_direction_improvement not in ["increase", "decrease"]:
+        raise ValueError(f"metric_direction_improvement must be 'increase' or 'decrease'")
+    if not pre_sorted:
+        df_prepped = df_prepped.sort(["simulation", "day"])
+
+    n_sims = df_prepped["simulation"].n_unique()
+    n_days = df_prepped.height // n_sims
+
+    def _col2d(name):
+        return df_prepped[name].to_numpy().reshape(n_sims, n_days)
+
+    # Select probability columns based on metric direction
+    if metric_direction_improvement == "increase":
+        treatment_prob_cols = [
+            c for c in df_prepped.columns
+            if c.endswith("_pr_positive_diff") and not c.startswith("condition_0_")
+        ]
+        control_prob_col = "condition_0_pr_highest_diff"
+    else:
+        treatment_prob_cols = [
+            c for c in df_prepped.columns
+            if c.endswith("_pr_lowest_diff") and not c.startswith("condition_0_")
+        ]
+        control_prob_col = "condition_0_pr_lowest_diff"
+
+    all_prob_cols = [control_prob_col] + treatment_prob_cols
+    condition_nums = np.array([int(c.split("_")[1]) for c in all_prob_cols])
+
+    # Stack: (n_sims, n_days, n_conditions)
+    prob_stack = np.stack([_col2d(c) for c in all_prob_cols], axis=2)
+    max_prob   = prob_stack.max(axis=2)            # (n_sims, n_days)
+    best_cond  = condition_nums[prob_stack.argmax(axis=2)]
+
+    # Cumulative max — first day cummax >= threshold is the stopping day
+    cummax = np.maximum.accumulate(max_prob, axis=1)
+    thresholds_arr = np.array(sorted(threshold_values))
+
+    # First-crossing index, clamped to last day for never-crossed sims
+    raw_stop   = (cummax[:, :, np.newaxis] &lt; thresholds_arr).sum(axis=1)  # (n_sims, n_thresholds)
+    any_crossed = raw_stop &lt; n_days
+    stop_idx   = np.minimum(raw_stop, n_days - 1)
+
+    row = np.arange(n_sims)[:, np.newaxis]
+    best_cond_at_stop = best_cond[row, stop_idx]
+    winning_cond = np.where(any_crossed | select_best_at_end, best_cond_at_stop, 0)
+
+    # Winning condition's total potential value at stopping day
+    pot_cols = sorted(
+        [c for c in df_prepped.columns
+         if c.endswith("_total_potential_value") and c.startswith("condition_") and c.split("_")[1].isdigit()],
+        key=lambda c: int(c.split("_")[1]),
+    )
+    pot_stack      = np.stack([_col2d(c) for c in pot_cols], axis=2)
+    win_pot_at_stop = pot_stack[row, stop_idx, winning_cond]
+
+    total_at_stop    = _col2d("total_trials_cumsum")[row, stop_idx]
+    true_cond_at_stop = _col2d("true_best_condition")[row, stop_idx]
+
+    return pl.DataFrame({
+        "threshold":           thresholds_arr,
+        "mean_potential_value": win_pot_at_stop.mean(axis=0),
+        "mean_trials":          total_at_stop.mean(axis=0),
+        "median_trials":        np.median(total_at_stop, axis=0),
+        "p80_trials":           np.percentile(total_at_stop, 80, axis=0),
+        "match_rate":           (winning_cond == true_cond_at_stop).mean(axis=0),
+    })</code></pre>
+  </div>
+
+    </div><!-- /uber-code-collapse -->
+  </div><!-- /uber dashed border -->
+
+</div>
 ```
