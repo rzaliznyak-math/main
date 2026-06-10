@@ -1586,7 +1586,7 @@ Post-Test N is the audience that sees the winning variant after the experiment e
       yaxis: {
         title: { text: isAlpha ? 'Optimal Pr(Best)' : (isDays ? 'Avg Days to Stop' : 'Marginal Events vs No Test'), font: { size: 12 } },
         tickformat: isAlpha ? '.2f' : (isDays ? '.1f' : ',.0f'),
-        range: isAlpha ? [0.43, 1.02] : (isDays ? [0, 22] : undefined),
+        range: isAlpha ? [0.50, 1.02] : (isDays ? [0, 22] : undefined),
         showgrid: true, gridcolor: '#eee'
       },
       annotations: annotations,
