@@ -204,7 +204,10 @@ document.querySelectorAll('.factor-btn').forEach(btn => {
 #| code-fold: true
 #| code-summary: "Experiment Assumptions"
 
+import time as _time_module
 import simulationengine as se
+
+_t_total_start = _time_module.time()
 
 # ── Experiment Assumptions ─────────────────────────────────────────
 CONTROL_MEAN       = 0.60      # pre-experiment conversion rate
@@ -1010,7 +1013,7 @@ _t0 = time.time()
 all_potential_outcomes, total_trials, median_trials, match_rate, all_avg_days = run_loop(True)
 ctrl_potential_outcomes, ctrl_trials, ctrl_med_trials, ctrl_match_rate, ctrl_avg_days = run_loop(False)
 fixed_potential_outcomes, fixed_trials, fixed_med_trials, fixed_match_rate, fixed_avg_days = run_loop(False, df_prepped_fixed)
-_runtime = time.time() - _t0
+_runtime = _time_module.time() - _t_total_start
 
 def make_curve_fig(outcomes, trials, med_trials, rate, title, y_fmt=".3%", round_peak=False):
     y = np.array(outcomes) / normalizer
@@ -1334,7 +1337,6 @@ window.__wif_scenarios['400k_s1_cr60'] = {{
   if (_tip && typeof bootstrap !== 'undefined') {{ new bootstrap.Tooltip(_tip); }}
 }})();
 </script>
-<div style="font-size:1rem; color:#555; margin-top:0.75rem; font-style:italic;">⚡ {NUMBER_SIMULATIONS:,} simulations &mdash; {_runtime:.1f}s</div>
 """))
 ```
 
@@ -1686,6 +1688,12 @@ The simulations make the cost concrete. Compared to conventional significance te
 The right stopping rule isn't the one that controls error rates. It's the one that maximizes expected value.
 
 # Extras: The Optimization Toolkit
+
+```{python}
+#| echo: false
+from IPython.display import display, HTML as _HTML
+display(_HTML(f'<div style="font-size:1.4rem; font-weight:700; color:#1e46a0; margin-bottom:1rem;">⚡ {NUMBER_SIMULATIONS:,} simulations &times; 20 days &times; 2 conditions &mdash; {_runtime:.1f}s</div>'))
+```
 
 To run your own optimization, swap in your experiment parameters — baseline conversion, test N, post-test N, effect distribution — and the pipeline handles the rest.
 
