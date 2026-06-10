@@ -17,7 +17,7 @@ css: wider.css
 
 # TL;DR
 
-Significance testing is excellent at controlling error rates. If minimizing false positives is your goal, p < 0.05 is exactly what you need. But most teams running experiments aren't in the business of error control — they're in the business of maximizing long-run value. That's a different objective, and it calls for a different stopping rule.
+Significance testing is excellent at controlling error rates. If minimizing false positives is your goal, p < 0.05 is exactly what you need — and in fields where claims carry legal, medical, or scientific weight, strict error control isn't optional. But most teams running product experiments aren't making irreversible claims — they're making deployment decisions. That's a different objective, and it calls for a different stopping rule.
 
 We simulated over 2 million experiments — 6 baseline conversion rates × 3 effect size distributions — and evaluated each stopping rule across 7 post-test audience sizes, yielding 126 scenarios in total. Each stopping rule was scored by the long-run conversion rate it produced. The findings are consistent across all scenarios.
 
@@ -26,7 +26,7 @@ We simulated over 2 million experiments — 6 baseline conversion rates × 3 eff
 
 - The optimal fixed-sample threshold is **α = 0.50** — not 0.05. Just deploy whoever is leading on the last day.
 - Peeking and Fixed Sample at α = 0.50 return comparable value — but peeking experiments end sooner.
-- Combine peeking with retaining the best performer — stop early on a signal, ship the leader when you can't.
+- Combining peeking with retaining the best performer is the dominant strategy — stop early on a signal, ship the leader when you can't.
 :::
 
 
@@ -38,15 +38,11 @@ Traditional power analysis starts from assumptions: fix α = 0.05 and β = 0.20,
 
 **It isn't forward-looking.** Power analysis tells you when to stop — not what the decision is worth once you ship to the full audience.
 
-This framework addresses both. It simulates experiments across the full distribution of realistic effects and scores each stopping rule by the long-term value it produces — not the error rates it controls.
-
-::: {.callout-note appearance="minimal"}
-ⓘ **Long-term value** = total conversions generated across the full experiment lifecycle — both arms during the test period, plus the winner deployed to the post-test audience — divided by total users. A stopping rule scores higher by picking the true winner more often or by ending the experiment sooner, both of which put more users on the better variant. *Marginal Events* is the same metric expressed as incremental conversions over running no test.
-:::
+This framework answers a different question: *which stopping rule is most profitable?* We simulate the full lifecycle — random effects, early stopping decisions, post-test rollout — and score each candidate by the long-run value it generates. Mistakes are counted, consequences are measured, and the rule that wins on value is the one worth using.
 
 ## Simulation Parameters
 
-In order to determine optimal stopping rules, we simulated 100,000 experiments like the one below. Click any parameter to learn more.
+The optimal stopping rule depends on the experiment. Four parameters define the space: how common conversions are, how large effects tend to be, how long the test runs, and how big the post-test audience is. Each simulated experiment draws from this space and is scored across every candidate stopping rule by the value it generates. Click any parameter to learn more.
 
 ```{=html}
 <div class="stopping-factors-ui mt-3 mb-4">
@@ -61,6 +57,16 @@ In order to determine optimal stopping rules, we simulated 100,000 experiments l
       <div class="factor-inputs">
         <label class="param-label" style="text-align:center; display:block;">Conversion</label>
         <input type="text" class="form-control" value="10%" disabled>
+      </div>
+    </div>
+
+    <div class="factor-col">
+      <button class="btn factor-btn w-100" data-target="effects">
+        Expected Effects
+      </button>
+      <div class="factor-inputs" style="padding: 0.15rem 0.5rem;">
+        <div id="itc-density-label" style="font-size:0.72rem; color:#555; text-align:center; line-height:1.2; margin-bottom:1px;"></div>
+        <div id="itc-density-chart" style="height:63px; width:100%; margin-top:0;"></div>
       </div>
     </div>
 
@@ -92,17 +98,7 @@ In order to determine optimal stopping rules, we simulated 100,000 experiments l
       </button>
       <div class="factor-inputs">
         <label class="param-label" style="text-align:center; display:block;">Post-Test Traffic</label>
-        <input type="text" class="form-control" value="500,000" disabled>
-      </div>
-    </div>
-
-    <div class="factor-col">
-      <button class="btn factor-btn w-100" data-target="effects">
-        Expected Effects
-      </button>
-      <div class="factor-inputs" style="padding: 0.15rem 0.5rem;">
-        <div id="itc-density-label" style="font-size:0.72rem; color:#555; text-align:center; line-height:1.2; margin-bottom:1px;"></div>
-        <div id="itc-density-chart" style="height:63px; width:100%; margin-top:0;"></div>
+        <input type="text" class="form-control" value="400,000" disabled>
       </div>
     </div>
 
@@ -179,7 +175,7 @@ document.addEventListener('DOMContentLoaded', function() {
     yaxis: { visible: false, fixedrange: true },
     showlegend: false,
     shapes: [{ type: 'line', x0: 100, x1: 100, y0: 0, y1: 1, yref: 'paper', line: { color: '#555', width: 1, dash: 'dot' } }],
-    hoverlabel: { bgcolor: '#111', font: { color: '#fff', size: 11 } },
+    hoverlabel: { bgcolor: '#111', font: { color: '#fff', size: 16 } },
   }, { displayModeBar: false, responsive: true });
 })();
 </script>
@@ -210,7 +206,7 @@ SPLIT              = 0.50      # treatment allocation (50/50)
 MIN_TEST_DAYS      = 7         # mandatory burn-in before stopping decisions
 NUMBER_TEST_DAYS   = 20        # maximum experiment duration
 POST_TEST_N        = 400_000   # users exposed to winner once MAX_TEST_N is reached
-NUMBER_SIMULATIONS = 100_000    # simulations to run
+NUMBER_SIMULATIONS = 10_000    # simulations to run
 SEED               = 42
 ITC_MEAN           = 100       # index-to-control mean
 ITC_SE             = 1         # index-to-control standard error
@@ -369,7 +365,7 @@ fig.update_layout(
     autosize=True,
     margin=dict(t=45, b=30, l=50, r=20),
     hovermode="closest",
-    hoverlabel=dict(bgcolor="white", font_size=12, namelength=0),
+    hoverlabel=dict(bgcolor="white", font_size=16, namelength=0),
 )
 fig.update_xaxes(tickformat="d", title_text="Day", col=1, row=1)
 fig.update_xaxes(tickformat=".1%", title_text="Conversion Rate",
@@ -647,7 +643,7 @@ t_fig.update_layout(
     autosize=True,
     margin=dict(t=45, b=30, l=50, r=20),
     hovermode="closest",
-    hoverlabel=dict(bgcolor="white", font_size=12, namelength=0),
+    hoverlabel=dict(bgcolor="white", font_size=16, namelength=0),
 )
 t_fig.update_xaxes(tickformat="d", title_text="Day", col=1, row=1)
 t_fig.update_xaxes(tickformat=".1f", title_text="Index-to-Control (ITC)",
@@ -787,7 +783,7 @@ pv_fig.add_trace(go.Scatter(
     name="Treatment",
     line=dict(color="#e45c3a", width=2),
     hovertemplate="Pr(Best) = %{y:.3f}<extra></extra>",
-    hoverlabel=dict(bgcolor="#c03a1e", font_color="white", bordercolor="#c03a1e", font_size=14),
+    hoverlabel=dict(bgcolor="#c03a1e", font_color="white", bordercolor="#c03a1e", font_size=16),
 ))
 pv_fig.add_trace(go.Scatter(
     x=s1_pv_df["day"].to_list(),
@@ -796,7 +792,7 @@ pv_fig.add_trace(go.Scatter(
     name="Control",
     line=dict(color="#1e46a0", width=2),
     hovertemplate="Pr(Best) = %{y:.3f}<extra></extra>",
-    hoverlabel=dict(font_size=14),
+    hoverlabel=dict(font_size=16),
 ))
 pv_fig.update_layout(
     height=320,
@@ -899,28 +895,36 @@ print(f'<script>window.__pvalSimData = {json.dumps(pval_sim_data)};</script>')
 
 ## Optimal Stopping Algorithm
 
-To find the stopping rule that maximizes long-term value, we naively apply three analysis strategies and measure their average outcome across the same 100,000 simulated experiments.
+Three candidate strategies compete on the same simulated experiments. They differ in two ways: whether they can stop early on a signal, and what they do when the experiment ends without a clear winner. The strategy that generates the most long-run value at its optimal threshold wins.
 
 | | **Fixed Sample** | **Peeking** | **Peeking + Best** |
 |---|:---:|:---:|:---:|
 | Stop early on signal | ✗ | ✓ | ✓ |
 | No-breach fallback | Retain Control | Retain Control | Best Performer |
 
-For each of 100,000 simulated experiments and each threshold α ∈ [0.01, 0.50]:
+::: {.callout-note appearance="default"}
+Each experiment is evaluated across every Pr(Best) threshold ∈ [0.50, 0.99]. For each:
 
 1. **Burn-in:** No stopping decisions before `min_test_days = 7`
-2. **Daily check:** Stop when either condition's Pr(Best) exceeds `1 - α`\*
-3. **Rollout:** Deploy the winner to remaining test users and post-test traffic
-4. **Evaluate:** Pick the α with the highest average long-term outcome
+2. **Daily check:** Stop if either condition's Pr(Best) exceeds the threshold — peeking strategies only; Fixed Sample always runs to the final day
+3. **Rollout:** Deploy the winner to remaining test users and the full post-test audience
+4. **Score:** Record the long-run value produced
 
-\* *Peeking strategies only. Fixed Sample skips the daily check and always runs to the final day.*
+The threshold with the highest average score across all simulations is the optimal stopping rule.
+:::
 
 # Results
 
-Below are the optimization curves for each strategy — long-term value as a function of stopping threshold α. The square marker is the peak.
+The charts show long-run value as a function of stopping threshold — one curve per strategy. The peak is the optimal rule. Below the charts, a table summarizes each strategy at its best.
 
-- **Value vs α:** Shows where each strategy is optimized. Compare peak heights to see which strategy produces more value; compare peak positions to see how aggressive the optimal threshold is.
-- **Value vs Avg Trials:** Shows the efficiency trade-off. A strategy that reaches the same value with fewer trials is strictly better — it frees up traffic sooner.
+::: {.callout-note appearance="minimal"}
+**Metrics**
+
+- **Projected Mean @ Year-End** — average conversion rate across all users: both arms during the test, plus the winner deployed to the full post-test audience.
+- **Marginal Events vs No Test** — incremental conversions above the baseline of never running an experiment.
+- **Avg Trials** — average number of user-experiment observations before a stopping decision is made.
+- **Correct Decision Rate** — how often the strategy deploys the correct variant across the full distribution of outcomes. Experiments are run blind to the true effect — some treatments are beneficial, some harmful — and this measures accuracy across all of them.
+:::
 
 ```{python}
 #| echo: false
@@ -971,12 +975,12 @@ _runtime = time.time() - _t0
 
 def make_curve_fig(outcomes, trials, med_trials, rate, title, y_fmt=".3%", round_peak=False):
     y = np.array(outcomes) / normalizer
-    x = 1 - p_thresholds
+    x = p_thresholds
     peak = int(np.argmax(np.round(y * 100, 4)) if round_peak else np.argmax(y))
     marginal = (y - CONTROL_MEAN) * (POST_TEST_N + MAX_TEST_N)
     cd = np.column_stack([np.array(trials).astype(int), np.array(rate), np.array(med_trials), marginal])
     hover_tmpl = (
-        f"\u03b1: %{{x:.2f}}<br>"
+        f"Pr(Best): %{{x:.2f}}<br>"
         f"Projected Mean: %{{y:{y_fmt}}}<br>"
         "Marginal Events: %{customdata[3]:,.0f}<br>"
         "Avg Trials: %{customdata[0]:,}<br>"
@@ -993,8 +997,8 @@ def make_curve_fig(outcomes, trials, med_trials, rate, title, y_fmt=".3%", round
         showlegend=False,
     )
     f.update_traces(selector=dict(mode="lines"), customdata=cd, hovertemplate=hover_tmpl)
-    f.update_layout(title_text=title)
-    f.update_xaxes(title_text="\u03b1", tickformat=".2f")
+    f.update_layout(title_text=title, hoverlabel=dict(font_size=16, font_color="white"))
+    f.update_xaxes(title_text="Pr(Best)", tickformat=".2f")
     f.update_yaxes(title_text="Projected Mean @ Year-End", tickformat=y_fmt)
     return f
 
@@ -1003,7 +1007,7 @@ def make_overlay_fig_n(o1, t1, m1, r1, o2, t2, m2, r2, o3, t3, m3, r3, norm):
     _pal    = ['#1f77b4', '#ff7f0e', '#2ca02c']
     _labels = ['Peeking + Best', 'Peeking', 'Fixed Sample']
     _rp     = [False, False, True]
-    _x_pvals = 1 - p_thresholds
+    _x_pvals = p_thresholds
     fig = go.Figure()
     for _outcomes, _trials, _marginal, _rate, _col, _lbl, _round in zip(
         [o1, o2, o3], [t1, t2, t3], [m1, m2, m3], [r1, r2, r3], _pal, _labels, _rp
@@ -1014,7 +1018,7 @@ def make_overlay_fig_n(o1, t1, m1, r1, o2, t2, m2, r2, o3, t3, m3, r3, norm):
         hover_tmpl = (
             "Avg Trials: %{x:,}<br>"
             "Projected Mean: %{y:.3%}<br>"
-            "\u03b1: %{customdata[0]:.2f}<br>"
+            "Pr(Best): %{customdata[0]:.2f}<br>"
             "Marginal Events: %{customdata[1]:,.0f}<br>"
             "Correct Decision Rate: %{customdata[2]:.2%}<br>"
             "<extra></extra>"
@@ -1042,6 +1046,7 @@ def make_overlay_fig_n(o1, t1, m1, r1, o2, t2, m2, r2, o3, t3, m3, r3, norm):
             xanchor="center", x=0.5, font=dict(size=10),
         ),
         height=300,
+        hoverlabel=dict(font_size=16, font_color="white"),
     )
     return fig
 
@@ -1051,7 +1056,7 @@ def make_triple_curve_fig(o1, t1, m1, r1, o2, t2, m2, r2, o3, t3, m3, r3, norm,
     _pal    = ['#1f77b4', '#ff7f0e', '#2ca02c']
     _labels = ['Peeking + Best', 'Peeking', 'Fixed Sample']
     _rp     = [False, False, True]
-    x       = 1 - p_thresholds
+    x       = p_thresholds
     marginal_hover = "Marginal Events: %{customdata[3]:,.0f}<br>" if (baseline is not None and total_n is not None) else ""
     fig = go.Figure()
     for _o, _t, _m, _r, _col, _lbl, _round in zip(
@@ -1062,7 +1067,7 @@ def make_triple_curve_fig(o1, t1, m1, r1, o2, t2, m2, r2, o3, t3, m3, r3, norm,
         marginal = (y - baseline) * total_n if (baseline is not None and total_n is not None) else np.zeros(len(y))
         cd = np.column_stack([np.array(_t).astype(int), np.array(_r), np.array(_m), marginal])
         hover_tmpl = (
-            f"\u03b1: %{{x:.2f}}<br>"
+            f"Pr(Best): %{{x:.2f}}<br>"
             f"Projected Mean: %{{y:{y_fmt}}}<br>"
             f"{marginal_hover}"
             "Avg Trials: %{customdata[0]:,}<br>"
@@ -1080,12 +1085,13 @@ def make_triple_curve_fig(o1, t1, m1, r1, o2, t2, m2, r2, o3, t3, m3, r3, norm,
             customdata=[[int(_t[peak]), _r[peak], int(_m[peak]), marginal[peak]]],
             hovertemplate=hover_tmpl,
         ))
-    fig.update_xaxes(title_text="\u03b1", tickformat=".2f")
+    fig.update_xaxes(title_text="Pr(Best)", tickformat=".2f")
     fig.update_yaxes(title_text="Projected Mean @ Year-End", tickformat=y_fmt)
     fig.update_layout(
         showlegend=True,
         legend=dict(orientation="h", yanchor="top", y=-0.18, xanchor="center", x=0.5, font=dict(size=10)),
         height=350,
+        hoverlabel=dict(font_size=16, font_color="white"),
     )
     return fig
 
@@ -1093,20 +1099,21 @@ def make_scenario_row(o1, t1, m1, r1, o2, t2, m2, r2, o3, t3, m3, r3, norm, base
     triple  = make_triple_curve_fig(o1, t1, m1, r1, o2, t2, m2, r2, o3, t3, m3, r3, norm, baseline, total_n)
     overlay = make_overlay_fig_n(o1, t1, m1, r1, o2, t2, m2, r2, o3, t3, m3, r3, norm)
     row = make_subplots(rows=1, cols=2,
-                        subplot_titles=["Value vs α", "Value vs Avg Trials"],
+                        subplot_titles=["Value vs Pr(Best)", "Value vs Avg Trials"],
                         column_widths=[0.5, 0.5],
                         shared_yaxes=True)
     for _tr in triple.data:  row.add_trace(_tr, row=1, col=1)
     for _tr in overlay.data:
         _tr.showlegend = False
         row.add_trace(_tr, row=1, col=2)
-    row.update_xaxes(title_text="\u03b1", tickformat=".2f", col=1)
+    row.update_xaxes(title_text="Pr(Best)", tickformat=".2f", col=1)
     row.update_yaxes(title_text="Projected Mean @ Year-End", tickformat=".3%", col=1)
     row.update_xaxes(title_text="Avg Total Trials", tickformat=",", col=2)
     row.update_layout(
         showlegend=True,
         legend=dict(orientation="h", yanchor="top", y=-0.18, xanchor="center", x=0.5, font=dict(size=10)),
         height=380,
+        hoverlabel=dict(font_size=16, font_color="white"),
     )
     return row
 
@@ -1114,7 +1121,7 @@ def make_scenario_stats(o1, d1, t1, r1, o2, d2, t2, r2, o3, d3, t3, r3, norm, ba
     """Returns a list of plain dicts (no HTML) — table is built in JS to avoid Quarto postprocessing."""
     def _peak(outcomes, avg_days, trials, rate, round_peak=False):
         y    = np.array(outcomes) / norm
-        x    = 1 - p_thresholds
+        x    = p_thresholds
         peak = int(np.argmax(np.round(y * 100, 4)) if round_peak else np.argmax(y))
         return float(x[peak]), float((y[peak] - baseline) * total_n), float(avg_days[peak]), float(y[peak]), float(np.array(rate)[peak]), float(np.array(trials)[peak])
     _pal  = ['#1f77b4', '#ff7f0e', '#2ca02c']
@@ -1125,13 +1132,13 @@ def make_scenario_stats(o1, d1, t1, r1, o2, d2, t2, r2, o3, d3, t3, r3, norm, ba
          "proj_mean": pm, "best_rate": br, "avg_trials": at, "is_ref": False}
         for (a, m, d, pm, br, at), c, lbl in zip(_data, _pal, _lbls)
     ]
-    # Reference row: Fixed Sample at the conventional α = 0.05
+    # Reference row: Fixed Sample at the conventional α = 0.05 (Pr(Best) = 0.95)
     idx_05 = int(np.argmin(np.abs((1 - p_thresholds) - 0.05)))
     y3 = np.array(o3) / norm
     rows.append({
         "label": "Fixed Sample",
         "color": "#2ca02c",
-        "alpha": float((1 - p_thresholds)[idx_05]),
+        "alpha": float(p_thresholds[idx_05]),
         "marginal": float((y3[idx_05] - baseline) * total_n),
         "avg_days": float(np.array(d3)[idx_05]),
         "proj_mean": float(y3[idx_05]),
@@ -1203,56 +1210,43 @@ window.__wif_scenarios['400k_s1_cr10'] = {{
       <option value="s2">ITC ~ N(100, 2)</option>
     </select>
   </div>
-  <div id="wif-context" style="align-self:center; font-size:0.85rem; color:#555; font-style:italic; flex:1; min-width:160px;"></div>
   </div>
 </div>
 
+<div id="wif-chart-labels" style="display:flex; justify-content:space-around; padding:0 2rem; margin-bottom:-0.5rem; position:relative; z-index:1; pointer-events:none;">
+  <span style="font-size:0.78rem; color:#888; pointer-events:auto;">
+    Value vs Pr(Best)
+    <span id="tt-vpr" style="cursor:help; display:inline-flex; align-items:center; justify-content:center; width:13px; height:13px; border-radius:50%; border:1px solid #aaa; color:#aaa; font-size:0.6rem; font-weight:700; vertical-align:middle; margin-left:2px;">i</span>
+  </span>
+  <span style="font-size:0.78rem; color:#888; pointer-events:auto;">
+    Value vs Avg Trials
+    <span id="tt-vat" style="cursor:help; display:inline-flex; align-items:center; justify-content:center; width:13px; height:13px; border-radius:50%; border:1px solid #aaa; color:#aaa; font-size:0.6rem; font-weight:700; vertical-align:middle; margin-left:2px;">i</span>
+  </span>
+</div>
+<script>
+(function() {{
+  function initTooltips() {{
+    if (typeof bootstrap === 'undefined') {{ setTimeout(initTooltips, 200); return; }}
+    new bootstrap.Tooltip(document.getElementById('tt-vpr'), {{
+      title: 'The objective function surface for each strategy. The peak is the optimal threshold — the point that maximizes long-run value. Compare peak heights to see which strategy wins; compare peak positions to see how aggressive the optimal threshold is.',
+      placement: 'top', trigger: 'hover'
+    }});
+    new bootstrap.Tooltip(document.getElementById('tt-vat'), {{
+      title: 'The efficiency frontier. A strategy that reaches the same value in fewer trials is strictly better — it frees up traffic sooner and compounds gains across more experiments.',
+      placement: 'top', trigger: 'hover'
+    }});
+  }}
+  document.addEventListener('DOMContentLoaded', initTooltips);
+}})();
+</script>
 <div id="wif-row1" style="min-height:380px;"></div>
 
-<p style="font-size:1.05rem; color:#333; margin-top:0.75rem; margin-bottom:0.25rem;">The table summarizes each strategy at its optimal α, with Fixed Sample at the conventional α = 0.05 included as a benchmark.</p>
+<p style="font-size:1.05rem; color:#333; margin-top:0.75rem; margin-bottom:0.25rem;">Each strategy is shown at its optimal threshold. <em>Fixed Sample at Pr(Best) = 0.95 (α = 0.05) is included as a conventional benchmark.</em></p>
 <div id="wif-stats1" style="margin-top:0.25rem;"></div>
 
 <script>
 (function() {{
-  var CR_ORDER    = {{ 'cr05': 0, 'cr10': 1, 'cr25': 2, 'cr40': 3, 'cr60': 4, 'cr80': 5 }};
-  var PTN_ORDER   = {{ '50k': 0, '100k': 1, '150k': 2, '200k': 3, '400k': 4, '800k': 5, '1600k': 6 }};
-  var SIGMA_ORDER = {{ 's05': 0, 's1': 1, 's2': 2 }};
-  var prevCr    = 'cr10';
-  var prevPtn   = '400k';
-  var prevSigma = 's1';
 
-  var CR_UP     = 'Higher baseline means larger absolute effects at the same ITC — easier to detect.';
-  var CR_DOWN   = 'Lower baseline means smaller absolute effects at the same ITC — harder to detect.';
-  var PTN_UP    = 'Larger post-test audience means a bad decision reaches more people — the optimal stopping rule becomes more conservative.';
-  var PTN_DOWN  = 'Smaller post-test audience limits the downside of a wrong call — the optimal stopping rule becomes more lenient.';
-  var SIGMA_UP   = 'Bigger swings are easier to spot — the experiment ends sooner, accuracy improves, and the value gains are larger.';
-  var SIGMA_DOWN = 'Smaller swings are harder to spot — the experiment runs longer, picks the wrong winner more often, and the value gains are smaller.';
-
-  function updateContext(text) {{
-    var ctx = document.getElementById('wif-context');
-    if (ctx) ctx.textContent = text;
-  }}
-
-  document.getElementById('wif-cr').addEventListener('change', function() {{
-    var cr = document.getElementById('wif-cr').value;
-    if      (CR_ORDER[cr] > CR_ORDER[prevCr]) updateContext(CR_UP);
-    else if (CR_ORDER[cr] < CR_ORDER[prevCr]) updateContext(CR_DOWN);
-    prevCr = cr;
-  }});
-
-  document.getElementById('wif-ptn').addEventListener('change', function() {{
-    var ptn = document.getElementById('wif-ptn').value;
-    if      (PTN_ORDER[ptn] > PTN_ORDER[prevPtn]) updateContext(PTN_UP);
-    else if (PTN_ORDER[ptn] < PTN_ORDER[prevPtn]) updateContext(PTN_DOWN);
-    prevPtn = ptn;
-  }});
-
-  document.getElementById('wif-sigma').addEventListener('change', function() {{
-    var sigma = document.getElementById('wif-sigma').value;
-    if      (SIGMA_ORDER[sigma] > SIGMA_ORDER[prevSigma]) updateContext(SIGMA_UP);
-    else if (SIGMA_ORDER[sigma] < SIGMA_ORDER[prevSigma]) updateContext(SIGMA_DOWN);
-    prevSigma = sigma;
-  }});
 }})();
 </script>
 
@@ -1276,12 +1270,12 @@ window.__wif_scenarios['400k_s1_cr10'] = {{
         '<td style="padding:5px 12px;text-align:center;"><strong>' + d.avg_days.toFixed(1) + '</strong></td>' +
         '</tr>';
     }}).join('');
-    var _th = 'style="padding:5px 12px;color:#666;font-weight:600;border-bottom:1px solid #ddd;text-align:center;"';
+    var _th = 'style="padding:5px 12px;color:#666;font-weight:600;border-bottom:1px solid #ddd;text-align:center;white-space:nowrap;"';
     document.getElementById('wif-stats1').innerHTML =
       '<' + 'table style="width:100%;font-size:0.85rem;border-collapse:collapse;margin-top:0.4rem;">' +
       '<thead><tr>' +
-      '<th style="padding:5px 12px;color:#666;font-weight:600;border-bottom:1px solid #ddd;text-align:left;">Strategy</th>' +
-      '<th ' + _th + '>\u03b1</th>' +
+      '<th style="padding:5px 12px;color:#666;font-weight:600;border-bottom:1px solid #ddd;text-align:left;white-space:nowrap;">Strategy</th>' +
+      '<th ' + _th + '>Pr(Best)</th>' +
       '<th ' + _th + '>Projected Mean</th>' +
       '<th ' + _th + '>Marginal Events vs No Test</th>' +
       '<th ' + _th + '>Correct Decision Rate</th>' +
@@ -1349,13 +1343,13 @@ _o3, _t3, _m3, _r3, _d3 = run_loop_df(df_fixed_2x, False)
 
 def make_curve_fig_n(outcomes, trials, med_trials, rate, title, norm, y_fmt=".3%", baseline=None, total_n=None, round_peak=False):
     y = np.array(outcomes) / norm
-    x = 1 - p_thresholds
+    x = p_thresholds
     peak = int(np.argmax(np.round(y * 100, 4)) if round_peak else np.argmax(y))
     marginal = (y - baseline) * total_n if (baseline is not None and total_n is not None) else np.zeros(len(y))
     cd = np.column_stack([np.array(trials).astype(int), np.array(rate), np.array(med_trials), marginal])
     marginal_hover = "Marginal Events: %{customdata[3]:,.0f}<br>" if (baseline is not None and total_n is not None) else ""
     hover_tmpl = (
-        f"\u03b1: %{{x:.2f}}<br>"
+        f"Pr(Best): %{{x:.2f}}<br>"
         f"Projected Mean: %{{y:{y_fmt}}}<br>"
         f"{marginal_hover}"
         "Avg Trials: %{customdata[0]:,}<br>"
@@ -1373,7 +1367,7 @@ def make_curve_fig_n(outcomes, trials, med_trials, rate, title, norm, y_fmt=".3%
     )
     f.update_traces(selector=dict(mode="lines"), customdata=cd, hovertemplate=hover_tmpl)
     f.update_layout(title_text=title)
-    f.update_xaxes(title_text="\u03b1", tickformat=".2f")
+    f.update_xaxes(title_text="Pr(Best)", tickformat=".2f")
     f.update_yaxes(title_text="Projected Mean @ Year-End", tickformat=y_fmt)
     return f
 
@@ -1537,7 +1531,7 @@ _ref_params_s05 = {
 
 _df_base_s05 = se.create_simulation_df(
     number_test_days=NUMBER_TEST_DAYS,
-    number_simulations=NUMBER_SIMULATIONS,
+    number_simulations=500_000,
     seed=SEED,
     condition_parameters=[{"mean": CONTROL_MEAN, "trials": int(MAX_TEST_N * SPLIT)}],
 )
@@ -2270,13 +2264,13 @@ window.__wif_scenarios['1600k_s05_cr10'] = {{
 
 def _peak_stats_cr(outcomes, avg_days_list, norm, cr_val, ptn_val, round_peak=False):
     y    = np.array(outcomes) / norm
-    x    = 1 - p_thresholds
+    x    = p_thresholds
     peak = int(np.argmax(np.round(y * 100, 4)) if round_peak else np.argmax(y))
-    opt_alpha       = x[peak]
+    opt_pr_best     = x[peak]
     marginal_events = (y[peak] - cr_val) * (ptn_val + MAX_TEST_N)
     avg_d           = avg_days_list[peak]
     return f"""<div style="text-align:center; font-size:0.9rem; color:#333; margin-top:0.25rem;">
-      α: <strong>{opt_alpha:.2f}</strong> &nbsp;|&nbsp;
+      Pr(Best): <strong>{opt_pr_best:.2f}</strong> &nbsp;|&nbsp;
       Marginal Events vs No Test: <strong>{marginal_events:,.0f}</strong> &nbsp;|&nbsp;
       Avg(Days): <strong>{avg_d:.1f}</strong>
     </div>"""
@@ -2287,7 +2281,7 @@ _ptn_combos   = [(50_000, '50k'), (100_000, '100k'), (150_000, '150k'), (200_000
 
 for _cr_val, _cr_key in _cr_combos:
     for _itc_se_val, _sigma_key in _sigma_combos:
-        _n_sims_loop = 500_000 if (_cr_val == 0.05 and _itc_se_val == 0.5) else NUMBER_SIMULATIONS
+        _n_sims_loop = 500_000 if (_cr_val in (0.05, 0.10) and _itc_se_val == 0.5) else NUMBER_SIMULATIONS
         _df_tmp = se.create_simulation_df(
             number_test_days=NUMBER_TEST_DAYS,
             number_simulations=_n_sims_loop,
@@ -2445,6 +2439,7 @@ window.__wif_scenarios['{_key}'] = {{
   </tbody>
 </table>
 <p id="wts-peek-note" style="font-size:0.82rem; color:#666; font-style:italic; margin-top:0.25rem;"></p>
+<p style="font-size:0.82rem; color:#777; margin-top:0.4rem;">Peeking makes more individual mistakes — stopping early on noisy signals picks the wrong winner more often than waiting for the full sample. But those mistakes are priced into the long-run value score. What peeking gains by ending experiments early offsets what it loses in accuracy.</p>
 
 <script>
 (function () {
@@ -2591,7 +2586,9 @@ The larger the post-test audience, the more costly a wrong call. The stopping th
 ```{=html}
 <div style="margin-bottom:1.5rem;">
 
-  <div style="display:flex; gap:2rem; align-items:flex-start; flex-wrap:wrap; margin-bottom:0.75rem;">
+  <div style="display:flex; flex-direction:column; gap:0.6rem; margin-bottom:0.75rem; border: 1.5px dashed #90b8e0; border-radius:6px; padding:0.5rem 1rem;">
+    <div style="font-size:1.05rem; color:#444; font-style:italic;">Change the scenario — notice whether the peaks shift or hold.</div>
+    <div style="display:flex; gap:2rem; align-items:flex-start; flex-wrap:wrap;">
     <div style="display:flex; flex-direction:column; gap:0.25rem;">
       <label style="font-size:0.85rem; color:#555; font-weight:600;">Baseline Conversion</label>
       <select id="ptn-cr" class="form-select form-select-sm" style="width:auto; font-size:0.85rem;">
@@ -2614,10 +2611,11 @@ The larger the post-test audience, the more costly a wrong call. The stopping th
     <div style="display:flex; flex-direction:column; gap:0.25rem;">
       <label style="font-size:0.85rem; color:#555; font-weight:600;">Metric</label>
       <select id="ptn-metric" class="form-select form-select-sm" style="width:auto; font-size:0.85rem;">
-        <option value="alpha" selected>Optimal α</option>
-        <option value="marginal">Marginal Events</option>
+        <option value="alpha" selected>Optimal Pr(Best)</option>
         <option value="days">Avg Days</option>
+        <option value="marginal">Marginal Events</option>
       </select>
+    </div>
     </div>
   </div>
 
@@ -2631,9 +2629,10 @@ The larger the post-test audience, the more costly a wrong call. The stopping th
 
 <script>
 (function () {
-  var PTN_VALS   = [50000, 100000, 150000, 200000, 400000, 800000, 1600000];
-  var PTN_KEYS   = ['50k', '100k', '150k', '200k', '400k', '800k', '1600k'];
-  var PTN_LABELS = ['50k', '100k', '150k', '200k', '400k', '800k', '1600k'];
+  var PTN_VALS      = [50000, 100000, 150000, 200000, 400000, 800000, 1600000];
+  var PTN_KEYS      = ['50k', '100k', '150k', '200k', '400k', '800k', '1600k'];
+  var PTN_LABELS    = ['50k', '100k', '150k', '200k', '400k', '800k', '1600k'];
+  var PTN_TICK_LBLS = ['50k', '', '', '200k', '400k', '800k', '1600k'];
   var PAL        = ['#1f77b4', '#ff7f0e', '#2ca02c'];
   var STRATS     = ['Peeking + Best', 'Peeking', 'Fixed Sample'];
 
@@ -2656,7 +2655,7 @@ The larger the post-test audience, the more costly a wrong call. The stopping th
         if (s) {
           vals.push(isDays ? s.avg_days : (isAlpha ? s.alpha : s.marginal));
           ht.push(lbl + '<br>Post-Test N: ' + PTN_LABELS[j] +
-            '<br>Optimal α: ' + s.alpha.toFixed(2) +
+            '<br>Optimal Pr(Best): ' + s.alpha.toFixed(2) +
             '<br>Avg Days: ' + s.avg_days.toFixed(1) +
             '<br>Marginal Events: ' + Math.round(s.marginal).toLocaleString() +
             '<extra></extra>');
@@ -2693,13 +2692,13 @@ The larger the post-test audience, the more costly a wrong call. The stopping th
       PTN_KEYS.forEach(function (pk, j) {
         var s = getStat(pk, sigma_key, cr_key, 'Fixed Sample', true);
         ref_m.push(s ? s.marginal : null);
-        ref_ht.push(s ? 'Fixed @ α=0.05<br>Post-Test N: ' + PTN_LABELS[j] +
+        ref_ht.push(s ? 'Fixed @ Pr(Best)=0.95<br>Post-Test N: ' + PTN_LABELS[j] +
           '<br>Marginal Events: ' + Math.round(s.marginal).toLocaleString() +
           '<extra></extra>' : '<extra></extra>');
       });
       traces.push({
         x: PTN_LABELS, y: ref_m, type: 'bar',
-        name: 'Fixed @ α=0.05',
+        name: 'Fixed @ Pr(Best)=0.95',
         marker: { color: 'rgba(44,160,44,0.35)', line: { color: '#2ca02c', width: 1.5 } },
         hovertemplate: ref_ht
       });
@@ -2710,7 +2709,7 @@ The larger the post-test audience, the more costly a wrong call. The stopping th
     if (isBar) {
       traces = traces.map(function (t) {
         if (t.type === 'bar') return t;
-        var barName = t.name === 'Fixed Sample' ? 'Fixed Sample @ α = 0.50' : t.name;
+        var barName = t.name === 'Fixed Sample' ? 'Fixed Sample @ Pr(Best) = 0.50' : t.name;
         return Object.assign({}, t, {
           type: 'bar',
           x: PTN_LABELS,
@@ -2724,16 +2723,17 @@ The larger the post-test audience, the more costly a wrong call. The stopping th
       barmode: isBar ? 'group' : undefined,
       xaxis: isBar ? {
         title: { text: 'Post-Test N', font: { size: 12 }, standoff: 4 },
+        ticktext: PTN_TICK_LBLS, tickvals: PTN_LABELS,
         showgrid: false
       } : {
-        tickvals: PTN_VALS, ticktext: PTN_LABELS,
+        tickvals: PTN_VALS, ticktext: PTN_TICK_LBLS,
         title: { text: 'Post-Test N', font: { size: 12 }, standoff: 4 },
         showgrid: true, gridcolor: '#eee'
       },
       yaxis: {
-        title: { text: isAlpha ? 'Optimal α' : (isDays ? 'Avg Days to Stop' : 'Marginal Events vs No Test'), font: { size: 12 } },
+        title: { text: isAlpha ? 'Optimal Pr(Best)' : (isDays ? 'Avg Days to Stop' : 'Marginal Events vs No Test'), font: { size: 12 } },
         tickformat: isAlpha ? '.2f' : (isDays ? '.1f' : ',.0f'),
-        range: isAlpha ? [-0.02, 0.57] : (isDays ? [0, 22] : undefined),
+        range: isAlpha ? [0.43, 1.02] : (isDays ? [0, 22] : undefined),
         showgrid: true, gridcolor: '#eee'
       },
       annotations: annotations,
@@ -2742,7 +2742,8 @@ The larger the post-test audience, the more costly a wrong call. The stopping th
                 bordercolor: '#999', borderwidth: 1.5,
                 bgcolor: 'white' },
       margin: { t: 20, b: 100, l: isAlpha ? 55 : (isDays ? 55 : 75), r: (isAlpha || isDays) ? 55 : 15 },
-      height: 340, paper_bgcolor: 'white', plot_bgcolor: 'white'
+      height: 340, paper_bgcolor: 'white', plot_bgcolor: 'white',
+      hoverlabel: { font: { size: 16, color: 'white' } }
     }, { responsive: true, displayModeBar: false });
   }
 
