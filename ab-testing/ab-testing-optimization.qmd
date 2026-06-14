@@ -12,34 +12,52 @@ css: wider.css
 ---
 
 
-# TL;DR
+# AB Testing Nightmare: 100 Close Calls
 
-Significance testing was designed for science — where false positives are costly and claims must hold up to scrutiny. It does that job well. But running a product experiment isn't a scientific claim. It's a business decision.
+Your organization will run 100 A/B tests next year. In every single one, Treatment outperforms Control in the sample. But the p-value never quite crosses 0.05 — it lands at 0.06, 0.07, 0.08. Close, but not there.
 
-Three ways significance testing fails that decision:
+Your vaunted stats expert calls it every time: *"Not significant. Keep control."*
 
-1. **Significance testing optimizes for error control, not value.** α controls false positives; β controls false negatives. Neither tells you whether acting on the result is worth it — an error around a negligible effect is irrelevant from a business perspective.
-2. **Significance testing assumes a single fixed effect.** The MDE — Minimum Detectable Effect — requires you to declare the effect size before the experiment. But treatment effects aren't fixed. They come from a distribution — sometimes beneficial, sometimes harmful, usually marginal.
-3. **Significance testing defaults to control.** When results are inconclusive, significance testing says "keep control" — even when the data already points elsewhere.
+Do you abide? Or will you push back?
+
+100 tests. 100 times, the data points toward the treatment. 100 times, you shipped nothing. The cost of that policy — across a year, across a product --- how much revenue have you sacrificed in the name of statistical purity?
+
+# Why are We AB Testing?
+
+The purpose of an AB test, in industry, is straightforward: find the variant that performs better and ship it. More clicks, more conversions, more revenue.
+
+Meanwhile, significance testing was designed with science in mind — a field where false positives are costly and reproducibility depends on tight error control. α caps the false positive rate; β limits false negatives.
+
+But neither tells you whether acting on the result is worth it, or the potential magnitude of an error.
+
+## Mindset Shift: Value-Focused Testing
+
+This paper proposes a mindset shift: instead of asking "is this result statistically significant?", ask "what stopping rule produces the most value over time?" In other words, what is the `Optimal Stopping Rule`?
 
 
+## Finding the Optimal Stopping Rule
 
-# Finding the Optimal Stopping Rule
+Rather than fix α and β, we set:
 
-Instead of α, β, and MDE, we fix:
-
-- **`Max Test N`** — the maximum number of users in the experiment
+- **`Max Test N`** — the absolute maximum number of users allowed into the test
 - **`Post-Test N`** — the audience that sees the winner after the test ends
 
-What we simulate:
+Rather than set a single — and often unrealistic — Minimum Detectable Effect, we simulate:
 
-- Treatment effects drawn from a realistic distribution — not a single MDE
+- **`Treatment Effects`** — drawn from a realistic distribution, not a single fixed point
 
-The question is simple: for a given experiment setup, what's the optimal stopping rule? We use simulations to find out.
+Once parameters are set, the real work starts:
 
-## Simulation Parameters
+- Simulate 100,000 experiments like ours --- each modeling the randomness inherent in experimentation
+- Scan every possible stopping rule —-- picking the threshold that maximizes long-run value across all simulations
 
-These factors determine the optimal stopping rule — click any to learn more.
+# Why Simulations?
+
+Simulations give us something no real experiment can: a ground truth to judge against. In practice, we never know the true effect — except in our simulations, where we encode it. Each draw is different, modeling the full range of experiments a team might actually run: large effects, small ones, harmful ones, and treatments that underperform despite being genuinely better. Both strategies analyze the data blindly, and we measure which stopping rule performs best across all of it.
+
+## Parameters
+
+The parameters below define your experiment: baseline conversion, test size, post-test audience, and expected treatment effects. They directly determine the optimal stopping threshold. Click any to learn more.
 
 ```{=html}
 <div class="stopping-factors-ui mt-3 mb-4">
@@ -903,7 +921,7 @@ print(f'<script>window.__pvalSimData = {json.dumps(pval_sim_data)};</script>')
 ```
 
 
-## Optimal Stopping Algorithm
+## Algorithm
 
 The same simulated data is evaluated under 50 different stopping rules — Pr(Best) thresholds from 0.50 to 0.99. For each:
 
@@ -914,44 +932,79 @@ The same simulated data is evaluated under 50 different stopping rules — Pr(Be
 
 The threshold with the highest average score across all simulations is the optimal stopping rule.
 
-## Simulation Stats
-
 ```{=html}
-<table style="width:100%; font-size:0.9rem; border-collapse:collapse;">
-  <colgroup>
-    <col style="width:22%;">
-    <col style="width:78%;">
-  </colgroup>
-  <thead>
-    <tr>
-      <th style="padding:6px 12px; border-bottom:2px solid #ddd; text-align:left; color:#555;">Metric</th>
-      <th style="padding:6px 12px; border-bottom:2px solid #ddd; text-align:left; color:#555;">Description</th>
-    </tr>
-  </thead>
-  <tbody>
-    <tr>
-      <td style="padding:6px 12px; border-bottom:1px solid #eee; font-weight:600; vertical-align:top;">Projected Mean</td>
-      <td style="padding:6px 12px; border-bottom:1px solid #eee; color:#444;">Average conversion rate across all users: both arms during the test, plus the winner deployed to the full post-test audience.</td>
-    </tr>
-    <tr>
-      <td style="padding:6px 12px; border-bottom:1px solid #eee; font-weight:600; vertical-align:top;">Marginal Events vs No Test</td>
-      <td style="padding:6px 12px; border-bottom:1px solid #eee; color:#444;">Incremental conversions above the baseline of never running an experiment.</td>
-    </tr>
-    <tr>
-      <td style="padding:6px 12px; border-bottom:1px solid #eee; font-weight:600; vertical-align:top;">Correct Decision Rate</td>
-      <td style="padding:6px 12px; border-bottom:1px solid #eee; color:#444;">How often the strategy deploys the correct variant. Covers the full distribution of effects — beneficial and harmful — not just the single MDE statistical power is designed for.</td>
-    </tr>
-    <tr>
-      <td style="padding:6px 12px; font-weight:600; vertical-align:top;">Avg Trials (Days)</td>
-      <td style="padding:6px 12px; color:#444;">Total user-experiment observations before stopping, with calendar duration in parentheses. Shorter experiments compound value by freeing up traffic faster.</td>
-    </tr>
-  </tbody>
-</table>
+<div class="mt-2 mb-3" id="simstats-accordion-wrap">
+  <div class="accordion-item" style="border: 1.5px dashed #90b8e0; border-radius: 6px; background: #f0f6fd; margin-bottom: 0;" id="simstats-accordion-header">
+    <div class="accordion-header" style="margin:0;">
+      <button class="accordion-button collapsed px-3 shadow-none"
+              id="simstats-accordion-btn"
+              style="font-size:0.9rem; font-weight:600; color:#1e46a0; background:transparent; min-height:0; height:auto; width:100%; display:flex; align-items:center; padding-top:0.5rem; padding-bottom:0.5rem; flex-wrap:wrap;"
+              type="button" data-bs-toggle="collapse"
+              data-bs-target="#simstats-collapse">
+        <span style="flex:1;">Simulation Statistics Definitions
+          <span id="simstats-info-icon" data-bs-toggle="tooltip" data-bs-placement="top" data-bs-title="Definitions for the metrics shown in the results table below." style="cursor:help; display:inline-flex; align-items:center; justify-content:center; width:14px; height:14px; border-radius:50%; border:1px solid #1e46a0; color:#1e46a0; font-size:0.65rem; font-weight:700; vertical-align:middle; margin-left:5px;">i</span>
+        </span>
+        <span class="accordion-chevron" style="flex-shrink:0; margin-left:0.75rem; font-size:1.8rem; line-height:1; transition:transform 0.2s;">&#8964;</span>
+      </button>
+    </div>
+  </div>
+  <div id="simstats-collapse" class="collapse" style="border: 1.5px dashed #90b8e0; border-top: none; border-radius: 0 0 6px 6px; padding: 1rem; background: #fff;">
+    <table style="width:100%; font-size:0.9rem; border-collapse:collapse;">
+      <colgroup>
+        <col style="width:22%;">
+        <col style="width:78%;">
+      </colgroup>
+      <thead>
+        <tr>
+          <th style="padding:6px 12px; border-bottom:2px solid #ddd; text-align:left; color:#555;">Metric</th>
+          <th style="padding:6px 12px; border-bottom:2px solid #ddd; text-align:left; color:#555;">Description</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td style="padding:6px 12px; border-bottom:1px solid #eee; font-weight:600; vertical-align:top;">Projected Mean</td>
+          <td style="padding:6px 12px; border-bottom:1px solid #eee; color:#444;">Average conversion rate across all users: both arms during the test, plus the winner deployed to the full post-test audience.</td>
+        </tr>
+        <tr>
+          <td style="padding:6px 12px; border-bottom:1px solid #eee; font-weight:600; vertical-align:top;">Marginal Events vs No Test</td>
+          <td style="padding:6px 12px; border-bottom:1px solid #eee; color:#444;">Incremental conversions above the baseline of never running an experiment.</td>
+        </tr>
+        <tr>
+          <td style="padding:6px 12px; border-bottom:1px solid #eee; font-weight:600; vertical-align:top;">Correct Decision Rate</td>
+          <td style="padding:6px 12px; border-bottom:1px solid #eee; color:#444;">How often the strategy deploys the correct variant. Covers the full distribution of effects — beneficial and harmful — not just the single MDE statistical power is designed for.</td>
+        </tr>
+        <tr>
+          <td style="padding:6px 12px; font-weight:600; vertical-align:top;">Avg Trials (Days)</td>
+          <td style="padding:6px 12px; color:#444;">Total user-experiment observations before stopping, with calendar duration in parentheses. Shorter experiments compound value by freeing up traffic faster.</td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+</div>
+<script>
+(function() {
+  var _tip = document.getElementById('simstats-info-icon');
+  if (_tip && typeof bootstrap !== 'undefined') { new bootstrap.Tooltip(_tip); }
+  var _btn = document.getElementById('simstats-accordion-btn');
+  var _chevron = _btn ? _btn.querySelector('.accordion-chevron') : null;
+  var _collapse = document.getElementById('simstats-collapse');
+  if (_collapse) {
+    _collapse.addEventListener('show.bs.collapse', function() {
+      document.getElementById('simstats-accordion-header').style.borderRadius = '6px 6px 0 0';
+      if (_chevron) _chevron.style.transform = 'rotate(180deg)';
+    });
+    _collapse.addEventListener('hide.bs.collapse', function() {
+      document.getElementById('simstats-accordion-header').style.borderRadius = '6px';
+      if (_chevron) _chevron.style.transform = '';
+    });
+  }
+})();
+</script>
 ```
 
-## Results
+## Optimization Curve
 
-The curve below shows long-run value as a function of Pr(Best) stopping threshold. The peak is the optimal rule — the threshold that maximizes value across all `{python} f"{NUMBER_SIMULATIONS:,}"` simulated experiments.
+We swept every Pr(Best) threshold from 0.50 to 0.99. For each, we applied that stopping rule to all `{python} f"{NUMBER_SIMULATIONS:,}"` experiments — each drawing a different true effect, known only to us — recorded the long-run value produced across test traffic and the full post-test rollout, and averaged. The curve plots those averages. The peak is the threshold that maximizes expected value.
 
 ```{python}
 #| echo: false
@@ -1013,7 +1066,10 @@ _t0 = time.time()
 all_potential_outcomes, total_trials, median_trials, match_rate, all_avg_days = run_loop(True)
 ctrl_potential_outcomes, ctrl_trials, ctrl_med_trials, ctrl_match_rate, ctrl_avg_days = run_loop(False)
 fixed_potential_outcomes, fixed_trials, fixed_med_trials, fixed_match_rate, fixed_avg_days = run_loop(False, df_prepped_fixed)
-_runtime = _time_module.time() - _t_total_start
+_runtime  = _time_module.time() - _t_total_start
+_peak_idx = int(np.argmax(all_potential_outcomes))
+_opt_pr   = float(p_thresholds[_peak_idx])
+
 
 def make_curve_fig(outcomes, trials, med_trials, rate, title, y_fmt=".3%", round_peak=False):
     y = np.array(outcomes) / normalizer
@@ -1261,8 +1317,15 @@ window.__wif_scenarios['400k_s1_cr60'] = {{
 
 <div id="wif-row1" style="min-height:380px;"></div>
 
-<div id="wif-stats1" style="margin-top:0.25rem;"></div>
+"""))
 
+display(HTML(f"""
+<div style="margin-top:0.5rem; padding:0.75rem 1.25rem; background:#e8f0fe; border-left:4px solid #1e46a0; border-radius:4px; font-size:0.95rem; color:#1a1a2e; line-height:1.6;">
+  The curve peaks at <strong>Pr(Best) = {_opt_pr:.2f}</strong> — the threshold that balances speed and precision. Stop sooner and you trade accuracy for time. Wait longer and the extra certainty doesn't pay for itself.
+</div>
+"""))
+
+display(HTML(f"""
 <script>
 (function() {{
 
@@ -1420,7 +1483,7 @@ window.__wif_scenarios['{_key}'] = {{
 ```
 
 ```{=html}
-<div class="mt-2 mb-2" id="ptn-accordion-wrap">
+<div class="mt-5 mb-5" id="ptn-accordion-wrap">
   <div class="accordion-item" style="border: 1.5px dashed #90b8e0; border-radius: 6px; background: #f0f6fd; margin-bottom: 0;" id="ptn-accordion-header">
     <div class="accordion-header" style="margin:0;">
       <button class="accordion-button collapsed px-3 shadow-none"
@@ -1437,7 +1500,7 @@ window.__wif_scenarios['{_key}'] = {{
   </div>
   <div id="ptn-collapse" class="collapse" style="border: 1.5px dashed #90b8e0; border-top: none; border-radius: 0 0 6px 6px; padding: 1rem; background: #fff;">
 
-<p style="font-size:0.9rem; color:#444; margin-bottom:1rem; line-height:1.6;">
+<p style="font-size:1.05rem; color:#444; margin-bottom:1rem; line-height:1.6;">
 Post-Test N is the audience that sees the winning variant after the experiment ends — the size of the real-world rollout. It matters because the value of an experiment isn't just what happens during the test: it's the cumulative impact of deploying the winner to every user who follows. A wrong call during a test with a small rollout is a minor cost; the same wrong call with a million-person rollout is a much larger one. As Post-Test N grows, the stakes of each stopping decision rise — and the optimal threshold rises with it, demanding stronger evidence before committing.
 </p>
 
@@ -1678,6 +1741,14 @@ Post-Test N is the audience that sees the winning variant after the experiment e
   </div><!-- /ptn-collapse -->
 </div><!-- /ptn-accordion-wrap -->
 ```
+
+# Optimal Stopping vs Significance: A Comparison
+
+The same 100,000 simulated experiments — analyzed twice. Once by Optimal Stopping, once by Fixed Sample significance testing. Neither strategy had access to the true effect we encoded. They only saw what any real analyst sees: the data as it accumulated. The only difference was the decision rule.
+
+<div id="wif-stats1" style="margin-top:0.25rem;"></div>
+
+## Why It Works
 
 # Conclusion
 
