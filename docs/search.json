@@ -4,14 +4,14 @@
     "href": "cv.html",
     "title": "Russ Zaliznyak",
     "section": "",
-    "text": "I love math, problem solving, and writing Python to help solve those problems. I use simulation studies to build intuition for AB Testing and leverage AI to speed up research and development."
+    "text": "I specialize in A/B testing and simulation — using simulation studies to turn complex statistical methods into practical tools: apps, Python libraries, and interactive analyses built to feel intuitive and effortless. Teaching and mentoring are equally central — I’ve built training programs, led TechTalks, and mentored peers on statistical methods and Python. AI-assisted development has meaningfully raised the pace and quality of everything I ship."
   },
   {
     "objectID": "cv.html#skills",
     "href": "cv.html#skills",
     "title": "Russ Zaliznyak",
     "section": "",
-    "text": "I love math, problem solving, and writing Python to help solve those problems. I use simulation studies to build intuition for AB Testing and leverage AI to speed up research and development."
+    "text": "I specialize in A/B testing and simulation — using simulation studies to turn complex statistical methods into practical tools: apps, Python libraries, and interactive analyses built to feel intuitive and effortless. Teaching and mentoring are equally central — I’ve built training programs, led TechTalks, and mentored peers on statistical methods and Python. AI-assisted development has meaningfully raised the pace and quality of everything I ship."
   },
   {
     "objectID": "cv.html#goals",
@@ -25,7 +25,7 @@
     "href": "cv.html#experience",
     "title": "Russ Zaliznyak",
     "section": "Experience",
-    "text": "Experience\n\nPrincipal Data Scientist · January 2022 – Present\nTrajectory Changing\n\nBayesian Analysis: Introduced fast, business-focused AB Testing\nSimulation Engine: Determine optimal stopping thresholds\nAlphaBeta Testing App: Portal with latest methods (5,000+ views/month)\nNew Methods: CUPED, Informed Priors, Simulation Studies, Python Libraries\nAI: Connecting AI assistants to support apps + training GPT to answer questions\nTeacher & Mentor: TechTalks on Bayesian methods; sessions to mentor peers\n\n\n\nStaff Data Scientist · February 2019 – January 2022\nMaking A Difference\n\nDeployed Interactive FAQ Site: AB Test Fundamentals, MABs, SPRT\nIntroduced Sequential Testing & SPRT methods\nPlotly Dash Apps: Sample Size Calculator (Fixed/SPRT) + Experiment Analysis Tools\nRespected Experimentation Lecturer\nData Engineering & ETL: PySpark jobs to speed up test analysis\n\n\n\nSr. Data Scientist · September 2016 – February 2019\nFinding A Niche\n\nPrototyped Experimentation Training Program for Data Scientists\nDeveloped Experimentation Playbook & Guides for non-analysts\nLaunched App Recommendation Model\nBuilt Customer Cash Flow Prediction Model\n\n\n\nSr. Technical Data Analyst · September 2013 – September 2016\nLearning The Ropes\n\nDeployed logistic models to predict customer churn; paired with AB tests for outreach\nBuilt Tableau Dashboards to automate AB Test Design & Analysis\nExploratory Data Analysis"
+    "text": "Experience\n\nPrincipal Data Scientist · January 2022 – Present\nTrajectory Changing\n\nApp Developer: Built production data apps end-to-end\n\nAlphaBeta Testing App — interactive experimentation portal, 5,000+ views/month\nSimulation Engine — vectorized pipeline to derive optimal experiment stopping thresholds\n\nNew Methods: Introduced modern experimentation techniques\n\nStopping & Sensitivity — Bayesian early stopping, CUPED, Informed Priors\nData Quality & Tooling — Always-on SRM detection, custom Python libraries\n\nAI Early Adopter: Integrated LLMs into production Dash apps via Intuit’s GenOS API\n\nAI Experiment Designer — conversational AI that guides users through A/B test setup, collecting design parameters and updating app state\nRapid Prototyping — shipped apps using Cursor and Claude\n\nTeacher & Mentor: TechTalks, training programs, peer mentoring, and ongoing Slack support\nCentralized Experimentation Platform i: Every experiment across the company — registered, reportable, and accessible to all teams — with results feeding into an executive dashboard and a searchable knowledge base for past learnings and new test ideas.\n\n\n\n\nStaff Data Scientist · February 2019 – January 2022\nMaking A Difference\n\nDeployed Interactive FAQ Site: AB Test Fundamentals, MABs, SPRT\nIntroduced Sequential Testing & SPRT methods\nPlotly Dash Apps: Sample Size Calculator (Fixed/SPRT) + Experiment Analysis Tools\nRespected Experimentation Lecturer\nData Engineering & ETL: PySpark jobs to speed up test analysis\n\n\n\nSr. Data Scientist · September 2016 – February 2019\nFinding A Niche\n\nPrototyped Experimentation Training Program for Data Scientists\nDeveloped Experimentation Playbook & Guides for non-analysts\nLaunched App Recommendation Model\nBuilt Customer Cash Flow Prediction Model\n\n\n\nSr. Technical Data Analyst · September 2013 – September 2016\nLearning The Ropes\n\nDeployed logistic models to predict customer churn; paired with AB tests for outreach\nBuilt Tableau Dashboards to automate AB Test Design & Analysis\nExploratory Data Analysis"
   },
   {
     "objectID": "cv.html#education",
@@ -39,14 +39,14 @@
     "href": "cv.html#selected-writing",
     "title": "Russ Zaliznyak",
     "section": "Selected Writing",
-    "text": "Selected Writing\n\n\n\nArticle\nPublished\n\n\n\n\nThe Value of Big Swings\nAug 2025\n\n\nWhy Switch to Polars\nOct 2025\n\n\nBeta vs Binomial Distribution\nDec 2025\n\n\nThe Winner’s Curse\nJan 2026\n\n\nExperiment Design & Analysis with NumPy\nFeb 2025\n\n\nThe Power of Data Simulation\nNov 2024"
+    "text": "Selected Writing\n\n\n\nArticle\nPublished\n\n\n\n\nAB Testing is an Optimization Problem\nJun 2026\n\n\nThe Winner’s Curse\nJan 2026\n\n\nBeta vs Binomial Distribution\nDec 2025\n\n\nWhy Switch to Polars\nOct 2025\n\n\nThe Value of Big Swings\nAug 2025\n\n\nExperiment Design & Analysis with NumPy\nFeb 2025\n\n\nThe Power of Data Simulation\nNov 2024"
   },
   {
     "objectID": "cv.html#links",
     "href": "cv.html#links",
     "title": "Russ Zaliznyak",
     "section": "Links",
-    "text": "Links\n\nITS Webinar: Going Bayes — Shifting Our Testing Methods\nThe Value of Big Swings\nExperiment Design & Analysis with NumPy Random\nThe Power of Data Simulation\nWhy Switch to Polars\n\n\nContact: rzaliznyak@gmail.com"
+    "text": "Links\n\nITS Webinar: Going Bayes — Shifting Our Testing Methods\nHow Intuit Uses Dash Enterprise\n\n\nContact: rzaliznyak@gmail.com"
   },
   {
     "objectID": "talks/index.html",
@@ -305,7 +305,7 @@
     "href": "ab-testing/ab-testing-optimization.html",
     "title": "AB Testing is an Optimization Problem",
     "section": "",
-    "text": "Your organization will run 100 A/B tests next year. In every single one, Treatment outperforms Control in the sample. But the p-value never quite crosses 0.05 — it lands at 0.06, 0.07, 0.08. Close, but not there.\nYour vaunted stats expert calls it every time: “Not significant. Keep control.”\nDo you abide? Or will you push back?\n100 tests. 100 times, the data points toward the treatment. 100 times, you shipped nothing. The cost of that policy — across a year, across a product — how much revenue have you sacrificed in the name of statistical purity?"
+    "text": "Your organization will run 100 A/B tests next year. In every single one, treatment outperforms control in the sample. But the p-value never quite crosses 0.05 — it lands at 0.06, 0.07, 0.08. Close, but not there.\nYour vaunted stats expert calls it every time: “Not significant. Keep control.”\nDo you abide? Or will you push back?\n100 tests. 100 times, the data points toward the treatment. 100 times, you shipped nothing. The cost of that policy — across a year, across a product — how much revenue have you sacrificed in the name of statistical purity?"
   },
   {
     "objectID": "python/polars-vs-pandas.html",
@@ -522,14 +522,14 @@
     "href": "ab-testing/ab-testing-optimization.html#why-it-works",
     "title": "AB Testing is an Optimization Problem",
     "section": "Why It Works",
-    "text": "Why It Works\nThe Optimal Stopping algorithm adapts to the signal it sees:\n\nSmall effects — the value gap between variants is narrow, so the cost of a wrong call is low. The algorithm rolls out the winner quickly, sacrificing some accuracy for speed.\nLarge positive effects — a clear winning condition emerges early. The algorithm stops, exploits the finding, and captures value before a fixed-sample test would even reach significance.\nLarge negative effects — harm is detectable fast. The algorithm cuts traffic to the losing variant before it does meaningful damage."
+    "text": "Why It Works\nThe Optimal Stopping algorithm adapts to the signal it sees:\n\nSmall effects — the value gap between variants is narrow, so the cost of a wrong call is low. The algorithm rolls out the winner quickly, sacrificing some accuracy for speed.\nLarge positive effects — a clear winning condition emerges early. The algorithm stops, exploits the finding, and captures value before a Fixed Sample test would even reach significance.\nLarge negative effects — harm is detectable fast. The algorithm cuts traffic to the losing variant before it does meaningful damage."
   },
   {
     "objectID": "ab-testing/ab-testing-optimization.html#mindset-shift-value-focused-testing",
     "href": "ab-testing/ab-testing-optimization.html#mindset-shift-value-focused-testing",
     "title": "AB Testing is an Optimization Problem",
     "section": "Mindset Shift: Value-Focused Testing",
-    "text": "Mindset Shift: Value-Focused Testing\nThis paper proposes a mindset shift. Rather than obsess over statistical significance in the search for low p-values, design experiments to maximize value.\nInstead of asking “is this result statistically significant?”, ask “at what point does continuing this test cost more than it returns?”\nThat break-even point is the Optimal Stopping Rule."
+    "text": "Mindset Shift: Value-Focused Testing\nThis paper proposes a mindset shift. Rather than obsess over statistical significance in the search for low p-values, design experiments to maximize value.\nInstead of asking “is this result statistically significant?”, ask “at what point does continuing this test cost more than it returns?”\nThe threshold that answers that question is the Optimal Stopping Rule."
   },
   {
     "objectID": "ab-testing/ab-testing-optimization.html#optimization-curve",

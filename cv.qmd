@@ -7,23 +7,33 @@ toc-depth: 2
 
 ## Skills
 
-I love math, problem solving, and writing Python to help solve those problems. I use _simulation studies_ to build intuition for AB Testing and leverage AI to speed up research and development.
-
-## Goals
-
-Advance experimentation, build tools that make hard problems easy, and teach others. My goal is to lead efforts to scale capabilities — improving apps, libraries, and AI-driven tools.
+I specialize in A/B testing and simulation — using simulation studies to turn complex statistical methods into practical tools: apps, Python libraries, and interactive analyses built to feel intuitive and effortless. Teaching and mentoring are equally central — I've built training programs, led TechTalks, and mentored peers on statistical methods and Python. AI-assisted development has meaningfully raised the pace and quality of everything I ship.
 
 ## Experience
 
 ### Principal Data Scientist · January 2022 – Present
 *Trajectory Changing*
 
-- **Bayesian Analysis**: Introduced fast, business-focused AB Testing
-- **Simulation Engine**: Determine optimal stopping thresholds
-- **AlphaBeta Testing App**: Portal with latest methods (5,000+ views/month)
-- **New Methods**: CUPED, Informed Priors, Simulation Studies, Python Libraries
-- **AI**: Connecting AI assistants to support apps + training GPT to answer questions
-- **Teacher & Mentor**: TechTalks on Bayesian methods; sessions to mentor peers
+- **App Developer**: Built production data apps end-to-end
+    - *AlphaBeta Testing App* — interactive experimentation portal, 5,000+ views/month
+    - *Simulation Engine* — vectorized pipeline to derive optimal experiment stopping thresholds
+- **New Methods**: Introduced modern experimentation techniques
+    - *Stopping & Sensitivity* — Bayesian early stopping, CUPED, Informed Priors
+    - *Data Quality & Tooling* — Always-on SRM detection, custom Python libraries
+- **AI Early Adopter**: Integrated LLMs into production Dash apps via Intuit's GenOS API
+    - *AI Experiment Designer* — conversational AI that guides users through A/B test setup, collecting design parameters and updating app state
+    - *Rapid Prototyping* — shipped apps using Cursor and Claude
+- **Teacher & Mentor**: TechTalks, training programs, peer mentoring, and ongoing Slack support
+- **Centralized Experimentation Platform** <span data-bs-toggle="tooltip" data-bs-placement="top" data-bs-title="Large cross-functional team effort — my contributions include requirements gathering, dashboard prototyping, pipeline specs, and knowledge base design." style="cursor:help; display:inline-flex; align-items:center; justify-content:center; width:17px; height:17px; border-radius:50%; border:1.5px solid #666; color:#666; font-size:0.75rem; font-weight:800; vertical-align:middle; margin-left:3px; position:relative; bottom:3px;">i</span>: Every experiment across the company — registered, reportable, and accessible to all teams — with results feeding into an executive dashboard and a searchable knowledge base for past learnings and new test ideas.
+
+```{=html}
+<script>
+document.addEventListener('DOMContentLoaded', function () {
+  var tooltipEls = document.querySelectorAll('[data-bs-toggle="tooltip"]');
+  tooltipEls.forEach(function (el) { new bootstrap.Tooltip(el); });
+});
+</script>
+```
 
 ### Staff Data Scientist · February 2019 – January 2022
 *Making A Difference*
@@ -61,20 +71,18 @@ Advance experimentation, build tools that make hard problems easy, and teach oth
 
 | Article | Published |
 |---|---|
-| [The Value of Big Swings](ab-testing/big-swings.qmd) | Aug 2025 |
-| [Why Switch to Polars](python/polars-vs-pandas.qmd) | Oct 2025 |
-| [Beta vs Binomial Distribution](ab-testing/beta-vs-binomial.qmd) | Dec 2025 |
+| [AB Testing is an Optimization Problem](ab-testing/ab-testing-optimization.qmd) | Jun 2026 |
 | [The Winner's Curse](ab-testing/winners-curse.qmd) | Jan 2026 |
+| [Beta vs Binomial Distribution](ab-testing/beta-vs-binomial.qmd) | Dec 2025 |
+| [Why Switch to Polars](python/polars-vs-pandas.qmd) | Oct 2025 |
+| [The Value of Big Swings](ab-testing/big-swings.qmd) | Aug 2025 |
 | [Experiment Design & Analysis with NumPy](ab-testing/numpy-experiment-design.qmd) | Feb 2025 |
 | [The Power of Data Simulation](ab-testing/power-of-simulation.qmd) | Nov 2024 |
 
 ## Links
 
 - [ITS Webinar: Going Bayes — Shifting Our Testing Methods](https://rzaliznyak-math.github.io){target="_blank"}
-- [The Value of Big Swings](ab-testing/big-swings.qmd)
-- [Experiment Design & Analysis with NumPy Random](ab-testing/numpy-experiment-design.qmd)
-- [The Power of Data Simulation](ab-testing/power-of-simulation.qmd)
-- [Why Switch to Polars](python/polars-vs-pandas.qmd)
+- [How Intuit Uses Dash Enterprise](https://www.youtube.com/watch?v=IpcTF0UAIVQ){target="_blank"}
 
 ---
 

@@ -16,7 +16,7 @@ css: wider.css
 
 # AB Testing Nightmare: 100 Close Calls
 
-Your organization will run 100 A/B tests next year. In every single one, Treatment outperforms Control in the sample. But the p-value never quite crosses 0.05 — it lands at 0.06, 0.07, 0.08. Close, but not there.
+Your organization will run 100 A/B tests next year. In every single one, treatment outperforms control in the sample. But the p-value never quite crosses 0.05 — it lands at 0.06, 0.07, 0.08. Close, but not there.
 
 Your vaunted stats expert calls it every time: *"Not significant. Keep control."*
 
@@ -28,7 +28,7 @@ Do you abide? Or will you push back?
 
 The purpose of an A/B test, in industry, is straightforward: find the variant that performs better and ship it. More clicks, more conversions, more revenue.
 
-Meanwhile, significance testing was designed with science in mind — a field where false positives are costly and reproducibility depends on tight error control. α caps the false positive rate; β limits false negatives.
+Meanwhile, Significance Testing was designed with science in mind — a field where false positives are costly and reproducibility depends on tight error control. α caps the false positive rate; β limits false negatives.
 
 But neither tells you whether acting on the result is worth it, or the potential magnitude of an error.
 
@@ -38,7 +38,7 @@ This paper proposes a mindset shift. Rather than obsess over statistical signifi
 
 Instead of asking "is this result statistically significant?", ask "at what point does continuing this test cost more than it returns?"
 
-That break-even point is the **Optimal Stopping Rule**.
+The threshold that answers that question is the **Optimal Stopping Rule**.
 
 
 ## Computing the Optimal Stopping Rule
@@ -1772,16 +1772,14 @@ display(HTML(f"""
 The Optimal Stopping algorithm adapts to the signal it sees:
 
 - **Small effects** — the value gap between variants is narrow, so the cost of a wrong call is low. The algorithm rolls out the winner quickly, sacrificing some accuracy for speed.
-- **Large positive effects** — a clear winning condition emerges early. The algorithm stops, exploits the finding, and captures value before a fixed-sample test would even reach significance.
+- **Large positive effects** — a clear winning condition emerges early. The algorithm stops, exploits the finding, and captures value before a Fixed Sample test would even reach significance.
 - **Large negative effects** — harm is detectable fast. The algorithm cuts traffic to the losing variant before it does meaningful damage.
 
 # Conclusion
 
-Fixed Sample Significance Testing optimizes for error control, not revenue. It runs longer than necessary, defaults to control when the data already points elsewhere, and treats a threshold with no connection to long-run value as the decision criterion.
+Stopping rules are arbitrary without context. Fixed Sample Significance Testing borrows a threshold designed for science — not for maximizing revenue. It runs longer than necessary, defaults to control when the data already points elsewhere, and treats a threshold with no connection to long-run value as the decision criterion.
 
-The simulations show the cost. Compared to Fixed Sample Significance Testing (α = 0.05), Optimal Stopping ships the right variant more often, in fewer days, with more conversions over the full rollout window.
-
-Stopping rules are arbitrary without context. The right threshold is derived from your experiment design — baseline conversion, audience size, effect distribution, and rollout size.
+The simulations show the cost. Compared to Fixed Sample Significance Testing (α = 0.05), Optimal Stopping ships the right variant more often, in fewer days, with more conversions over the full rollout window. **The right stopping rule is derived from your experiment design — baseline conversion, audience size, effect distribution, and rollout size. It maximizes expected value, not statistical certainty.**
 
 # Extras: The Optimization Toolkit
 
@@ -1791,7 +1789,7 @@ from IPython.display import display, HTML as _HTML
 display(_HTML(f'<div style="font-size:1.4rem; font-weight:700; color:#1e46a0; margin-bottom:1rem;">⚡ {NUMBER_SIMULATIONS:,} simulated experiments &times; 20 days each &times; two recipes &mdash; {_runtime:.1f}s</div>'))
 ```
 
-To run your own optimization, swap in your experiment parameters — baseline conversion, test N, post-test N, effect distribution — and the pipeline handles the rest.
+To run your own optimization, swap in your experiment parameters — baseline conversion, Max Test N, Post-Test N, effect distribution — and the pipeline handles the rest.
 
 The whole thing is fully vectorized. Every simulation, every day, every threshold is computed as a single set of array operations — no Python for loops anywhere. Under the hood, `simulationengine` uses [Polars](https://pola.rs/) for columnar data transformations and NumPy for the numerical sweep.
 ```{=html}

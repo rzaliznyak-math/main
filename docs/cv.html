@@ -64,6 +64,7 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 <script src="site_libs/quarto-search/fuse.min.js"></script>
 <script src="site_libs/quarto-search/quarto-search.js"></script>
 <meta name="quarto:offset" content="./">
+<link href="./favicon.svg" rel="icon" type="image/svg+xml">
 <script src="site_libs/quarto-html/quarto.js"></script>
 <script src="site_libs/quarto-html/popper.min.js"></script>
 <script src="site_libs/quarto-html/tippy.umd.min.js"></script>
@@ -243,7 +244,6 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
    
   <ul class="collapse">
   <li><a href="#skills" id="toc-skills" class="nav-link active" data-scroll-target="#skills">Skills</a></li>
-  <li><a href="#goals" id="toc-goals" class="nav-link" data-scroll-target="#goals">Goals</a></li>
   <li><a href="#experience" id="toc-experience" class="nav-link" data-scroll-target="#experience">Experience</a></li>
   <li><a href="#education" id="toc-education" class="nav-link" data-scroll-target="#education">Education</a></li>
   <li><a href="#selected-writing" id="toc-selected-writing" class="nav-link" data-scroll-target="#selected-writing">Selected Writing</a></li>
@@ -276,11 +276,7 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 
 <section id="skills" class="level2">
 <h2 class="anchored" data-anchor-id="skills">Skills</h2>
-<p>I love math, problem solving, and writing Python to help solve those problems. I use <em>simulation studies</em> to build intuition for AB Testing and leverage AI to speed up research and development.</p>
-</section>
-<section id="goals" class="level2">
-<h2 class="anchored" data-anchor-id="goals">Goals</h2>
-<p>Advance experimentation, build tools that make hard problems easy, and teach others. My goal is to lead efforts to scale capabilities — improving apps, libraries, and AI-driven tools.</p>
+<p>I specialize in A/B testing and simulation — using simulation studies to turn complex statistical methods into practical tools: apps, Python libraries, and interactive analyses built to feel intuitive and effortless. Teaching and mentoring are equally central — I’ve built training programs, led TechTalks, and mentored peers on statistical methods and Python. AI-assisted development has meaningfully raised the pace and quality of everything I ship.</p>
 </section>
 <section id="experience" class="level2">
 <h2 class="anchored" data-anchor-id="experience">Experience</h2>
@@ -288,13 +284,30 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 <h3 class="anchored" data-anchor-id="principal-data-scientist-january-2022-present">Principal Data Scientist · January 2022 – Present</h3>
 <p><em>Trajectory Changing</em></p>
 <ul>
-<li><strong>Bayesian Analysis</strong>: Introduced fast, business-focused AB Testing</li>
-<li><strong>Simulation Engine</strong>: Determine optimal stopping thresholds</li>
-<li><strong>AlphaBeta Testing App</strong>: Portal with latest methods (5,000+ views/month)</li>
-<li><strong>New Methods</strong>: CUPED, Informed Priors, Simulation Studies, Python Libraries</li>
-<li><strong>AI</strong>: Connecting AI assistants to support apps + training GPT to answer questions</li>
-<li><strong>Teacher &amp; Mentor</strong>: TechTalks on Bayesian methods; sessions to mentor peers</li>
+<li><strong>App Developer</strong>: Built production data apps end-to-end
+<ul>
+<li><em>AlphaBeta Testing App</em> — interactive experimentation portal, 5,000+ views/month</li>
+<li><em>Simulation Engine</em> — vectorized pipeline to derive optimal experiment stopping thresholds</li>
+</ul></li>
+<li><strong>New Methods</strong>: Introduced modern experimentation techniques
+<ul>
+<li><em>Stopping &amp; Sensitivity</em> — Bayesian early stopping, CUPED, Informed Priors</li>
+<li><em>Data Quality &amp; Tooling</em> — Always-on SRM detection, custom Python libraries</li>
+</ul></li>
+<li><strong>AI Early Adopter</strong>: Integrated LLMs into production Dash apps via Intuit’s GenOS API
+<ul>
+<li><em>AI Experiment Designer</em> — conversational AI that guides users through A/B test setup, collecting design parameters and updating app state</li>
+<li><em>Rapid Prototyping</em> — shipped apps using Cursor and Claude</li>
+</ul></li>
+<li><strong>Teacher &amp; Mentor</strong>: TechTalks, training programs, peer mentoring, and ongoing Slack support</li>
+<li><strong>Centralized Experimentation Platform</strong> <span data-bs-toggle="tooltip" data-bs-placement="top" data-bs-title="Large cross-functional team effort — my contributions include requirements gathering, dashboard prototyping, pipeline specs, and knowledge base design." style="cursor:help; display:inline-flex; align-items:center; justify-content:center; width:17px; height:17px; border-radius:50%; border:1.5px solid #666; color:#666; font-size:0.75rem; font-weight:800; vertical-align:middle; margin-left:3px; position:relative; bottom:3px;">i</span>: Every experiment across the company — registered, reportable, and accessible to all teams — with results feeding into an executive dashboard and a searchable knowledge base for past learnings and new test ideas.</li>
 </ul>
+<script>
+document.addEventListener('DOMContentLoaded', function () {
+  var tooltipEls = document.querySelectorAll('[data-bs-toggle="tooltip"]');
+  tooltipEls.forEach(function (el) { new bootstrap.Tooltip(el); });
+});
+</script>
 </section>
 <section id="staff-data-scientist-february-2019-january-2022" class="level3">
 <h3 class="anchored" data-anchor-id="staff-data-scientist-february-2019-january-2022">Staff Data Scientist · February 2019 – January 2022</h3>
@@ -344,26 +357,30 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 </thead>
 <tbody>
 <tr class="odd">
-<td><a href="./ab-testing/big-swings.html">The Value of Big Swings</a></td>
-<td>Aug 2025</td>
-</tr>
-<tr class="even">
-<td><a href="./python/polars-vs-pandas.html">Why Switch to Polars</a></td>
-<td>Oct 2025</td>
-</tr>
-<tr class="odd">
-<td><a href="./ab-testing/beta-vs-binomial.html">Beta vs Binomial Distribution</a></td>
-<td>Dec 2025</td>
+<td><a href="./ab-testing/ab-testing-optimization.html">AB Testing is an Optimization Problem</a></td>
+<td>Jun 2026</td>
 </tr>
 <tr class="even">
 <td><a href="./ab-testing/winners-curse.html">The Winner’s Curse</a></td>
 <td>Jan 2026</td>
 </tr>
 <tr class="odd">
+<td><a href="./ab-testing/beta-vs-binomial.html">Beta vs Binomial Distribution</a></td>
+<td>Dec 2025</td>
+</tr>
+<tr class="even">
+<td><a href="./python/polars-vs-pandas.html">Why Switch to Polars</a></td>
+<td>Oct 2025</td>
+</tr>
+<tr class="odd">
+<td><a href="./ab-testing/big-swings.html">The Value of Big Swings</a></td>
+<td>Aug 2025</td>
+</tr>
+<tr class="even">
 <td><a href="./ab-testing/numpy-experiment-design.html">Experiment Design &amp; Analysis with NumPy</a></td>
 <td>Feb 2025</td>
 </tr>
-<tr class="even">
+<tr class="odd">
 <td><a href="./ab-testing/power-of-simulation.html">The Power of Data Simulation</a></td>
 <td>Nov 2024</td>
 </tr>
@@ -374,10 +391,7 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 <h2 class="anchored" data-anchor-id="links">Links</h2>
 <ul>
 <li><a href="https://rzaliznyak-math.github.io" target="_blank">ITS Webinar: Going Bayes — Shifting Our Testing Methods</a></li>
-<li><a href="./ab-testing/big-swings.html">The Value of Big Swings</a></li>
-<li><a href="./ab-testing/numpy-experiment-design.html">Experiment Design &amp; Analysis with NumPy Random</a></li>
-<li><a href="./ab-testing/power-of-simulation.html">The Power of Data Simulation</a></li>
-<li><a href="./python/polars-vs-pandas.html">Why Switch to Polars</a></li>
+<li><a href="https://www.youtube.com/watch?v=IpcTF0UAIVQ" target="_blank">How Intuit Uses Dash Enterprise</a></li>
 </ul>
 <hr>
 <p><strong>Contact:</strong> <a href="mailto:rzaliznyak@gmail.com">rzaliznyak@gmail.com</a></p>
@@ -1012,78 +1026,86 @@ window.document.addEventListener("DOMContentLoaded", function (event) {
 <span id="cb1-7"><a href="#cb1-7" aria-hidden="true" tabindex="-1"></a></span>
 <span id="cb1-8"><a href="#cb1-8" aria-hidden="true" tabindex="-1"></a><span class="fu">## Skills</span></span>
 <span id="cb1-9"><a href="#cb1-9" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb1-10"><a href="#cb1-10" aria-hidden="true" tabindex="-1"></a>I love math, problem solving, and writing Python to help solve those problems. I use _simulation studies_ to build intuition for AB Testing and leverage AI to speed up research and development.</span>
+<span id="cb1-10"><a href="#cb1-10" aria-hidden="true" tabindex="-1"></a>I specialize in A/B testing and simulation — using simulation studies to turn complex statistical methods into practical tools: apps, Python libraries, and interactive analyses built to feel intuitive and effortless. Teaching and mentoring are equally central — I've built training programs, led TechTalks, and mentored peers on statistical methods and Python. AI-assisted development has meaningfully raised the pace and quality of everything I ship.</span>
 <span id="cb1-11"><a href="#cb1-11" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb1-12"><a href="#cb1-12" aria-hidden="true" tabindex="-1"></a><span class="fu">## Goals</span></span>
+<span id="cb1-12"><a href="#cb1-12" aria-hidden="true" tabindex="-1"></a><span class="fu">## Experience</span></span>
 <span id="cb1-13"><a href="#cb1-13" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb1-14"><a href="#cb1-14" aria-hidden="true" tabindex="-1"></a>Advance experimentation, build tools that make hard problems easy, and teach others. My goal is to lead efforts to scale capabilities — improving apps, libraries, and AI-driven tools.</span>
-<span id="cb1-15"><a href="#cb1-15" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb1-16"><a href="#cb1-16" aria-hidden="true" tabindex="-1"></a><span class="fu">## Experience</span></span>
-<span id="cb1-17"><a href="#cb1-17" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb1-18"><a href="#cb1-18" aria-hidden="true" tabindex="-1"></a><span class="fu">### Principal Data Scientist · January 2022 – Present</span></span>
-<span id="cb1-19"><a href="#cb1-19" aria-hidden="true" tabindex="-1"></a>*Trajectory Changing*</span>
-<span id="cb1-20"><a href="#cb1-20" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb1-21"><a href="#cb1-21" aria-hidden="true" tabindex="-1"></a><span class="ss">- </span>**Bayesian Analysis**: Introduced fast, business-focused AB Testing</span>
-<span id="cb1-22"><a href="#cb1-22" aria-hidden="true" tabindex="-1"></a><span class="ss">- </span>**Simulation Engine**: Determine optimal stopping thresholds</span>
-<span id="cb1-23"><a href="#cb1-23" aria-hidden="true" tabindex="-1"></a><span class="ss">- </span>**AlphaBeta Testing App**: Portal with latest methods (5,000+ views/month)</span>
-<span id="cb1-24"><a href="#cb1-24" aria-hidden="true" tabindex="-1"></a><span class="ss">- </span>**New Methods**: CUPED, Informed Priors, Simulation Studies, Python Libraries</span>
-<span id="cb1-25"><a href="#cb1-25" aria-hidden="true" tabindex="-1"></a><span class="ss">- </span>**AI**: Connecting AI assistants to support apps + training GPT to answer questions</span>
-<span id="cb1-26"><a href="#cb1-26" aria-hidden="true" tabindex="-1"></a><span class="ss">- </span>**Teacher &amp; Mentor**: TechTalks on Bayesian methods; sessions to mentor peers</span>
-<span id="cb1-27"><a href="#cb1-27" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb1-28"><a href="#cb1-28" aria-hidden="true" tabindex="-1"></a><span class="fu">### Staff Data Scientist · February 2019 – January 2022</span></span>
-<span id="cb1-29"><a href="#cb1-29" aria-hidden="true" tabindex="-1"></a>*Making A Difference*</span>
-<span id="cb1-30"><a href="#cb1-30" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb1-31"><a href="#cb1-31" aria-hidden="true" tabindex="-1"></a><span class="ss">- </span>Deployed Interactive FAQ Site: AB Test Fundamentals, MABs, SPRT</span>
-<span id="cb1-32"><a href="#cb1-32" aria-hidden="true" tabindex="-1"></a><span class="ss">- </span>Introduced Sequential Testing &amp; SPRT methods</span>
-<span id="cb1-33"><a href="#cb1-33" aria-hidden="true" tabindex="-1"></a><span class="ss">- </span>Plotly Dash Apps: Sample Size Calculator (Fixed/SPRT) + Experiment Analysis Tools</span>
-<span id="cb1-34"><a href="#cb1-34" aria-hidden="true" tabindex="-1"></a><span class="ss">- </span>Respected Experimentation Lecturer</span>
-<span id="cb1-35"><a href="#cb1-35" aria-hidden="true" tabindex="-1"></a><span class="ss">- </span>Data Engineering &amp; ETL: PySpark jobs to speed up test analysis</span>
-<span id="cb1-36"><a href="#cb1-36" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb1-37"><a href="#cb1-37" aria-hidden="true" tabindex="-1"></a><span class="fu">### Sr. Data Scientist · September 2016 – February 2019</span></span>
-<span id="cb1-38"><a href="#cb1-38" aria-hidden="true" tabindex="-1"></a>*Finding A Niche*</span>
-<span id="cb1-39"><a href="#cb1-39" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb1-40"><a href="#cb1-40" aria-hidden="true" tabindex="-1"></a><span class="ss">- </span>Prototyped Experimentation Training Program for Data Scientists</span>
-<span id="cb1-41"><a href="#cb1-41" aria-hidden="true" tabindex="-1"></a><span class="ss">- </span>Developed Experimentation Playbook &amp; Guides for non-analysts</span>
-<span id="cb1-42"><a href="#cb1-42" aria-hidden="true" tabindex="-1"></a><span class="ss">- </span>Launched App Recommendation Model</span>
-<span id="cb1-43"><a href="#cb1-43" aria-hidden="true" tabindex="-1"></a><span class="ss">- </span>Built Customer Cash Flow Prediction Model</span>
-<span id="cb1-44"><a href="#cb1-44" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb1-45"><a href="#cb1-45" aria-hidden="true" tabindex="-1"></a><span class="fu">### Sr. Technical Data Analyst · September 2013 – September 2016</span></span>
-<span id="cb1-46"><a href="#cb1-46" aria-hidden="true" tabindex="-1"></a>*Learning The Ropes*</span>
-<span id="cb1-47"><a href="#cb1-47" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb1-48"><a href="#cb1-48" aria-hidden="true" tabindex="-1"></a><span class="ss">- </span>Deployed logistic models to predict customer churn; paired with AB tests for outreach</span>
-<span id="cb1-49"><a href="#cb1-49" aria-hidden="true" tabindex="-1"></a><span class="ss">- </span>Built Tableau Dashboards to automate AB Test Design &amp; Analysis</span>
-<span id="cb1-50"><a href="#cb1-50" aria-hidden="true" tabindex="-1"></a><span class="ss">- </span>Exploratory Data Analysis</span>
-<span id="cb1-51"><a href="#cb1-51" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb1-52"><a href="#cb1-52" aria-hidden="true" tabindex="-1"></a><span class="fu">## Education</span></span>
-<span id="cb1-53"><a href="#cb1-53" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb1-54"><a href="#cb1-54" aria-hidden="true" tabindex="-1"></a>**Santa Clara University** — MS, Mathematics · 2010–2013</span>
-<span id="cb1-55"><a href="#cb1-55" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb1-56"><a href="#cb1-56" aria-hidden="true" tabindex="-1"></a>**San Jose State University** — BS, Mathematics · 2005–2008</span>
+<span id="cb1-14"><a href="#cb1-14" aria-hidden="true" tabindex="-1"></a><span class="fu">### Principal Data Scientist · January 2022 – Present</span></span>
+<span id="cb1-15"><a href="#cb1-15" aria-hidden="true" tabindex="-1"></a>*Trajectory Changing*</span>
+<span id="cb1-16"><a href="#cb1-16" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb1-17"><a href="#cb1-17" aria-hidden="true" tabindex="-1"></a><span class="ss">- </span>**App Developer**: Built production data apps end-to-end</span>
+<span id="cb1-18"><a href="#cb1-18" aria-hidden="true" tabindex="-1"></a><span class="ss">    - </span>*AlphaBeta Testing App* — interactive experimentation portal, 5,000+ views/month</span>
+<span id="cb1-19"><a href="#cb1-19" aria-hidden="true" tabindex="-1"></a><span class="ss">    - </span>*Simulation Engine* — vectorized pipeline to derive optimal experiment stopping thresholds</span>
+<span id="cb1-20"><a href="#cb1-20" aria-hidden="true" tabindex="-1"></a><span class="ss">- </span>**New Methods**: Introduced modern experimentation techniques</span>
+<span id="cb1-21"><a href="#cb1-21" aria-hidden="true" tabindex="-1"></a><span class="ss">    - </span>*Stopping &amp; Sensitivity* — Bayesian early stopping, CUPED, Informed Priors</span>
+<span id="cb1-22"><a href="#cb1-22" aria-hidden="true" tabindex="-1"></a><span class="ss">    - </span>*Data Quality &amp; Tooling* — Always-on SRM detection, custom Python libraries</span>
+<span id="cb1-23"><a href="#cb1-23" aria-hidden="true" tabindex="-1"></a><span class="ss">- </span>**AI Early Adopter**: Integrated LLMs into production Dash apps via Intuit's GenOS API</span>
+<span id="cb1-24"><a href="#cb1-24" aria-hidden="true" tabindex="-1"></a><span class="ss">    - </span>*AI Experiment Designer* — conversational AI that guides users through A/B test setup, collecting design parameters and updating app state</span>
+<span id="cb1-25"><a href="#cb1-25" aria-hidden="true" tabindex="-1"></a><span class="ss">    - </span>*Rapid Prototyping* — shipped apps using Cursor and Claude</span>
+<span id="cb1-26"><a href="#cb1-26" aria-hidden="true" tabindex="-1"></a><span class="ss">- </span>**Teacher &amp; Mentor**: TechTalks, training programs, peer mentoring, and ongoing Slack support</span>
+<span id="cb1-27"><a href="#cb1-27" aria-hidden="true" tabindex="-1"></a><span class="ss">- </span>**Centralized Experimentation Platform** &lt;span data-bs-toggle="tooltip" data-bs-placement="top" data-bs-title="Large cross-functional team effort — my contributions include requirements gathering, dashboard prototyping, pipeline specs, and knowledge base design." style="cursor:help; display:inline-flex; align-items:center; justify-content:center; width:17px; height:17px; border-radius:50%; border:1.5px solid #666; color:#666; font-size:0.75rem; font-weight:800; vertical-align:middle; margin-left:3px; position:relative; bottom:3px;"&gt;i&lt;/span&gt;: Every experiment across the company — registered, reportable, and accessible to all teams — with results feeding into an executive dashboard and a searchable knowledge base for past learnings and new test ideas.</span>
+<span id="cb1-28"><a href="#cb1-28" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb1-29"><a href="#cb1-29" aria-hidden="true" tabindex="-1"></a><span class="in">```{=html}</span></span>
+<span id="cb1-30"><a href="#cb1-30" aria-hidden="true" tabindex="-1"></a><span class="in">&lt;script&gt;</span></span>
+<span id="cb1-31"><a href="#cb1-31" aria-hidden="true" tabindex="-1"></a><span class="in">document.addEventListener('DOMContentLoaded', function () {</span></span>
+<span id="cb1-32"><a href="#cb1-32" aria-hidden="true" tabindex="-1"></a><span class="in">  var tooltipEls = document.querySelectorAll('[data-bs-toggle="tooltip"]');</span></span>
+<span id="cb1-33"><a href="#cb1-33" aria-hidden="true" tabindex="-1"></a><span class="in">  tooltipEls.forEach(function (el) { new bootstrap.Tooltip(el); });</span></span>
+<span id="cb1-34"><a href="#cb1-34" aria-hidden="true" tabindex="-1"></a><span class="in">});</span></span>
+<span id="cb1-35"><a href="#cb1-35" aria-hidden="true" tabindex="-1"></a><span class="in">&lt;/script&gt;</span></span>
+<span id="cb1-36"><a href="#cb1-36" aria-hidden="true" tabindex="-1"></a><span class="in">```</span></span>
+<span id="cb1-37"><a href="#cb1-37" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb1-38"><a href="#cb1-38" aria-hidden="true" tabindex="-1"></a><span class="fu">### Staff Data Scientist · February 2019 – January 2022</span></span>
+<span id="cb1-39"><a href="#cb1-39" aria-hidden="true" tabindex="-1"></a>*Making A Difference*</span>
+<span id="cb1-40"><a href="#cb1-40" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb1-41"><a href="#cb1-41" aria-hidden="true" tabindex="-1"></a><span class="ss">- </span>Deployed Interactive FAQ Site: AB Test Fundamentals, MABs, SPRT</span>
+<span id="cb1-42"><a href="#cb1-42" aria-hidden="true" tabindex="-1"></a><span class="ss">- </span>Introduced Sequential Testing &amp; SPRT methods</span>
+<span id="cb1-43"><a href="#cb1-43" aria-hidden="true" tabindex="-1"></a><span class="ss">- </span>Plotly Dash Apps: Sample Size Calculator (Fixed/SPRT) + Experiment Analysis Tools</span>
+<span id="cb1-44"><a href="#cb1-44" aria-hidden="true" tabindex="-1"></a><span class="ss">- </span>Respected Experimentation Lecturer</span>
+<span id="cb1-45"><a href="#cb1-45" aria-hidden="true" tabindex="-1"></a><span class="ss">- </span>Data Engineering &amp; ETL: PySpark jobs to speed up test analysis</span>
+<span id="cb1-46"><a href="#cb1-46" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb1-47"><a href="#cb1-47" aria-hidden="true" tabindex="-1"></a><span class="fu">### Sr. Data Scientist · September 2016 – February 2019</span></span>
+<span id="cb1-48"><a href="#cb1-48" aria-hidden="true" tabindex="-1"></a>*Finding A Niche*</span>
+<span id="cb1-49"><a href="#cb1-49" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb1-50"><a href="#cb1-50" aria-hidden="true" tabindex="-1"></a><span class="ss">- </span>Prototyped Experimentation Training Program for Data Scientists</span>
+<span id="cb1-51"><a href="#cb1-51" aria-hidden="true" tabindex="-1"></a><span class="ss">- </span>Developed Experimentation Playbook &amp; Guides for non-analysts</span>
+<span id="cb1-52"><a href="#cb1-52" aria-hidden="true" tabindex="-1"></a><span class="ss">- </span>Launched App Recommendation Model</span>
+<span id="cb1-53"><a href="#cb1-53" aria-hidden="true" tabindex="-1"></a><span class="ss">- </span>Built Customer Cash Flow Prediction Model</span>
+<span id="cb1-54"><a href="#cb1-54" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb1-55"><a href="#cb1-55" aria-hidden="true" tabindex="-1"></a><span class="fu">### Sr. Technical Data Analyst · September 2013 – September 2016</span></span>
+<span id="cb1-56"><a href="#cb1-56" aria-hidden="true" tabindex="-1"></a>*Learning The Ropes*</span>
 <span id="cb1-57"><a href="#cb1-57" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb1-58"><a href="#cb1-58" aria-hidden="true" tabindex="-1"></a>**Santa Clara University** — BS, Finance · 2003–2005</span>
-<span id="cb1-59"><a href="#cb1-59" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb1-60"><a href="#cb1-60" aria-hidden="true" tabindex="-1"></a><span class="fu">## Selected Writing</span></span>
+<span id="cb1-58"><a href="#cb1-58" aria-hidden="true" tabindex="-1"></a><span class="ss">- </span>Deployed logistic models to predict customer churn; paired with AB tests for outreach</span>
+<span id="cb1-59"><a href="#cb1-59" aria-hidden="true" tabindex="-1"></a><span class="ss">- </span>Built Tableau Dashboards to automate AB Test Design &amp; Analysis</span>
+<span id="cb1-60"><a href="#cb1-60" aria-hidden="true" tabindex="-1"></a><span class="ss">- </span>Exploratory Data Analysis</span>
 <span id="cb1-61"><a href="#cb1-61" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb1-62"><a href="#cb1-62" aria-hidden="true" tabindex="-1"></a>| Article | Published |</span>
-<span id="cb1-63"><a href="#cb1-63" aria-hidden="true" tabindex="-1"></a>|---|---|</span>
-<span id="cb1-64"><a href="#cb1-64" aria-hidden="true" tabindex="-1"></a>| <span class="co">[</span><span class="ot">The Value of Big Swings</span><span class="co">](ab-testing/big-swings.qmd)</span> | Aug 2025 |</span>
-<span id="cb1-65"><a href="#cb1-65" aria-hidden="true" tabindex="-1"></a>| <span class="co">[</span><span class="ot">Why Switch to Polars</span><span class="co">](python/polars-vs-pandas.qmd)</span> | Oct 2025 |</span>
-<span id="cb1-66"><a href="#cb1-66" aria-hidden="true" tabindex="-1"></a>| <span class="co">[</span><span class="ot">Beta vs Binomial Distribution</span><span class="co">](ab-testing/beta-vs-binomial.qmd)</span> | Dec 2025 |</span>
-<span id="cb1-67"><a href="#cb1-67" aria-hidden="true" tabindex="-1"></a>| <span class="co">[</span><span class="ot">The Winner's Curse</span><span class="co">](ab-testing/winners-curse.qmd)</span> | Jan 2026 |</span>
-<span id="cb1-68"><a href="#cb1-68" aria-hidden="true" tabindex="-1"></a>| <span class="co">[</span><span class="ot">Experiment Design &amp; Analysis with NumPy</span><span class="co">](ab-testing/numpy-experiment-design.qmd)</span> | Feb 2025 |</span>
-<span id="cb1-69"><a href="#cb1-69" aria-hidden="true" tabindex="-1"></a>| <span class="co">[</span><span class="ot">The Power of Data Simulation</span><span class="co">](ab-testing/power-of-simulation.qmd)</span> | Nov 2024 |</span>
-<span id="cb1-70"><a href="#cb1-70" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb1-71"><a href="#cb1-71" aria-hidden="true" tabindex="-1"></a><span class="fu">## Links</span></span>
-<span id="cb1-72"><a href="#cb1-72" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb1-73"><a href="#cb1-73" aria-hidden="true" tabindex="-1"></a><span class="ss">- </span><span class="co">[</span><span class="ot">ITS Webinar: Going Bayes — Shifting Our Testing Methods</span><span class="co">](https://rzaliznyak-math.github.io)</span>{target="_blank"}</span>
-<span id="cb1-74"><a href="#cb1-74" aria-hidden="true" tabindex="-1"></a><span class="ss">- </span><span class="co">[</span><span class="ot">The Value of Big Swings</span><span class="co">](ab-testing/big-swings.qmd)</span></span>
-<span id="cb1-75"><a href="#cb1-75" aria-hidden="true" tabindex="-1"></a><span class="ss">- </span><span class="co">[</span><span class="ot">Experiment Design &amp; Analysis with NumPy Random</span><span class="co">](ab-testing/numpy-experiment-design.qmd)</span></span>
-<span id="cb1-76"><a href="#cb1-76" aria-hidden="true" tabindex="-1"></a><span class="ss">- </span><span class="co">[</span><span class="ot">The Power of Data Simulation</span><span class="co">](ab-testing/power-of-simulation.qmd)</span></span>
-<span id="cb1-77"><a href="#cb1-77" aria-hidden="true" tabindex="-1"></a><span class="ss">- </span><span class="co">[</span><span class="ot">Why Switch to Polars</span><span class="co">](python/polars-vs-pandas.qmd)</span></span>
-<span id="cb1-78"><a href="#cb1-78" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb1-79"><a href="#cb1-79" aria-hidden="true" tabindex="-1"></a>---</span>
-<span id="cb1-80"><a href="#cb1-80" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb1-81"><a href="#cb1-81" aria-hidden="true" tabindex="-1"></a>**Contact:** <span class="co">[</span><span class="ot">rzaliznyak@gmail.com</span><span class="co">](mailto:rzaliznyak@gmail.com)</span></span></code><button title="Copy to Clipboard" class="code-copy-button" data-in-quarto-modal=""><i class="bi"></i></button></pre></div>
+<span id="cb1-62"><a href="#cb1-62" aria-hidden="true" tabindex="-1"></a><span class="fu">## Education</span></span>
+<span id="cb1-63"><a href="#cb1-63" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb1-64"><a href="#cb1-64" aria-hidden="true" tabindex="-1"></a>**Santa Clara University** — MS, Mathematics · 2010–2013</span>
+<span id="cb1-65"><a href="#cb1-65" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb1-66"><a href="#cb1-66" aria-hidden="true" tabindex="-1"></a>**San Jose State University** — BS, Mathematics · 2005–2008</span>
+<span id="cb1-67"><a href="#cb1-67" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb1-68"><a href="#cb1-68" aria-hidden="true" tabindex="-1"></a>**Santa Clara University** — BS, Finance · 2003–2005</span>
+<span id="cb1-69"><a href="#cb1-69" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb1-70"><a href="#cb1-70" aria-hidden="true" tabindex="-1"></a><span class="fu">## Selected Writing</span></span>
+<span id="cb1-71"><a href="#cb1-71" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb1-72"><a href="#cb1-72" aria-hidden="true" tabindex="-1"></a>| Article | Published |</span>
+<span id="cb1-73"><a href="#cb1-73" aria-hidden="true" tabindex="-1"></a>|---|---|</span>
+<span id="cb1-74"><a href="#cb1-74" aria-hidden="true" tabindex="-1"></a>| <span class="co">[</span><span class="ot">AB Testing is an Optimization Problem</span><span class="co">](ab-testing/ab-testing-optimization.qmd)</span> | Jun 2026 |</span>
+<span id="cb1-75"><a href="#cb1-75" aria-hidden="true" tabindex="-1"></a>| <span class="co">[</span><span class="ot">The Winner's Curse</span><span class="co">](ab-testing/winners-curse.qmd)</span> | Jan 2026 |</span>
+<span id="cb1-76"><a href="#cb1-76" aria-hidden="true" tabindex="-1"></a>| <span class="co">[</span><span class="ot">Beta vs Binomial Distribution</span><span class="co">](ab-testing/beta-vs-binomial.qmd)</span> | Dec 2025 |</span>
+<span id="cb1-77"><a href="#cb1-77" aria-hidden="true" tabindex="-1"></a>| <span class="co">[</span><span class="ot">Why Switch to Polars</span><span class="co">](python/polars-vs-pandas.qmd)</span> | Oct 2025 |</span>
+<span id="cb1-78"><a href="#cb1-78" aria-hidden="true" tabindex="-1"></a>| <span class="co">[</span><span class="ot">The Value of Big Swings</span><span class="co">](ab-testing/big-swings.qmd)</span> | Aug 2025 |</span>
+<span id="cb1-79"><a href="#cb1-79" aria-hidden="true" tabindex="-1"></a>| <span class="co">[</span><span class="ot">Experiment Design &amp; Analysis with NumPy</span><span class="co">](ab-testing/numpy-experiment-design.qmd)</span> | Feb 2025 |</span>
+<span id="cb1-80"><a href="#cb1-80" aria-hidden="true" tabindex="-1"></a>| <span class="co">[</span><span class="ot">The Power of Data Simulation</span><span class="co">](ab-testing/power-of-simulation.qmd)</span> | Nov 2024 |</span>
+<span id="cb1-81"><a href="#cb1-81" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb1-82"><a href="#cb1-82" aria-hidden="true" tabindex="-1"></a><span class="fu">## Links</span></span>
+<span id="cb1-83"><a href="#cb1-83" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb1-84"><a href="#cb1-84" aria-hidden="true" tabindex="-1"></a><span class="ss">- </span><span class="co">[</span><span class="ot">ITS Webinar: Going Bayes — Shifting Our Testing Methods</span><span class="co">](https://rzaliznyak-math.github.io)</span>{target="_blank"}</span>
+<span id="cb1-85"><a href="#cb1-85" aria-hidden="true" tabindex="-1"></a><span class="ss">- </span><span class="co">[</span><span class="ot">How Intuit Uses Dash Enterprise</span><span class="co">](https://www.youtube.com/watch?v=IpcTF0UAIVQ)</span>{target="_blank"}</span>
+<span id="cb1-86"><a href="#cb1-86" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb1-87"><a href="#cb1-87" aria-hidden="true" tabindex="-1"></a>---</span>
+<span id="cb1-88"><a href="#cb1-88" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb1-89"><a href="#cb1-89" aria-hidden="true" tabindex="-1"></a>**Contact:** <span class="co">[</span><span class="ot">rzaliznyak@gmail.com</span><span class="co">](mailto:rzaliznyak@gmail.com)</span></span></code><button title="Copy to Clipboard" class="code-copy-button" data-in-quarto-modal=""><i class="bi"></i></button></pre></div>
 </div></div></div></div></div>
 </div> <!-- /content -->
 <footer class="footer">
