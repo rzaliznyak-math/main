@@ -4,14 +4,14 @@
     "href": "cv.html",
     "title": "Russ Zaliznyak",
     "section": "",
-    "text": "I specialize in A/B testing and simulation — using simulation studies to turn complex statistical methods into practical tools: apps, Python libraries, and interactive analyses built to feel intuitive and effortless. Teaching and mentoring are equally central — I’ve built training programs, led TechTalks, and mentored peers on statistical methods and Python. AI-assisted development has meaningfully raised the pace and quality of everything I ship."
+    "text": "🌐 Technical Website: rzaliznyak-math.github.io/main"
   },
   {
     "objectID": "cv.html#skills",
     "href": "cv.html#skills",
     "title": "Russ Zaliznyak",
-    "section": "",
-    "text": "I specialize in A/B testing and simulation — using simulation studies to turn complex statistical methods into practical tools: apps, Python libraries, and interactive analyses built to feel intuitive and effortless. Teaching and mentoring are equally central — I’ve built training programs, led TechTalks, and mentored peers on statistical methods and Python. AI-assisted development has meaningfully raised the pace and quality of everything I ship."
+    "section": "Skills",
+    "text": "Skills\nI specialize in A/B testing and simulation — using simulation studies to turn complex statistical methods into practical tools: apps, Python libraries, and interactive analyses built to feel intuitive and effortless. Teaching and mentoring are equally central — I’ve built training programs, led TechTalks, and mentored peers on statistical methods and Python. AI-assisted development has meaningfully raised the pace and quality of everything I ship."
   },
   {
     "objectID": "cv.html#goals",
@@ -46,7 +46,7 @@
     "href": "cv.html#links",
     "title": "Russ Zaliznyak",
     "section": "Links",
-    "text": "Links\n\nITS Webinar: Going Bayes — Shifting Our Testing Methods\nHow Intuit Uses Dash Enterprise\n\n\nContact: rzaliznyak@gmail.com"
+    "text": "Links\n\nrzaliznyak-math.github.io\nITS Webinar: Going Bayes — Shifting Our Testing Methods\nHow Intuit Uses Dash Enterprise\n\n\nContact: rzaliznyak@gmail.com"
   },
   {
     "objectID": "talks/index.html",

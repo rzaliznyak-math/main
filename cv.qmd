@@ -5,6 +5,8 @@ toc: true
 toc-depth: 2
 ---
 
+<div style="margin-top:-1.2rem; margin-bottom:1.5rem; font-size:0.95rem;">🌐 <strong>Technical Website:</strong> <a href="https://rzaliznyak-math.github.io/main/" target="_blank">rzaliznyak-math.github.io/main</a></div>
+
 ## Skills
 
 I specialize in A/B testing and simulation — using simulation studies to turn complex statistical methods into practical tools: apps, Python libraries, and interactive analyses built to feel intuitive and effortless. Teaching and mentoring are equally central — I've built training programs, led TechTalks, and mentored peers on statistical methods and Python. AI-assisted development has meaningfully raised the pace and quality of everything I ship.
@@ -81,6 +83,7 @@ document.addEventListener('DOMContentLoaded', function () {
 
 ## Links
 
+- [rzaliznyak-math.github.io](https://rzaliznyak-math.github.io/main/){target="_blank"}
 - [ITS Webinar: Going Bayes — Shifting Our Testing Methods](https://rzaliznyak-math.github.io){target="_blank"}
 - [How Intuit Uses Dash Enterprise](https://www.youtube.com/watch?v=IpcTF0UAIVQ){target="_blank"}
 
