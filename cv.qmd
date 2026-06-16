@@ -13,7 +13,7 @@ I specialize in A/B testing and simulation — using simulation studies to turn 
 
 ## Experience
 
-### Principal Data Scientist · January 2022 – Present
+### Principal Data Scientist · Intuit · January 2022 – Present
 *Trajectory Changing*
 
 - **App Developer**: Built production data apps end-to-end
@@ -37,7 +37,7 @@ document.addEventListener('DOMContentLoaded', function () {
 </script>
 ```
 
-### Staff Data Scientist · February 2019 – January 2022
+### Staff Data Scientist · Intuit · February 2019 – January 2022
 *Making A Difference*
 
 - Deployed Interactive FAQ Site: AB Test Fundamentals, MABs, SPRT
@@ -46,7 +46,7 @@ document.addEventListener('DOMContentLoaded', function () {
 - Respected Experimentation Lecturer
 - Data Engineering & ETL: PySpark jobs to speed up test analysis
 
-### Sr. Data Scientist · September 2016 – February 2019
+### Sr. Data Scientist · Intuit · September 2016 – February 2019
 *Finding A Niche*
 
 - Prototyped Experimentation Training Program for Data Scientists
@@ -54,7 +54,7 @@ document.addEventListener('DOMContentLoaded', function () {
 - Launched App Recommendation Model
 - Built Customer Cash Flow Prediction Model
 
-### Sr. Technical Data Analyst · September 2013 – September 2016
+### Sr. Technical Data Analyst · Intuit · September 2013 – September 2016
 *Learning The Ropes*
 
 - Deployed logistic models to predict customer churn; paired with AB tests for outreach
