@@ -83,7 +83,6 @@ document.addEventListener('DOMContentLoaded', function () {
 
 ## Links
 
-- [rzaliznyak-math.github.io](https://rzaliznyak-math.github.io/main/){target="_blank"}
 - [ITS Webinar: Going Bayes — Shifting Our Testing Methods](https://rzaliznyak-math.github.io){target="_blank"}
 - [How Intuit Uses Dash Enterprise](https://www.youtube.com/watch?v=IpcTF0UAIVQ){target="_blank"}
 
