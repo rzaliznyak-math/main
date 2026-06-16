@@ -1,7 +1,9 @@
 ---
 title: "AB Testing is an Optimization Problem"
 subtitle: "Significance Testing is Costing You Revenue"
-author: "Russ Zaliznyak"
+author:
+  - "Russ Zaliznyak"
+  - "Joseph Powers, PhD"
 date: "2026-06-15"
 categories: [AB Testing, Bayesian, Decision Theory, Optimization]
 page-layout: full
@@ -20,11 +22,11 @@ Your vaunted stats expert calls it every time: *"Not significant. Keep control."
 
 Do you abide? Or will you push back?
 
-100 tests. 100 times, the data points toward the treatment. 100 times, you shipped nothing. The cost of that policy — across a year, across a product --- how much revenue have you sacrificed in the name of statistical purity?
+100 tests. 100 times, the data points toward the treatment. 100 times, you shipped nothing. The cost of that policy — across a year, across a product — how much revenue have you sacrificed in the name of statistical purity?
 
 # Why Are We AB Testing?
 
-The purpose of an AB test, in industry, is straightforward: find the variant that performs better and ship it. More clicks, more conversions, more revenue.
+The purpose of an A/B test, in industry, is straightforward: find the variant that performs better and ship it. More clicks, more conversions, more revenue.
 
 Meanwhile, significance testing was designed with science in mind — a field where false positives are costly and reproducibility depends on tight error control. α caps the false positive rate; β limits false negatives.
 
@@ -47,15 +49,15 @@ Instead of fixing α, β, and a single — often unrealistic — Minimum Detecta
 - **`Post-Test N`** — the audience that sees the winner after the test ends
 - **`Treatment Effects`** — drawn from a realistic distribution, not a single fixed point
 
-With those inputs fixed, we simulate 100,000 experiments — each drawing a treatment effect from the distribution, running the test, and evaluating every possible stopping threshold. We pick the one that maximizes long-run value across all simulations.
+With those inputs fixed, we simulate 100,000 experiments — each drawing a different treatment effect, running the test, and evaluating every possible stopping threshold. We pick the one that maximizes average long-run value across all simulations.
 
 # Why Use Simulations?
 
-Simulations give us something no real experiment can: a ground truth to judge against. In practice, we never know the true effect — except in our simulations, where we encode it. Each draw is different, modeling the full range of experiments a team might actually run: large effects, small effects, null effects, and genuinely positive treatments that look like losers in the sample. We measure which stopping rule performs best across all of it — without knowing the true effect in advance, just as in a real experiment.
+Simulations give us something no real experiment can: a ground truth to judge against. In practice, we never know the true effect — except in our simulations, where we encode it. Each draw is different, modeling the full range of experiments a team might actually run: large effects, small effects, null effects, and genuinely positive treatments that look like losers in the sample by chance. We measure which stopping rule performs best across all of it — without knowing the true effect in advance, just as in a real experiment.
 
 ## Define Experiment Parameters
 
-These parameters define your experiment — baseline conversion, test size, post-test audience, and expected treatment effects — and directly determine the optimal stopping threshold. Click any to learn more.
+These parameters define your experiment — baseline conversion, expected treatment effects, test traffic, and post-test audience — and directly determine the optimal stopping threshold. Click any to learn more.
 
 ```{=html}
 <div class="stopping-factors-ui mt-3 mb-4">
@@ -926,15 +928,15 @@ The same simulated data is evaluated under 50 different stopping rules — Pr(Be
 1. **Burn-in:** No stopping before day `min_test_days = 7`
 2. **Daily check:** If either variant's Pr(Best) crosses the threshold, the experiment stops.
 3. **Rollout:** The winning variant is deployed to all remaining test users and the post-test audience.
-4. **Score:** Record the long-run value produced
+4. **Score:** Record the long-run value produced.
 
-The threshold with the highest average score across all simulations is the optimal stopping rule.
+The threshold with the highest average score across all simulations is the Optimal Stopping Rule.
 
 ```{=html}
 <div class="mt-2 mb-3" id="simstats-accordion-wrap">
   <div class="accordion-item" style="border: 1.5px dashed #90b8e0; border-radius: 6px; background: #f0f6fd; margin-bottom: 0;" id="simstats-accordion-header">
     <div class="accordion-header" style="margin:0;">
-      <button class="accordion-button collapsed px-3 shadow-none"
+      <button class="accordion-button px-3 shadow-none"
               id="simstats-accordion-btn"
               style="font-size:0.9rem; font-weight:600; color:#1e46a0; background:transparent; min-height:0; height:auto; width:100%; display:flex; align-items:center; padding-top:0.5rem; padding-bottom:0.5rem; flex-wrap:wrap;"
               type="button" data-bs-toggle="collapse"
@@ -946,7 +948,7 @@ The threshold with the highest average score across all simulations is the optim
       </button>
     </div>
   </div>
-  <div id="simstats-collapse" class="collapse" style="border: 1.5px dashed #90b8e0; border-top: none; border-radius: 0 0 6px 6px; padding: 1rem; background: #fff;">
+  <div id="simstats-collapse" class="collapse show" style="border: 1.5px dashed #90b8e0; border-top: none; border-radius: 0 0 6px 6px; padding: 1rem; background: #fff;">
     <table style="width:100%; font-size:0.9rem; border-collapse:collapse;">
       <colgroup>
         <col style="width:22%;">
@@ -1002,7 +1004,7 @@ The threshold with the highest average score across all simulations is the optim
 
 ## Optimization Curve
 
-We swept every Pr(Best) threshold from 0.50 to 0.99. For each, we applied that stopping rule to all `{python} f"{NUMBER_SIMULATIONS:,}"` experiments — each drawing a different true effect, known only to us — and recorded the long-run value produced across test traffic and the full post-test rollout. The curve plots the average across all simulations. The peak is the threshold that maximizes expected value.
+We swept every Pr(Best) threshold from 0.50 to 0.99. For each, we applied that stopping rule to all `{python} f"{NUMBER_SIMULATIONS:,}"` experiments — each drawing a different true effect, known only to us — and recorded the average long-run value produced across test traffic and the full post-test rollout. The curve plots the average across all simulations. The peak is the threshold that maximizes expected value.
 
 ```{python}
 #| echo: false
@@ -1655,8 +1657,8 @@ Post-Test N is the audience that sees the winning variant after the experiment e
                 title: { text: '— click to show/hide —', font: { size: 11, color: '#555' }, side: 'top' },
                 bordercolor: '#999', borderwidth: 1.5,
                 bgcolor: 'white' },
-      margin: { t: 20, b: 100, l: isAlpha ? 55 : (isDays ? 55 : 75), r: (isAlpha || isDays) ? 55 : 15 },
-      height: 340, paper_bgcolor: 'white', plot_bgcolor: 'white',
+      margin: { t: 20, b: 60, l: isAlpha ? 55 : (isDays ? 55 : 75), r: (isAlpha || isDays) ? 55 : 15 },
+      height: 320, paper_bgcolor: 'white', plot_bgcolor: 'white',
       hoverlabel: { font: { size: 16, color: 'white' } }
     }, { responsive: true, displayModeBar: false });
   }
@@ -1742,7 +1744,7 @@ Post-Test N is the audience that sees the winning variant after the experiment e
 
 # Optimal Stopping vs Significance: A Comparison
 
-The same 100,000 simulated experiments — evaluated under Optimal Stopping and Fixed Sample significance testing. Neither strategy had access to the true effect we encoded. They only saw what any real analyst sees: the data as it accumulated. The only difference was the decision rule.
+The same 100,000 simulated experiments — evaluated under Optimal Stopping and Fixed Sample Significance Testing. Neither strategy had access to the true effect we encoded. They only saw what any real analyst sees: the data as it accumulated.
 
 <div id="wif-stats1" style="margin-top:0.25rem;"></div>
 
@@ -1775,16 +1777,18 @@ The Optimal Stopping algorithm adapts to the signal it sees:
 
 # Conclusion
 
-Significance testing optimizes for error control, not revenue. It runs longer than necessary, defaults to control when the data already points elsewhere, and treats a threshold with no connection to long-run value as the decision criterion.
+Fixed Sample Significance Testing optimizes for error control, not revenue. It runs longer than necessary, defaults to control when the data already points elsewhere, and treats a threshold with no connection to long-run value as the decision criterion.
 
-The simulations show the cost. Compared to conventional significance testing (α = 0.05), Optimal Stopping ships the right variant more often, in fewer days, with more conversions over the full rollout window. **The right stopping rule maximizes expected value, not statistical certainty.**
+The simulations show the cost. Compared to Fixed Sample Significance Testing (α = 0.05), Optimal Stopping ships the right variant more often, in fewer days, with more conversions over the full rollout window.
+
+Stopping rules are arbitrary without context. The right threshold is derived from your experiment design — baseline conversion, audience size, effect distribution, and rollout size.
 
 # Extras: The Optimization Toolkit
 
 ```{python}
 #| echo: false
 from IPython.display import display, HTML as _HTML
-display(_HTML(f'<div style="font-size:1.4rem; font-weight:700; color:#1e46a0; margin-bottom:1rem;">⚡ {NUMBER_SIMULATIONS:,} simulations &times; 20 days &times; 2 conditions &mdash; {_runtime:.1f}s</div>'))
+display(_HTML(f'<div style="font-size:1.4rem; font-weight:700; color:#1e46a0; margin-bottom:1rem;">⚡ {NUMBER_SIMULATIONS:,} simulated experiments &times; 20 days each &times; two recipes &mdash; {_runtime:.1f}s</div>'))
 ```
 
 To run your own optimization, swap in your experiment parameters — baseline conversion, test N, post-test N, effect distribution — and the pipeline handles the rest.
@@ -2411,4 +2415,4 @@ def evaluate_probability_thresholds(
 
 1. The idea of designing experiments for value rather than significance is inspired by [Test & Roll: Profit-Maximizing A/B Tests](https://ron-berman.com/2020/01/26/test-and-roll/) by Ron Berman and Elea McDonnell Feit. Their core insight: for tactical experiments, the cost of a wrong call on a small effect is negligible — the cost of oversizing the test to satisfy α is not. This paper extends that spirit by making the stopping rule, not the sample size, the optimization target.
 
-2. My colleague [Joseph Powers, PhD](https://www.linkedin.com/in/joseph-t-powers/), introduced me to the idea that A/B testing is an optimization problem and fundamentally changed how I approach experimentation. He showed me the power of simulation studies for building real intuition — not just running tests. A generous mentor and an invaluable teammate.
+2. My colleague [Joseph Powers, PhD](https://www.linkedin.com/in/joseph-t-powers/) introduced me to the idea that A/B testing is an optimization problem and fundamentally changed how I approach experimentation. He showed me the power of simulation studies for building real intuition — not just running tests. A generous mentor and an invaluable teammate.
