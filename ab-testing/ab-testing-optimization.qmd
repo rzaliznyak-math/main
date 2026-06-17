@@ -1,19 +1,20 @@
 ---
 title: "AB Testing is an Optimization Problem"
-subtitle: "Significance Testing is Costing You Revenue"
 author:
   - "Russ Zaliznyak"
   - "Joseph Powers, PhD"
-date: "2026-06-15"
+date: "2026-06-16"
+subtitle: "Significance Testing is costing you revenue."
+image: "assets/optimization.png"
 categories: [AB Testing, Bayesian, Decision Theory, Optimization]
+open-graph:
+  description: "Significance Testing is costing you revenue. We ran 100,000 simulations to find a better stopping rule — one built around your experiment, not a statistics textbook."
 page-layout: full
 jupyter: py311
 execute:
   echo: false
 css: wider.css
 ---
-
-![](assets/optimization.png){width="100%"}
 
 # AB Testing Nightmare: 100 Close Calls
 
