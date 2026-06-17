@@ -13,6 +13,7 @@ execute:
 css: wider.css
 ---
 
+![](assets/optimization.png){width="100%"}
 
 # AB Testing Nightmare: 100 Close Calls
 
