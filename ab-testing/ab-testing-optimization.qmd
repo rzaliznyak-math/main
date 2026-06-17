@@ -3,10 +3,10 @@ title: "AB Testing is an Optimization Problem"
 author:
   - "Russ Zaliznyak"
   - "Joseph Powers, PhD"
-date: "2026-06-16"
+date: "2026-06-17"
 subtitle: "Significance Testing is costing you revenue."
 image: "assets/optimization.png"
-categories: [AB Testing, Bayesian, Decision Theory, Optimization]
+categories: [AB Testing, Bayesian, Optimization, Simulation, Experimentation]
 open-graph:
   description: "Significance Testing is costing you revenue!"
 page-layout: full
